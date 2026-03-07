@@ -14,6 +14,9 @@ class BaseField(ABC):
 class FieldCollector:
     fields: list[BaseField]
 
+    def extend(self, collector: FieldCollector):
+        self.fields.extend(collector.fields)
+
     def __len__(self) -> int:
         return len(self.fields)
 
