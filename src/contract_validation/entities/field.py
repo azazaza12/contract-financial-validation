@@ -85,17 +85,17 @@ class AdvancePaymentValue(AmountWithVatValue):
 
 @dataclass(kw_only=True, frozen=True)
 class AdvancePaymentsField(BaseField[list[AdvancePaymentValue]]):
-    value: list[AdvancePaymentValue]
+    pass
 
 
 @dataclass(kw_only=True, frozen=True)
 class VatBreakdownField(BaseField[list[AmountWithVatValue]]):
-    value: list[AmountWithVatValue]
+    pass
 
 
 @dataclass(kw_only=True, frozen=True)
 class VatOnlyBreakdownField(BaseField[list[VatValue]]):
-    value: list[VatValue]
+    pass
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -108,5 +108,5 @@ class SpecPositionValue:
 
 @dataclass(kw_only=True, frozen=True)
 class SpecPositionsField(BaseField[dict[str, SpecPositionValue]]):
-    value: dict[str, SpecPositionValue]
+    pass
 
