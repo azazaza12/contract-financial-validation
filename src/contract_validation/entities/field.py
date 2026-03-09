@@ -6,10 +6,9 @@ from app.domain.entities.document import BaseDocument
 
 
 @dataclass(kw_only=True, frozen=True)
-class BaseField(ABC):
-    value: str
+class BaseField[T](ABC):
+    value: T
     document: BaseDocument
-
 
 class FieldCollector:
     def __init__(self, fields: list[BaseField]) -> None:
@@ -54,3 +53,60 @@ class FieldCollector:
 
     def __contains__(self, item: BaseField) -> bool:
         return item in self._fields
+
+
+class DocumentObjectField(BaseField[str]):
+    pass
+
+
+@dataclass(kw_only=True, frozen=True)
+class TotalAmountField(BaseField[float | None]):
+    pass
+
+
+@dataclass(kw_only=True, frozen=True)
+class VatValue:
+    vat_amount: float | None
+    vat_rate: float | None
+
+
+@dataclass(kw_only=True, frozen=True)
+class AmountWithVatValue(VatValue):
+    amount: float | None
+    amount_transcription: str
+
+
+
+@dataclass(kw_only=True, frozen=True)
+class AdvancePaymentValue(AmountWithVatValue):
+    percent_payment: float | None
+    amount_includes_vat: bool
+
+
+@dataclass(kw_only=True, frozen=True)
+class AdvancePaymentsField(BaseField[list[AdvancePaymentValue]]):
+    value: list[AdvancePaymentValue]
+
+
+@dataclass(kw_only=True, frozen=True)
+class VatBreakdownField(BaseField[list[AmountWithVatValue]]):
+    value: list[AmountWithVatValue]
+
+
+@dataclass(kw_only=True, frozen=True)
+class VatOnlyBreakdownField(BaseField[list[VatValue]]):
+    value: list[VatValue]
+
+
+@dataclass(kw_only=True, frozen=True)
+class SpecPositionValue:
+    name: str
+    quantity: float
+    unit_price: float
+    total_price: float
+
+
+@dataclass(kw_only=True, frozen=True)
+class SpecPositionsField(BaseField[dict[str, SpecPositionValue]]):
+    value: dict[str, SpecPositionValue]
+
