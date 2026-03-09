@@ -1,6 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from typing import Dict
+from decimal import Decimal
 
 from app.domain.entities.document import BaseDocument
 
@@ -60,53 +61,55 @@ class DocumentObjectField(BaseField[str]):
 
 
 @dataclass(kw_only=True, frozen=True)
-class TotalAmountField(BaseField[float | None]):
+class TotalAmountField(BaseField[Decimal]):
     pass
 
 
 @dataclass(kw_only=True, frozen=True)
-class VatValue:
-    vat_amount: float | None
-    vat_rate: float | None
+class Vat:
+    vat_amount: Decimal
+    vat_rate: int
 
 
 @dataclass(kw_only=True, frozen=True)
-class AmountWithVatValue(VatValue):
-    amount: float | None
+class AmountWithVat:
+    amount: Decimal
     amount_transcription: str
+    vat: Vat | None
 
 
 
 @dataclass(kw_only=True, frozen=True)
-class AdvancePaymentValue(AmountWithVatValue):
-    percent_payment: float | None
+class AdvancePayment:
+    percent_payment: int
+    amount_with_vat: AmountWithVat | None
     amount_includes_vat: bool
 
 
 @dataclass(kw_only=True, frozen=True)
-class AdvancePaymentsField(BaseField[list[AdvancePaymentValue]]):
+class AdvancePaymentsField(BaseField[list[AdvancePayment]]):
     pass
 
 
 @dataclass(kw_only=True, frozen=True)
-class VatBreakdownField(BaseField[list[AmountWithVatValue]]):
+class VatBreakdownField(BaseField[list[AmountWithVat]]):
     pass
 
 
 @dataclass(kw_only=True, frozen=True)
-class VatOnlyBreakdownField(BaseField[list[VatValue]]):
+class VatOnlyBreakdownField(BaseField[list[Vat]]):
     pass
 
 
 @dataclass(kw_only=True, frozen=True)
-class SpecPositionValue:
+class SpecPosition:
     name: str
     quantity: float
-    unit_price: float
-    total_price: float
+    unit_price: Decimal
+    total_price: Decimal
 
 
 @dataclass(kw_only=True, frozen=True)
-class SpecPositionsField(BaseField[dict[str, SpecPositionValue]]):
+class SpecPositionsField(BaseField[list[str, SpecPosition]]):
     pass
 
