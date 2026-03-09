@@ -11,6 +11,7 @@ class BaseField[T](ABC):
     value: T
     document: BaseDocument
 
+
 class FieldCollector:
     def __init__(self, fields: list[BaseField]) -> None:
         self._fields: list[BaseField] = fields
@@ -54,5 +55,3 @@ class FieldCollector:
 
     def __contains__(self, item: BaseField) -> bool:
         return item in self._fields
-
-
