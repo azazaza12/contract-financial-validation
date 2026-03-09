@@ -67,12 +67,12 @@ class TotalAmountField(BaseField[Decimal]):
 
 @dataclass(kw_only=True, frozen=True)
 class Vat:
-    vat_amount: Decimal
-    vat_rate: int
+    amount: Decimal
+    rate: int
 
 
 @dataclass(kw_only=True, frozen=True)
-class AmountWithVat:
+class Payment:
     amount: Decimal
     amount_transcription: str
     vat: Vat | None
@@ -80,24 +80,19 @@ class AmountWithVat:
 
 
 @dataclass(kw_only=True, frozen=True)
-class AdvancePayment:
+class Advance:
     percent_payment: int
-    amount_with_vat: AmountWithVat | None
+    payment: Payment | None
     amount_includes_vat: bool
 
 
 @dataclass(kw_only=True, frozen=True)
-class AdvancePaymentsField(BaseField[list[AdvancePayment]]):
+class AdvancePaymentsField(BaseField[list[Advance]]):
     pass
 
 
 @dataclass(kw_only=True, frozen=True)
-class VatBreakdownField(BaseField[list[AmountWithVat]]):
-    pass
-
-
-@dataclass(kw_only=True, frozen=True)
-class VatOnlyBreakdownField(BaseField[list[Vat]]):
+class VatBreakdownField(BaseField[list[Payment]]):
     pass
 
 
@@ -110,6 +105,6 @@ class SpecPosition:
 
 
 @dataclass(kw_only=True, frozen=True)
-class SpecPositionsField(BaseField[list[str, SpecPosition]]):
+class SpecPositionsField(BaseField[list[SpecPosition]]):
     pass
 
