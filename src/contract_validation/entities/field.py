@@ -1,7 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
 from typing import Dict
-from decimal import Decimal
 
 from app.domain.entities.document import BaseDocument
 
