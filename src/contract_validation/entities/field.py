@@ -1,8 +1,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict
-from typing import Iterator
+from typing import Dict, Iterator
 from decimal import Decimal
 
 from app.domain.entities.document import BaseDocument
