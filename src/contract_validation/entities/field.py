@@ -1,4 +1,3 @@
-from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, Iterator
@@ -12,16 +11,17 @@ from app.domain.entities.errors import MergeFieldMessage
 class BaseField[T](ABC):
     value: T
     document: BaseDocument
+    is_correct: bool = True
 
     @classmethod
-    def solve_collision(cls, fields: list[BaseField]) -> tuple[BaseField, list[MergeFieldMessage]]:
+    def solve_collision(cls, fields: list[BaseField]) -> tuple[list[BaseField], list[MergeFieldMessage]]:
         if not fields:
             raise ValueError(f"{cls.__name__}: empty collision")
         return cls.solve_collision_impl(fields)
 
     @classmethod
     @abstractmethod
-    def solve_collision_impl(cls, fields: list[BaseField]) -> tuple[BaseField, list[MergeFieldMessage]]:
+    def solve_collision_impl(cls, fields: list[BaseField]) -> tuple[list[BaseField], list[MergeFieldMessage]]:
         raise NotImplementedError()
 
 
@@ -55,9 +55,8 @@ class FieldCollector:
 
     def is_correct(self) -> bool:
         for fields in self.get_type_map().values():
-            if len(fields) > 1:
+            if not all(field.is_correct for field in fields):
                 return False
-
         return True
 
     def delete(self, fields):
