@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Iterator
+from typing import Iterator, Any
 from decimal import Decimal
 
 from app.domain.entities.document import BaseDocument
-from app.domain.entities.errors import MergeFieldMessage
+from app.domain.entities.errors import (
+    MergeFieldMessage,
+    ValuesDiscrepancyMessage,
+    ValueNotDefinedMessage,
+)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -15,8 +19,8 @@ class BaseField[T](ABC):
 
     @classmethod
     def solve_collision(
-        cls, fields: list[BaseField]
-    ) -> tuple[list[BaseField], list[MergeFieldMessage]]:
+        cls, fields: list["BaseField"]
+    ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
         if not fields:
             raise ValueError(f"{cls.__name__}: empty collision")
         return cls.solve_collision_impl(fields)
@@ -24,8 +28,8 @@ class BaseField[T](ABC):
     @classmethod
     @abstractmethod
     def solve_collision_impl(
-        cls, fields: list[BaseField]
-    ) -> tuple[list[BaseField], list[MergeFieldMessage]]:
+        cls, fields: list["BaseField"]
+    ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
         raise NotImplementedError()
 
 
