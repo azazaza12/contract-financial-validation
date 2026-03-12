@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, Iterator
+from typing import Iterator
 from decimal import Decimal
 
 from app.domain.entities.document import BaseDocument
@@ -14,31 +14,35 @@ class BaseField[T](ABC):
     is_correct: bool = True
 
     @classmethod
-    def solve_collision(cls, fields: list[BaseField]) -> tuple[list[BaseField], list[MergeFieldMessage]]:
+    def solve_collision(
+        cls, fields: list[BaseField]
+    ) -> tuple[list[BaseField], list[MergeFieldMessage]]:
         if not fields:
             raise ValueError(f"{cls.__name__}: empty collision")
         return cls.solve_collision_impl(fields)
 
     @classmethod
     @abstractmethod
-    def solve_collision_impl(cls, fields: list[BaseField]) -> tuple[list[BaseField], list[MergeFieldMessage]]:
+    def solve_collision_impl(
+        cls, fields: list[BaseField]
+    ) -> tuple[list[BaseField], list[MergeFieldMessage]]:
         raise NotImplementedError()
 
 
 class FieldCollector:
     def __init__(self, fields: list[BaseField]) -> None:
         self._fields: list[BaseField] = fields
-        self._type_map: Dict[type[BaseField], list[BaseField]] | None = None
+        self._type_map: dict[type[BaseField], list[BaseField]] | None = None
 
     def extend(self, collector: FieldCollector):
         self._fields.extend(collector._fields)
         self._type_map = None
 
-    def get_type_map(self) -> Dict[type[BaseField], list[BaseField]]:
+    def get_type_map(self) -> dict[type[BaseField], list[BaseField]]:
         if self._type_map is not None:
             return self._type_map
 
-        type_map: Dict[type[BaseField], list[BaseField]] = {}
+        type_map: dict[type[BaseField], list[BaseField]] = {}
         for field in self._fields:
             field_type = type(field)
             if field_type not in type_map:
