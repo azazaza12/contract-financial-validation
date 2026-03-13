@@ -41,7 +41,8 @@ class BaseField[T](ABC):
     ) -> ValueCandidate | None:
 
         defined_candidates = [c for c in candidates if c.value is not None]
-        defined_values = [c.value for c in candidates if c.value is not None]
+        defined_values = [c.value for c in defined_candidates]
+        defined_sources = [s for c in defined_candidates for s in c.sources]
         if not defined_candidates:
             return None
         ref_candidate = defined_candidates[0]
@@ -60,10 +61,9 @@ class BaseField[T](ABC):
                     merged_kwargs[f.name] = None
                 else:
                     merged_kwargs[f.name] = merged_candidate.value
-            # TODO какой документ берем после объединения? или все?
             return ValueCandidate(
                 value=type(ref_candidate.value)(**merged_kwargs),
-                sources=ref_candidate.sources,
+                sources=defined_sources,
             )
 
         if isinstance(ref_candidate.value, list):
@@ -94,7 +94,7 @@ class BaseField[T](ABC):
                         merged_candidate.value if merged_candidate is not None else None
                     )
                 return ValueCandidate(
-                    value=merged_list, sources=ref_candidate.sources
+                    value=merged_list, sources=defined_sources
                 )
 
         # скаляр
@@ -109,7 +109,7 @@ class BaseField[T](ABC):
                     )
                 )
                 return None
-        return ref_candidate
+        return ValueCandidate(value=ref_candidate.value, sources=defined_sources)
 
     @classmethod
     def compare_objects(
