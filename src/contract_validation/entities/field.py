@@ -82,7 +82,6 @@ class BaseField[T](ABC):
                 nested_candidates = [
                     ValueCandidate(value=c.value[i], sources=c.sources)
                     for c in defined_candidates
-                    if i < len(c.value)
                 ]
                 merged_candidate = cls._compare_values(
                     nested_candidates, f"{path}[{i}]", errors
