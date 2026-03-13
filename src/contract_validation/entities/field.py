@@ -4,7 +4,6 @@ from dataclasses import fields as dc_fields
 from typing import Iterator
 
 from app.domain.entities.errors import (
-    IssueType,
     MergeFieldMessage,
     ValuesDiscrepancyMessage,
 )
@@ -74,7 +73,6 @@ class BaseField[T](ABC):
                     ValuesDiscrepancyMessage(
                         candidates=candidates,
                         path=path,
-                        issue_type=IssueType.ERROR,
                         field_type=cls,
                     )
                 )
@@ -101,7 +99,6 @@ class BaseField[T](ABC):
                 errors.append(
                     ValuesDiscrepancyMessage(
                         candidates=candidates,
-                        issue_type=IssueType.ERROR,
                         field_type=cls,
                         path=path,
                     )
