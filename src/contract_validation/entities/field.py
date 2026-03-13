@@ -93,9 +93,7 @@ class BaseField[T](ABC):
                     merged_list.append(
                         merged_candidate.value if merged_candidate is not None else None
                     )
-                return ValueCandidate(
-                    value=merged_list, sources=defined_sources
-                )
+                return ValueCandidate(value=merged_list, sources=defined_sources)
 
         # скаляр
         for c in defined_candidates[1:]:
@@ -116,16 +114,13 @@ class BaseField[T](ABC):
         cls, fields: list["BaseField"]
     ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
         errors: list[MergeFieldMessage] = []
-        candidates = [
-            ValueCandidate(value=f.value, sources=f.sources) for f in fields
-        ]
+        candidates = [ValueCandidate(value=f.value, sources=f.sources) for f in fields]
         merged_candidate = cls._compare_values(
             candidates=candidates, path="value", errors=errors
         )
         if errors or merged_candidate is None:
             incorrect_fields = [replace(f, is_correct=False) for f in fields]
             return incorrect_fields, errors
-        # TODO выделять документ(ы?)
         return [
             cls(value=merged_candidate.value, sources=merged_candidate.sources)
         ], errors
