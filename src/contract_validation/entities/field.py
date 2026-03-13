@@ -77,21 +77,20 @@ class BaseField[T](ABC):
                     )
                 )
                 return None
-            else:
-                merged_list = []
-                for i in range(max_length):
-                    nested_candidates = [
-                        ValueCandidate(value=c.value[i], sources=c.sources)
-                        for c in defined_candidates
-                        if i < len(c.value)
-                    ]
-                    merged_candidate = cls._compare_values(
-                        nested_candidates, f"{path}[{i}]", errors
-                    )
-                    merged_list.append(
-                        merged_candidate.value if merged_candidate is not None else None
-                    )
-                return ValueCandidate(value=merged_list, sources=sources)
+            merged_list = []
+            for i in range(max_length):
+                nested_candidates = [
+                    ValueCandidate(value=c.value[i], sources=c.sources)
+                    for c in defined_candidates
+                    if i < len(c.value)
+                ]
+                merged_candidate = cls._compare_values(
+                    nested_candidates, f"{path}[{i}]", errors
+                )
+                merged_list.append(
+                    merged_candidate.value if merged_candidate is not None else None
+                )
+            return ValueCandidate(value=merged_list, sources=sources)
 
         # скаляр
         for c in defined_candidates[1:]:
