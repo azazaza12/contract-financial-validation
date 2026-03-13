@@ -1,10 +1,15 @@
 from dataclasses import dataclass
 from typing import Any
 
-from app.domain.entities import BaseDocument
+from app.domain.entities.document import BaseDocument
+
+
+@dataclass(frozen=True)
+class SourceDocument:
+    document: BaseDocument
 
 
 @dataclass(frozen=True)
 class ValueCandidate:
     value: Any
-    document: BaseDocument
+    sources: list[SourceDocument]
