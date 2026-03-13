@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Iterator, Any
-from decimal import Decimal
 from dataclasses import is_dataclass, fields as dc_fields, replace
 
 from app.domain.entities.document import BaseDocument
 from app.domain.entities.errors import (
     MergeFieldMessage,
     ValuesDiscrepancyMessage,
-    ValueNotDefinedMessage,
+    IssueType,
 )
+from app.domain.entities.merge_types import ValueCandidate
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -20,7 +20,7 @@ class BaseField[T](ABC):
 
     @classmethod
     def solve_collision(
-            cls, fields: list["BaseField"]
+        cls, fields: list["BaseField"]
     ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
         if not fields:
             raise ValueError(f"{cls.__name__}: empty collision")
@@ -29,63 +29,107 @@ class BaseField[T](ABC):
     @classmethod
     @abstractmethod
     def solve_collision_impl(
-            cls, fields: list["BaseField"]
+        cls, fields: list["BaseField"]
     ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
         raise NotImplementedError()
 
     @classmethod
-    def _compare_values(cls, values: list[Any], path, errors) -> tuple[Any, list[MergeFieldMessage]]:
-        defined_values = [v for v in values if v is not None]
-        if not defined_values:
-            return None, errors
-        ref_value = defined_values[0]
-        # TODO добавлять ли ошибку ValueNotFountMessage если есть none значения? если да, то только в том случае если есть и не None значения да?
-        # TODO не проверять типы
-        types = {type(v) for v in defined_values}
-        if len(types) > 1:
-            # TODO переделать errorsMessage
-            errors.append(ValuesDiscrepancyMessage())
-            return ref_value, errors
+    def _compare_values(
+        cls,
+        candidates: list[ValueCandidate],
+        path: str,
+        errors: list[MergeFieldMessage],
+    ) -> ValueCandidate | None:
 
-        if is_dataclass(ref_value):
+        defined_candidates = [c for c in candidates if c.value is not None]
+        defined_values = [c.value for c in candidates if c.value is not None]
+        if not defined_candidates:
+            return None
+        ref_candidate = defined_candidates[0]
+
+        if is_dataclass(ref_candidate.value):
             merged_kwargs = {}
-            for f in dc_fields(ref_value):
-                attr_vals = [getattr(v, f.name) for v in defined_values]
-                merged_attr, errs = cls._compare_values(attr_vals, f"{path}.{f.name}", errors)
-                merged_kwargs[f.name] = merged_attr
-            return type(ref_value)(**merged_kwargs), errors
+            for f in dc_fields(ref_candidate.value):
+                attr_candidates = [
+                    ValueCandidate(value=getattr(c.value, f.name), document=c.document)
+                    for c in defined_candidates
+                ]
+                merged_candidate = cls._compare_values(
+                    attr_candidates, f"{path}.{f.name}", errors
+                )
+                if merged_candidate is None:
+                    merged_kwargs[f.name] = None
+                else:
+                    merged_kwargs[f.name] = merged_candidate.value
+            # TODO какой документ берем после объединения? или все?
+            return ValueCandidate(
+                value=type(ref_candidate.value)(**merged_kwargs),
+                document=ref_candidate.document,
+            )
 
-        if isinstance(ref_value, list):
+        if isinstance(ref_candidate.value, list):
             max_length = len(max(defined_values, key=len))
             min_length = len(min(defined_values, key=len))
-            # TODO если длина разная, как будто бы хорошо фиксировать какие элементы отсутствуют в других списках
             if max_length != min_length:
-                errors.append(ValuesDiscrepancyMessage())
-                ##TODO не сравнивать если длина разная
-            merged_list = []
-            for i in range(max_length):
-                item_vals = [v[i] for v in defined_values if i < len(v)]
-                merged_item, errs = cls._compare_values(item_vals, f"{path}[{i}]", errors)
-                merged_list.append(merged_item)
-            return merged_list, errors
+                errors.append(
+                    ValuesDiscrepancyMessage(
+                        candidates=candidates,
+                        path=path,
+                        issue_type=IssueType.ERROR,
+                        field_type=cls,
+                    )
+                )
+                return None
+            else:
+                merged_list = []
+                for i in range(max_length):
+                    nested_candidates = [
+                        ValueCandidate(value=c.value[i], document=c.document)
+                        for c in defined_candidates
+                        if i < len(c.value)
+                    ]
+                    merged_candidate = cls._compare_values(
+                        nested_candidates, f"{path}[{i}]", errors
+                    )
+                    merged_list.append(
+                        merged_candidate.value if merged_candidate is not None else None
+                    )
+                return ValueCandidate(
+                    value=merged_list, document=ref_candidate.document
+                )
 
         # скаляр
-        for v in defined_values[1:]:
-            if v != ref_value:
-                errors.append(ValuesDiscrepancyMessage())
-                return ref_value, errors
-        return ref_value, errors
+        for c in defined_candidates[1:]:
+            if c.value != ref_candidate.value:
+                errors.append(
+                    ValuesDiscrepancyMessage(
+                        candidates=candidates,
+                        issue_type=IssueType.ERROR,
+                        field_type=cls,
+                        path=path,
+                    )
+                )
+                return None
+        return ref_candidate
 
     @classmethod
-    def compare_objects(cls, fields: list["BaseField"]) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
+    def compare_objects(
+        cls, fields: list["BaseField"]
+    ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
         errors: list[MergeFieldMessage] = []
-        values = [f.value for f in fields]
-        merged_value, errors = cls._compare_values(values=values, path="value", errors=errors)
-        if errors:
-            incorrect_fields = [replace(f, is_correct = False) for f in fields]
+        candidates = [
+            ValueCandidate(value=f.value, document=f.document) for f in fields
+        ]
+        merged_candidate = cls._compare_values(
+            candidates=candidates, path="value", errors=errors
+        )
+        if errors or merged_candidate is None:
+            incorrect_fields = [replace(f, is_correct=False) for f in fields]
             return incorrect_fields, errors
-        #TODO выделять документ(ы?)
-        return [cls(value=merged_value, document)], errors
+        # TODO выделять документ(ы?)
+        return [
+            cls(value=merged_candidate.value, document=merged_candidate.document)
+        ], errors
 
 
 class FieldCollector:
@@ -93,7 +137,7 @@ class FieldCollector:
         self._fields: list[BaseField] = fields
         self._type_map: dict[type[BaseField], list[BaseField]] | None = None
 
-    def extend(self, collector: FieldCollector):
+    def extend(self, collector: "FieldCollector"):
         self._fields.extend(collector._fields)
         self._type_map = None
 
