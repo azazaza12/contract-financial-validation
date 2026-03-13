@@ -1,21 +1,20 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Iterator, Any
+from typing import Iterator
 from dataclasses import is_dataclass, fields as dc_fields, replace
 
-from app.domain.entities.document import BaseDocument
 from app.domain.entities.errors import (
     MergeFieldMessage,
     ValuesDiscrepancyMessage,
     IssueType,
 )
-from app.domain.entities.merge_types import ValueCandidate
+from app.domain.entities.merge_types import ValueCandidate, SourceDocument
 
 
 @dataclass(kw_only=True, frozen=True)
 class BaseField[T](ABC):
     value: T
-    document: BaseDocument
+    sources: list[SourceDocument]
     is_correct: bool = True
 
     @classmethod
@@ -51,7 +50,7 @@ class BaseField[T](ABC):
             merged_kwargs = {}
             for f in dc_fields(ref_candidate.value):
                 attr_candidates = [
-                    ValueCandidate(value=getattr(c.value, f.name), document=c.document)
+                    ValueCandidate(value=getattr(c.value, f.name), sources=c.sources)
                     for c in defined_candidates
                 ]
                 merged_candidate = cls._compare_values(
@@ -64,7 +63,7 @@ class BaseField[T](ABC):
             # TODO какой документ берем после объединения? или все?
             return ValueCandidate(
                 value=type(ref_candidate.value)(**merged_kwargs),
-                document=ref_candidate.document,
+                sources=ref_candidate.sources,
             )
 
         if isinstance(ref_candidate.value, list):
@@ -84,7 +83,7 @@ class BaseField[T](ABC):
                 merged_list = []
                 for i in range(max_length):
                     nested_candidates = [
-                        ValueCandidate(value=c.value[i], document=c.document)
+                        ValueCandidate(value=c.value[i], sources=c.sources)
                         for c in defined_candidates
                         if i < len(c.value)
                     ]
@@ -95,7 +94,7 @@ class BaseField[T](ABC):
                         merged_candidate.value if merged_candidate is not None else None
                     )
                 return ValueCandidate(
-                    value=merged_list, document=ref_candidate.document
+                    value=merged_list, sources=ref_candidate.sources
                 )
 
         # скаляр
@@ -118,7 +117,7 @@ class BaseField[T](ABC):
     ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
         errors: list[MergeFieldMessage] = []
         candidates = [
-            ValueCandidate(value=f.value, document=f.document) for f in fields
+            ValueCandidate(value=f.value, sources=f.sources) for f in fields
         ]
         merged_candidate = cls._compare_values(
             candidates=candidates, path="value", errors=errors
@@ -128,7 +127,7 @@ class BaseField[T](ABC):
             return incorrect_fields, errors
         # TODO выделять документ(ы?)
         return [
-            cls(value=merged_candidate.value, document=merged_candidate.document)
+            cls(value=merged_candidate.value, sources=merged_candidate.sources)
         ], errors
 
 
