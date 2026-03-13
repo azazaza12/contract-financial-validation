@@ -1,20 +1,20 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, is_dataclass, replace
+from dataclasses import fields as dc_fields
 from typing import Iterator
-from dataclasses import is_dataclass, fields as dc_fields, replace
 
 from app.domain.entities.errors import (
+    IssueType,
     MergeFieldMessage,
     ValuesDiscrepancyMessage,
-    IssueType,
 )
-from app.domain.entities.merge_types import ValueCandidate, SourceDocument
+from app.domain.entities.merge_types import Source, ValueCandidate
 
 
 @dataclass(kw_only=True, frozen=True)
 class BaseField[T](ABC):
     value: T
-    sources: list[SourceDocument]
+    sources: list[Source]
     is_correct: bool = True
 
     @classmethod

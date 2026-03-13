@@ -1,7 +1,7 @@
 from .contract import BaseContract
 from .document import BaseDocument
 from .field import BaseField, FieldCollector
-from .merge_types import SourceDocument, ValueCandidate
+from .merge_types import Source, ValueCandidate
 
 
 __all__ = [
@@ -9,6 +9,6 @@ __all__ = [
     "BaseContract",
     "BaseDocument",
     "FieldCollector",
-    "SourceDocument",
+    "Source",
     "ValueCandidate",
 ]
