@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, is_dataclass, replace
 from dataclasses import fields as dc_fields
-from typing import Iterator
+from typing import ClassVar, Iterator, TYPE_CHECKING
 
 from app.domain.entities.errors import (
     MergeFieldMessage,
@@ -9,9 +9,16 @@ from app.domain.entities.errors import (
 )
 from app.domain.entities.merge_types import Source, ValueCandidate
 
+if TYPE_CHECKING:
+    from app.domain.merge.registry import MergeRegistry
+else:
+    MergeRegistry = None
+
 
 @dataclass(kw_only=True, frozen=True)
 class BaseField[T](ABC):
+    merge_registry: ClassVar["MergeRegistry | None"] = None
+
     value: T
     sources: list[Source]
     is_correct: bool = True
@@ -32,93 +39,30 @@ class BaseField[T](ABC):
         raise NotImplementedError()
 
     @classmethod
-    def _compare_values(
-        cls,
-        candidates: list[ValueCandidate],
-        path: str,
-        errors: list[MergeFieldMessage],
-    ) -> ValueCandidate | None:
-
-        defined_candidates = [c for c in candidates if c.value is not None]
-        defined_values = [c.value for c in defined_candidates]
-        sources = [s for c in candidates for s in c.sources]
-        if not defined_candidates:
-            return ValueCandidate(value=None, sources=sources)
-        ref_candidate = defined_candidates[0]
-
-        if is_dataclass(ref_candidate.value):
-            merged_kwargs = {}
-            for f in dc_fields(ref_candidate.value):
-                attr_candidates = [
-                    ValueCandidate(value=getattr(c.value, f.name), sources=c.sources)
-                    for c in defined_candidates
-                ]
-                merged_candidate = cls._compare_values(
-                    attr_candidates, f"{path}.{f.name}", errors
-                )
-                if merged_candidate is None:
-                    merged_kwargs[f.name] = None
-                else:
-                    merged_kwargs[f.name] = merged_candidate.value
-            return ValueCandidate(
-                value=type(ref_candidate.value)(**merged_kwargs),
-                sources=sources,
-            )
-
-        if isinstance(ref_candidate.value, list):
-            max_length = len(max(defined_values, key=len))
-            min_length = len(min(defined_values, key=len))
-            if max_length != min_length:
-                errors.append(
-                    ValuesDiscrepancyMessage(
-                        candidates=candidates,
-                        path=path,
-                        field_type=cls,
-                    )
-                )
-                return None
-            merged_list = []
-            for i in range(max_length):
-                nested_candidates = [
-                    ValueCandidate(value=c.value[i], sources=c.sources)
-                    for c in defined_candidates
-                ]
-                merged_candidate = cls._compare_values(
-                    nested_candidates, f"{path}[{i}]", errors
-                )
-                merged_list.append(
-                    merged_candidate.value if merged_candidate is not None else None
-                )
-            return ValueCandidate(value=merged_list, sources=sources)
-
-        # скаляр
-        for c in defined_candidates[1:]:
-            if c.value != ref_candidate.value:
-                errors.append(
-                    ValuesDiscrepancyMessage(
-                        candidates=candidates,
-                        field_type=cls,
-                        path=path,
-                    )
-                )
-                return None
-        return ValueCandidate(value=ref_candidate.value, sources=sources)
-
-    @classmethod
     def compare_objects(
         cls, fields: list["BaseField"]
     ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
+        from app.domain.merge.defaults import DEFAULT_REGISTRY
+
+        registry = (
+            cls.merge_registry if cls.merge_registry is not None else DEFAULT_REGISTRY
+        )
+
         errors: list[MergeFieldMessage] = []
         candidates = [ValueCandidate(value=f.value, sources=f.sources) for f in fields]
-        merged_candidate = cls._compare_values(
-            candidates=candidates, path="value", errors=errors
-        )
-        if errors or merged_candidate is None:
+        merged = registry.merge(candidates=candidates, path="value", errors=errors)
+
+        if errors:
+            incorrect_fields = [replace(f, is_correct=False) for f in fields]
+            for error in errors:
+                error.field_type = cls
+            return incorrect_fields, errors
+
+        if merged is None:
             incorrect_fields = [replace(f, is_correct=False) for f in fields]
             return incorrect_fields, errors
-        return [
-            cls(value=merged_candidate.value, sources=merged_candidate.sources)
-        ], errors
+
+        return [cls(value=merged.value, sources=merged.sources)], errors
 
 
 class FieldCollector:

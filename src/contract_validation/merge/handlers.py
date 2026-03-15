@@ -1,0 +1,186 @@
+from dataclasses import is_dataclass, fields as dc_fields
+from typing import TYPE_CHECKING, Any, Callable
+
+from app.domain.entities.errors import (
+    MergeFieldMessage,
+    ValuesDiscrepancyMessage,
+)
+from app.domain.entities.merge_types import ValueCandidate, Source
+
+if TYPE_CHECKING:
+    from app.domain.merge.registry import MergeRegistry
+
+
+def combine_sources(candidates: list[ValueCandidate]) -> list[Source]:
+    sources = []
+    seen = set()
+    for c in candidates:
+        for s in c.sources:
+            s_id = id(s.document)
+            if s_id not in seen:
+                sources.append(s)
+                seen.add(s_id)
+    return sources
+
+
+def all_equal(candidates: list[ValueCandidate]) -> bool:
+    if not candidates:
+        return True
+    first = candidates[0].value
+    return all(c.value == first for c in candidates[1:])
+
+
+def is_scalar(value_type: type) -> bool:
+    from decimal import Decimal
+    from datetime import date, datetime
+    from uuid import UUID
+
+    return value_type in (
+        int,
+        float,
+        str,
+        bool,
+        Decimal,
+        date,
+        datetime,
+        UUID,
+        type(None),
+    )
+
+
+def merge_scalar_strict(
+    candidates: list[ValueCandidate],
+    path: str,
+    registry: "MergeRegistry",
+    errors: list[MergeFieldMessage],
+) -> ValueCandidate | None:
+    if not all_equal(candidates):
+        errors.append(
+            ValuesDiscrepancyMessage(
+                candidates=candidates,
+                path=path,
+            )
+        )
+        return None
+
+    return ValueCandidate(
+        value=candidates[0].value,
+        sources=combine_sources(candidates),
+    )
+
+
+def merge_scalar_pick_first(
+    candidates: list[ValueCandidate],
+    path: str,
+    registry: "MergeRegistry",
+    errors: list[MergeFieldMessage],
+) -> ValueCandidate | None:
+    return ValueCandidate(
+        value=candidates[0].value,
+        sources=combine_sources(candidates),
+    )
+
+
+def merge_list_strict(
+    candidates: list[ValueCandidate],
+    path: str,
+    registry: "MergeRegistry",
+    errors: list[MergeFieldMessage],
+) -> ValueCandidate | None:
+    lengths = [len(c.value) for c in candidates]
+
+    if len(set(lengths)) > 1:
+        errors.append(
+            ValuesDiscrepancyMessage(
+                candidates=candidates,
+                path=path,
+            )
+        )
+
+    max_length = max(lengths)
+    merged_list = []
+
+    for i in range(max_length):
+        elem_candidates = [
+            ValueCandidate(value=c.value[i], sources=c.sources)
+            for c in candidates
+            if i < len(c.value)
+        ]
+
+        merged_elem = registry.merge(elem_candidates, f"{path}[{i}]", errors)
+        merged_list.append(merged_elem.value if merged_elem else None)
+
+    return ValueCandidate(
+        value=merged_list,
+        sources=combine_sources(candidates),
+    )
+
+
+def merge_list_flexible(
+    candidates: list[ValueCandidate],
+    path: str,
+    registry: "MergeRegistry",
+    errors: list[MergeFieldMessage],
+) -> ValueCandidate | None:
+    max_length = max(len(c.value) for c in candidates)
+    merged_list = []
+
+    for i in range(max_length):
+        elem_candidates = [
+            ValueCandidate(value=c.value[i], sources=c.sources)
+            for c in candidates
+            if i < len(c.value)
+        ]
+
+        if elem_candidates:
+            merged_elem = registry.merge(elem_candidates, f"{path}[{i}]", errors)
+            merged_list.append(merged_elem.value if merged_elem else None)
+
+    return ValueCandidate(
+        value=merged_list,
+        sources=combine_sources(candidates),
+    )
+
+
+def merge_list_concat(
+    candidates: list[ValueCandidate],
+    path: str,
+    registry: "MergeRegistry",
+    errors: list[MergeFieldMessage],
+) -> ValueCandidate | None:
+    result = []
+    for c in candidates:
+        result.extend(c.value)
+
+    return ValueCandidate(
+        value=result,
+        sources=combine_sources(candidates),
+    )
+
+
+def merge_dataclass_default(
+    candidates: list[ValueCandidate],
+    path: str,
+    registry: "MergeRegistry",
+    errors: list[MergeFieldMessage],
+) -> ValueCandidate | None:
+    merged_kwargs = {}
+
+    for field in dc_fields(candidates[0].value):
+        field_candidates = [
+            ValueCandidate(value=getattr(c.value, field.name), sources=c.sources)
+            for c in candidates
+        ]
+
+        merged_field = registry.merge(
+            field_candidates,
+            f"{path}.{field.name}",
+            errors,
+        )
+
+        merged_kwargs[field.name] = merged_field.value if merged_field else None
+
+    return ValueCandidate(
+        value=type(candidates[0].value)(**merged_kwargs),
+        sources=combine_sources(candidates),
+    )
