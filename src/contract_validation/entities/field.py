@@ -1,12 +1,7 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, is_dataclass, replace
-from dataclasses import fields as dc_fields
+from dataclasses import dataclass, replace
 from typing import ClassVar, Iterator, TYPE_CHECKING
 
-from app.domain.entities.errors import (
-    MergeFieldMessage,
-    ValuesDiscrepancyMessage,
-)
+from app.domain.entities.errors import MergeFieldMessage
 from app.domain.entities.merge_types import Source, ValueCandidate
 
 if TYPE_CHECKING:
@@ -16,7 +11,7 @@ else:
 
 
 @dataclass(kw_only=True, frozen=True)
-class BaseField[T](ABC):
+class BaseField[T]:
     merge_registry: ClassVar["MergeRegistry | None"] = None
 
     value: T
@@ -29,19 +24,7 @@ class BaseField[T](ABC):
     ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
         if not fields:
             raise ValueError(f"{cls.__name__}: empty collision")
-        return cls.solve_collision_impl(fields)
 
-    @classmethod
-    @abstractmethod
-    def solve_collision_impl(
-        cls, fields: list["BaseField"]
-    ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
-        raise NotImplementedError()
-
-    @classmethod
-    def compare_objects(
-        cls, fields: list["BaseField"]
-    ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
         from app.domain.merge.defaults import DEFAULT_REGISTRY
 
         registry = (
