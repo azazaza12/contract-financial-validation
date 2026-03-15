@@ -1,0 +1,27 @@
+from app.domain.merge.registry import MergeRegistry
+from app.domain.merge.handlers import (
+    merge_scalar_strict,
+    merge_scalar_pick_first,
+    merge_list_strict,
+    merge_list_flexible,
+    merge_list_concat,
+    merge_dataclass_default,
+)
+
+
+STRICT_REGISTRY = MergeRegistry("strict")
+STRICT_REGISTRY.scalar_handler = merge_scalar_strict
+STRICT_REGISTRY.list_handler = merge_list_strict
+STRICT_REGISTRY.dataclass_handler = merge_dataclass_default
+
+FLEXIBLE_REGISTRY = MergeRegistry("flexible")
+FLEXIBLE_REGISTRY.scalar_handler = merge_scalar_pick_first
+FLEXIBLE_REGISTRY.list_handler = merge_list_flexible
+FLEXIBLE_REGISTRY.dataclass_handler = merge_dataclass_default
+
+CONCAT_REGISTRY = MergeRegistry("concat")
+CONCAT_REGISTRY.scalar_handler = merge_scalar_pick_first
+CONCAT_REGISTRY.list_handler = merge_list_concat
+CONCAT_REGISTRY.dataclass_handler = merge_dataclass_default
+
+DEFAULT_REGISTRY = STRICT_REGISTRY
