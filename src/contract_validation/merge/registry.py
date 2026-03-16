@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Callable
 
 from app.domain.entities.errors import MergeFieldMessage
 from app.domain.entities.merge_types import ValueCandidate
+from app.domain.exceptions import UnknownHandlerTypeError
 from app.domain.merge.handlers import (
     is_scalar,
     merge_dataclass_default,
@@ -58,7 +59,7 @@ class MergeRegistry:
         if handler is None:
             error_msg = f"No handler for type {value_type} in registry '{self.name}'"
             _logger.info(f"Merge failed for path='{path}': {error_msg}")
-            raise UnknownTypeError(error_msg)
+            raise UnknownHandlerTypeError(error_msg)
 
         result = handler(defined_candidates, path, self, errors)
 
