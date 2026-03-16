@@ -1,13 +1,13 @@
 from dataclasses import dataclass, replace
-from typing import ClassVar, Iterator, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Iterator
 
 from app.domain.entities.errors import MergeFieldMessage
 from app.domain.entities.merge_types import Source, ValueCandidate
+from app.domain.merge.defaults import DEFAULT_REGISTRY
+
 
 if TYPE_CHECKING:
     from app.domain.merge.registry import MergeRegistry
-else:
-    MergeRegistry = None
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -24,8 +24,6 @@ class BaseField[T]:
     ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
         if not fields:
             raise ValueError(f"{cls.__name__}: empty collision")
-
-        from app.domain.merge.defaults import DEFAULT_REGISTRY
 
         registry = (
             cls.merge_registry if cls.merge_registry is not None else DEFAULT_REGISTRY
