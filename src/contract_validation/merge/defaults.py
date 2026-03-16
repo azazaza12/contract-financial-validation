@@ -1,12 +1,12 @@
-from app.domain.merge.registry import MergeRegistry
 from app.domain.merge.handlers import (
-    merge_scalar_strict,
-    merge_scalar_pick_first,
-    merge_list_strict,
-    merge_list_flexible,
-    merge_list_concat,
     merge_dataclass_default,
+    merge_list_concat,
+    merge_list_flexible,
+    merge_list_strict,
+    merge_scalar_pick_first,
+    merge_scalar_strict,
 )
+from app.domain.merge.registry import MergeRegistry
 
 
 STRICT_REGISTRY = MergeRegistry("strict")
