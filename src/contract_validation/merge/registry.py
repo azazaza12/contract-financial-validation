@@ -13,7 +13,7 @@ from app.domain.merge.handlers import (
 )
 
 
-_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
@@ -58,7 +58,7 @@ class MergeRegistry:
         handler = self._get_handler(value_type)
         if handler is None:
             error_msg = f"No handler for type {value_type} in registry '{self.name}'"
-            _logger.info(f"Merge failed for path='{path}': {error_msg}")
+            logger.info(f"Merge failed for path='{path}': {error_msg}")
             raise UnknownHandlerTypeError(error_msg)
 
         result = handler(defined_candidates, path, self, errors)
@@ -66,7 +66,7 @@ class MergeRegistry:
         if result is not None:
             return ValueCandidate(value=result.value, sources=all_sources)
 
-        _logger.info(f"Merge returned None for path='{path}'")
+        logger.info(f"Merge returned None for path='{path}'")
         return result
 
     def _get_handler(self, value_type: type) -> Callable | None:
