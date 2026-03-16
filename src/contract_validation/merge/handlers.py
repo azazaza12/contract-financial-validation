@@ -1,11 +1,15 @@
-from dataclasses import is_dataclass, fields as dc_fields
-from typing import TYPE_CHECKING, Any, Callable
+from dataclasses import fields as dc_fields
+from datetime import date, datetime
+from decimal import Decimal
+from typing import TYPE_CHECKING
+from uuid import UUID
 
 from app.domain.entities.errors import (
     MergeFieldMessage,
     ValuesDiscrepancyMessage,
 )
-from app.domain.entities.merge_types import ValueCandidate, Source
+from app.domain.entities.merge_types import Source, ValueCandidate
+
 
 if TYPE_CHECKING:
     from app.domain.merge.registry import MergeRegistry
@@ -31,9 +35,6 @@ def all_equal(candidates: list[ValueCandidate]) -> bool:
 
 
 def is_scalar(value_type: type) -> bool:
-    from decimal import Decimal
-    from datetime import date, datetime
-    from uuid import UUID
 
     return value_type in (
         int,
