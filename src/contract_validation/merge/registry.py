@@ -1,14 +1,15 @@
 from dataclasses import is_dataclass
-from typing import Any, Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from app.domain.entities.errors import MergeFieldMessage
 from app.domain.entities.merge_types import ValueCandidate
 from app.domain.merge.handlers import (
-    merge_scalar_strict,
-    merge_list_strict,
-    merge_dataclass_default,
     is_scalar,
+    merge_dataclass_default,
+    merge_list_strict,
+    merge_scalar_strict,
 )
+
 
 if TYPE_CHECKING:
     pass
