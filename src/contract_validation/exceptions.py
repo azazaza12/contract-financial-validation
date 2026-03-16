@@ -1,2 +1,2 @@
-class UnknownTypeError(Exception):
+class UnknownHandlerTypeError(Exception):
     pass
