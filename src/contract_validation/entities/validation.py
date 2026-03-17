@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from app.domain.entities.validation_errors import BaseResultChecker
 
 
-
 class CheckStatus(Enum):
     success = "SUCCESS"
     failed = "FAILED"
@@ -17,6 +16,5 @@ class CheckStatus(Enum):
 @dataclass(kw_only=True)
 class CheckExecutionResult:
     check_name: str
-    result: list[BaseResultChecker]
+    errors: list[BaseResultChecker]
     status: CheckStatus
-
