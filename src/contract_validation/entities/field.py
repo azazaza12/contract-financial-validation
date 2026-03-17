@@ -1,44 +1,94 @@
-from abc import ABC
-from dataclasses import dataclass
-from typing import Dict
+from dataclasses import dataclass, replace
+from typing import TYPE_CHECKING, ClassVar, Iterator
 
-from app.domain.entities.document import BaseDocument
+from app.domain.entities.errors import MergeFieldMessage
+from app.domain.entities.merge_types import Source, ValueCandidate
+from app.domain.merge.defaults import DEFAULT_REGISTRY
+
+
+if TYPE_CHECKING:
+    from app.domain.merge.registry import MergeRegistry
 
 
 @dataclass(kw_only=True, frozen=True)
-class BaseField[T](ABC):
+class BaseField[T]:
+    merge_registry: ClassVar["MergeRegistry | None"] = None
+
     value: T
-    document: BaseDocument
+    sources: list[Source]
+    is_correct: bool = True
+
+    @classmethod
+    def solve_collision(
+        cls, fields: list["BaseField"]
+    ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
+        if not fields:
+            raise ValueError(f"{cls.__name__}: empty collision")
+
+        registry = (
+            cls.merge_registry if cls.merge_registry is not None else DEFAULT_REGISTRY
+        )
+
+        errors: list[MergeFieldMessage] = []
+        candidates = [ValueCandidate(value=f.value, sources=f.sources) for f in fields]
+        merged = registry.merge(candidates=candidates, path="value", errors=errors)
+
+        if errors:
+            incorrect_fields = [replace(f, is_correct=False) for f in fields]
+            for error in errors:
+                error.field_type = cls
+            return incorrect_fields, errors
+
+        if merged is None:
+            incorrect_fields = [replace(f, is_correct=False) for f in fields]
+            return incorrect_fields, errors
+
+        return [cls(value=merged.value, sources=merged.sources)], errors
 
 
 class FieldCollector:
     def __init__(self, fields: list[BaseField]) -> None:
         self._fields: list[BaseField] = fields
-        self._type_map: Dict[type[BaseField], list[BaseField]] | None
+        self._type_map: dict[type[BaseField], list[BaseField]] | None = None
 
-    def extend(self, collector: FieldCollector):
+    def extend(self, collector: "FieldCollector"):
         self._fields.extend(collector._fields)
+        self._type_map = None
 
-    def get_type_map(self) -> Dict[type[BaseField], list[BaseField]]:
-        if self._type_map:
+    def get_type_map(self) -> dict[type[BaseField], list[BaseField]]:
+        if self._type_map is not None:
             return self._type_map
 
-        type_map: Dict[type[BaseField], list[BaseField]] = {}
+        type_map: dict[type[BaseField], list[BaseField]] = {}
         for field in self._fields:
-            if not type_map[type(field)]:
-                type_map[type(field)] = []
-
-            type_map[type(field)].append(field)
+            field_type = type(field)
+            if field_type not in type_map:
+                type_map[field_type] = []
+            type_map[field_type].append(field)
 
         self._type_map = type_map
         return self._type_map
 
+    def get_next_collision(self) -> Iterator[tuple[type[BaseField], list[BaseField]]]:
+        for field_type, fields in self.get_type_map().items():
+            if len(fields) > 1:
+                yield field_type, fields
+
     def is_correct(self) -> bool:
         for fields in self.get_type_map().values():
-            if len(fields) > 1:
+            if not all(field.is_correct for field in fields):
                 return False
-
         return True
+
+    def delete(self, fields):
+        for field in fields:
+            if field in self._fields:
+                self._fields.remove(field)
+        self._type_map = None
+
+    def append(self, field):
+        self._fields.append(field)
+        self._type_map = None
 
     def __len__(self) -> int:
         return len(self._fields)

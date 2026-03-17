@@ -1,0 +1,2 @@
+class UnknownHandlerTypeError(Exception):
+    pass
