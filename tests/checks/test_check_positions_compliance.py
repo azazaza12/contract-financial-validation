@@ -1,0 +1,198 @@
+import asyncio
+from dataclasses import dataclass
+from decimal import Decimal
+from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
+
+import pytest
+
+from app.domain.entities.contract import BaseContract
+from app.domain.entities.field import FieldCollector
+from app.domain.entities.single_supplier import (
+    DocumentObjectField,
+    SingleSupplierDocument,
+    SpecPosition,
+    SpecPositionsField,
+)
+from app.domain.entities.validation import CheckStatus
+from app.domain.entities.merge_types import Source
+from app.domain.pipeline.task import CheckTask
+from app.domain.service.checker import EvaluateResult
+from app.domain.service.checks.check_positions_compliance import (
+    CheckPositionsCompliance,
+)
+from app.domain.service.checks.errors import (
+    MissingRequiredFieldError,
+    MultiplyRequiredFieldError,
+)
+from tests.domain.pipeline.conftest import create_context
+
+
+@dataclass(kw_only=True)
+class DummyContract(BaseContract):
+    def build_pipeline(self, pipeline):
+        return pipeline
+
+
+def test_check1_can_run_as_task_and_save_result():
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            DocumentObjectField(
+                value="Оборудование",
+                sources=[Source(document=document)],
+            ),
+            SpecPositionsField(
+                value=[
+                    SpecPosition(
+                        name="Позиция 1",
+                        quantity=1.0,
+                        unit_price=Decimal("100"),
+                        total_price=Decimal("100"),
+                        unit_of_measurement="шт",
+                    )
+                ],
+                sources=[Source(document=document)],
+            ),
+        ]
+    )
+
+    contract = DummyContract(
+        id=uuid4(),
+        file_name="contract.pdf",
+        documents=[document],
+        fields=fields,
+        errors=[],
+    )
+
+    position_service = AsyncMock()
+    position_service.evaluate.return_value = EvaluateResult(
+        success=True,
+        text=None,
+        error=None,
+    )
+    check_result_repo = MagicMock()
+    ctx = create_context(
+        contract=contract,
+        check_result_repo=check_result_repo,
+        check_position_compliance_service=position_service,
+    )
+    check = CheckPositionsCompliance(ctx=ctx)
+
+    asyncio.run(CheckTask(check=check).run(ctx))
+
+    check_result_repo.save_for_contract.assert_called_once()
+    called_contract = check_result_repo.save_for_contract.call_args.kwargs[
+        "contract"
+    ]
+    called_result = check_result_repo.save_for_contract.call_args.kwargs[
+        "result"
+    ]
+
+    assert called_contract is contract
+    assert called_result.check_name == "CheckPositionsCompliance"
+    assert called_result.status == CheckStatus.success
+    assert called_result.errors == []
+
+
+def test_check1_raises_when_required_field_is_missing():
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            SpecPositionsField(
+                value=[
+                    SpecPosition(
+                        name="Позиция 1",
+                        quantity=1.0,
+                        unit_price=Decimal("100"),
+                        total_price=Decimal("100"),
+                        unit_of_measurement="шт",
+                    )
+                ],
+                sources=[Source(document=document)],
+            ),
+        ]
+    )
+    contract = DummyContract(
+        id=uuid4(),
+        file_name="contract.pdf",
+        documents=[document],
+        fields=fields,
+        errors=[],
+    )
+
+    position_service = AsyncMock()
+    check_result_repo = MagicMock()
+    ctx = create_context(
+        contract=contract,
+        check_result_repo=check_result_repo,
+        check_position_compliance_service=position_service,
+    )
+    check = CheckPositionsCompliance(ctx=ctx)
+
+    with pytest.raises(MissingRequiredFieldError) as err:
+        asyncio.run(CheckTask(check=check).run(ctx))
+
+    assert err.value.check_name == "CheckPositionsCompliance"
+    assert err.value.param_name == "document_object_field"
+    check_result_repo.save_for_contract.assert_not_called()
+
+
+def test_check1_raises_when_required_field_has_collision():
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            DocumentObjectField(
+                value="Оборудование",
+                sources=[Source(document=document)],
+            ),
+            SpecPositionsField(
+                value=[
+                    SpecPosition(
+                        name="Позиция 1",
+                        quantity=1.0,
+                        unit_price=Decimal("100"),
+                        total_price=Decimal("100"),
+                        unit_of_measurement="шт",
+                    )
+                ],
+                sources=[Source(document=document)],
+            ),
+            SpecPositionsField(
+                value=[
+                    SpecPosition(
+                        name="Позиция 2",
+                        quantity=2.0,
+                        unit_price=Decimal("100"),
+                        total_price=Decimal("200"),
+                        unit_of_measurement="шт",
+                    )
+                ],
+                sources=[Source(document=document)],
+            ),
+        ]
+    )
+    contract = DummyContract(
+        id=uuid4(),
+        file_name="contract.pdf",
+        documents=[document],
+        fields=fields,
+        errors=[],
+    )
+
+    position_service = AsyncMock()
+    check_result_repo = MagicMock()
+    ctx = create_context(
+        contract=contract,
+        check_result_repo=check_result_repo,
+        check_position_compliance_service=position_service,
+    )
+    check = CheckPositionsCompliance(ctx=ctx)
+
+    with pytest.raises(MultiplyRequiredFieldError) as err:
+        asyncio.run(CheckTask(check=check).run(ctx))
+
+    assert err.value.check_name == "CheckPositionsCompliance"
+    assert err.value.param_name == "spec_positions_field"
+    assert err.value.count == 2
+    check_result_repo.save_for_contract.assert_not_called()
