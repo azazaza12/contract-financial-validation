@@ -86,7 +86,7 @@ def _make_advance(
     return AdvancePayment(percent=percent, payment=payment)
 
 
-def test_check8_succeeds_when_valid_data_with_payments():
+def test_total_amounts_succeeds_when_valid_data_with_payments():
     called_result = _run_check(
         total_amount="100.00",
         advances=[
@@ -99,7 +99,7 @@ def test_check8_succeeds_when_valid_data_with_payments():
     assert called_result.errors == []
 
 
-def test_check8_succeeds_for_single_payment_sum_not_compared():
+def test_total_amounts_fails_for_single_payment_amount_mismatch():
     called_result = _run_check(
         total_amount="100.00",
         advances=[
@@ -107,11 +107,11 @@ def test_check8_succeeds_for_single_payment_sum_not_compared():
         ],
     )
 
-    assert called_result.status == CheckStatus.success
-    assert called_result.errors == []
+    assert called_result.status == CheckStatus.failed
+    assert any(isinstance(err, AmountDifferCheckResult) for err in called_result.errors)
 
 
-def test_check8_succeeds_when_amount_is_calculated_from_percent():
+def test_total_amounts_succeeds_when_amount_is_calculated_from_percent():
     called_result = _run_check(
         total_amount="100.00",
         advances=[
@@ -124,7 +124,7 @@ def test_check8_succeeds_when_amount_is_calculated_from_percent():
     assert called_result.errors == []
 
 
-def test_check8_succeeds_when_difference_rounds_to_tolerance():
+def test_total_amounts_fails_when_difference_exceeds_tolerance_due_to_precision():
     called_result = _run_check(
         total_amount="100.00",
         advances=[
@@ -140,7 +140,7 @@ def test_check8_succeeds_when_difference_rounds_to_tolerance():
     )
 
 
-def test_check8_fails_on_real_amount_difference():
+def test_total_amounts_fails_on_real_amount_difference():
     called_result = _run_check(
         total_amount="100.00",
         advances=[
@@ -156,7 +156,7 @@ def test_check8_fails_on_real_amount_difference():
     )
 
 
-def test_check8_fails_when_tolerance_exceeded():
+def test_total_amounts_fails_when_tolerance_exceeded():
     called_result = _run_check(
         total_amount="100.00",
         advances=[
@@ -169,7 +169,7 @@ def test_check8_fails_when_tolerance_exceeded():
     assert any(isinstance(err, AmountDifferCheckResult) for err in called_result.errors)
 
 
-def test_check8_fails_when_total_amount_not_positive():
+def test_total_amounts_fails_when_total_amount_not_positive():
     called_result = _run_check(
         total_amount="0.00",
         advances=[
@@ -185,7 +185,7 @@ def test_check8_fails_when_total_amount_not_positive():
     )
 
 
-def test_check8_fails_when_payment_amount_not_positive():
+def test_total_amounts_fails_when_payment_amount_not_positive():
     called_result = _run_check(
         total_amount="100.00",
         advances=[
@@ -201,7 +201,7 @@ def test_check8_fails_when_payment_amount_not_positive():
     )
 
 
-def test_check8_fails_when_payment_has_no_amount_and_percent():
+def test_total_amounts_fails_when_payment_has_no_amount_and_percent():
     called_result = _run_check(
         total_amount="100.00",
         advances=[
@@ -236,7 +236,9 @@ def test_check8_fails_when_payment_has_no_amount_and_percent():
         ),
     ],
 )
-def test_check8_sets_has_different_vats_flag(advances, expected_has_different_vats):
+def test_total_amounts_sets_has_different_vats_flag(
+    advances, expected_has_different_vats
+):
     called_result = _run_check(total_amount="100.00", advances=advances)
 
     assert called_result.status == CheckStatus.failed
