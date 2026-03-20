@@ -62,6 +62,12 @@ def test_check_nds_succeeds_when_formula_and_sums_are_valid():
     advances = [
         AdvancePayment(
             percent=Decimal("50.00"),
+            total=_make_payment(
+                amount="60.00",
+                vat_amount="10.00",
+                vat_rate="20.00",
+                include_vat=True,
+            ),
             payments=[
                 _make_payment(
                     amount="60.00",
@@ -73,6 +79,12 @@ def test_check_nds_succeeds_when_formula_and_sums_are_valid():
         ),
         AdvancePayment(
             percent=Decimal("50.00"),
+            total=_make_payment(
+                amount="60.00",
+                vat_amount="10.00",
+                vat_rate="20.00",
+                include_vat=True,
+            ),
             payments=[
                 _make_payment(
                     amount="60.00",
@@ -172,6 +184,12 @@ def test_check_nds_compares_sums_even_when_amount_is_missing():
     advances = [
         AdvancePayment(
             percent=Decimal("100.00"),
+            total=_make_payment(
+                amount=None,
+                vat_amount="20.00",
+                vat_rate="20.00",
+                include_vat=True,
+            ),
             payments=[
                 _make_payment(
                     amount=None,
