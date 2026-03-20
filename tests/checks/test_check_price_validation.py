@@ -15,7 +15,9 @@ from app.domain.entities.single_supplier import (
     SingleSupplierDocument,
     SpecPosition,
     SpecPositionsField,
+    TotalAmount,
     TotalAmountField,
+    Vat,
 )
 from app.domain.entities.validation import CheckStatus
 from app.domain.entities.validation_errors import (
@@ -39,10 +41,29 @@ class DummyContract(BaseContract):
 
 
 def _make_payment(value: str) -> Payment:
+    amount = Amount(value=Decimal(value), transcription=None)
     return Payment(
-        amount=Amount(value=Decimal(value), transcription=None),
-        vat_list=[],
+        amount=amount,
+        vat=Vat(amount=None, rate=None),
         include_vat=False,
+    )
+
+
+def _make_total_amount_field(value: str, document: SingleSupplierDocument) -> TotalAmountField:
+    return TotalAmountField(
+        value=TotalAmount(total=_make_payment(value), taxes=None),
+        sources=[Source(document=document)],
+    )
+
+
+def _make_contract(document: SingleSupplierDocument, fields: FieldCollector) -> DummyContract:
+    return DummyContract(
+        id=uuid4(),
+        documents=[document],
+        fields=fields,
+        user_id="test-user",
+        contract_name="contract.pdf",
+        errors=[],
     )
 
 
@@ -54,7 +75,7 @@ def test_check_price_validation_can_run_as_task_and_save_result():
                 value=[
                     SpecPosition(
                         name="Позиция 1",
-                        quantity=1.0,
+                        quantity=Decimal("1.0"),
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("100.00"),
                         unit_of_measurement="шт",
@@ -62,20 +83,11 @@ def test_check_price_validation_can_run_as_task_and_save_result():
                 ],
                 sources=[Source(document=document)],
             ),
-            TotalAmountField(
-                value=_make_payment("100.00"),
-                sources=[Source(document=document)],
-            ),
+            _make_total_amount_field("100.00", document),
         ]
     )
 
-    contract = DummyContract(
-        id=uuid4(),
-        file_name="contract.pdf",
-        documents=[document],
-        fields=fields,
-        errors=[],
-    )
+    contract = _make_contract(document, fields)
     check = CheckPriceValidation()
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
@@ -100,7 +112,7 @@ def test_check_price_validation_raises_when_required_field_is_missing():
                 value=[
                     SpecPosition(
                         name="Позиция 1",
-                        quantity=1.0,
+                        quantity=Decimal("1.0"),
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("100.00"),
                         unit_of_measurement="шт",
@@ -111,13 +123,7 @@ def test_check_price_validation_raises_when_required_field_is_missing():
         ]
     )
 
-    contract = DummyContract(
-        id=uuid4(),
-        file_name="contract.pdf",
-        documents=[document],
-        fields=fields,
-        errors=[],
-    )
+    contract = _make_contract(document, fields)
     check = CheckPriceValidation()
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
@@ -138,7 +144,7 @@ def test_check_price_validation_raises_when_required_field_has_collision():
                 value=[
                     SpecPosition(
                         name="Позиция 1",
-                        quantity=1.0,
+                        quantity=Decimal("1.0"),
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("100.00"),
                         unit_of_measurement="шт",
@@ -146,24 +152,12 @@ def test_check_price_validation_raises_when_required_field_has_collision():
                 ],
                 sources=[Source(document=document)],
             ),
-            TotalAmountField(
-                value=_make_payment("100.00"),
-                sources=[Source(document=document)],
-            ),
-            TotalAmountField(
-                value=_make_payment("200.00"),
-                sources=[Source(document=document)],
-            ),
+            _make_total_amount_field("100.00", document),
+            _make_total_amount_field("200.00", document),
         ]
     )
 
-    contract = DummyContract(
-        id=uuid4(),
-        file_name="contract.pdf",
-        documents=[document],
-        fields=fields,
-        errors=[],
-    )
+    contract = _make_contract(document, fields)
     check = CheckPriceValidation()
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
@@ -185,7 +179,7 @@ def test_check_price_validation_fails_when_position_total_mismatch():
                 value=[
                     SpecPosition(
                         name="Позиция 1",
-                        quantity=5.0,
+                        quantity=Decimal("5.0"),
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("600.00"),  # должно быть 500.00
                         unit_of_measurement="шт",
@@ -193,19 +187,10 @@ def test_check_price_validation_fails_when_position_total_mismatch():
                 ],
                 sources=[Source(document=document)],
             ),
-            TotalAmountField(
-                value=_make_payment("600.00"),
-                sources=[Source(document=document)],
-            ),
+            _make_total_amount_field("600.00", document),
         ]
     )
-    contract = DummyContract(
-        id=uuid4(),
-        file_name="contract.pdf",
-        documents=[document],
-        fields=fields,
-        errors=[],
-    )
+    contract = _make_contract(document, fields)
     check = CheckPriceValidation()
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
@@ -228,7 +213,7 @@ def test_check_price_validation_fails_when_total_amount_mismatch():
                 value=[
                     SpecPosition(
                         name="Позиция 1",
-                        quantity=1.0,
+                        quantity=Decimal("1.0"),
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("100.00"),
                         unit_of_measurement="шт",
@@ -236,19 +221,10 @@ def test_check_price_validation_fails_when_total_amount_mismatch():
                 ],
                 sources=[Source(document=document)],
             ),
-            TotalAmountField(
-                value=_make_payment("150.00"),  # рассчитано 100.00
-                sources=[Source(document=document)],
-            ),
+            _make_total_amount_field("150.00", document),  # рассчитано 100.00
         ]
     )
-    contract = DummyContract(
-        id=uuid4(),
-        file_name="contract.pdf",
-        documents=[document],
-        fields=fields,
-        errors=[],
-    )
+    contract = _make_contract(document, fields)
     check = CheckPriceValidation()
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
@@ -271,7 +247,7 @@ def test_check_price_validation_fails_when_values_not_positive():
                 value=[
                     SpecPosition(
                         name="Позиция 1",
-                        quantity=1.0,
+                        quantity=Decimal("1.0"),
                         unit_price=Decimal("0.00"),
                         total_price=Decimal("0.00"),
                         unit_of_measurement="шт",
@@ -279,19 +255,10 @@ def test_check_price_validation_fails_when_values_not_positive():
                 ],
                 sources=[Source(document=document)],
             ),
-            TotalAmountField(
-                value=_make_payment("0.00"),
-                sources=[Source(document=document)],
-            ),
+            _make_total_amount_field("0.00", document),
         ]
     )
-    contract = DummyContract(
-        id=uuid4(),
-        file_name="contract.pdf",
-        documents=[document],
-        fields=fields,
-        errors=[],
-    )
+    contract = _make_contract(document, fields)
     check = CheckPriceValidation()
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
@@ -314,7 +281,7 @@ def test_check_price_validation_succeeds_when_within_tolerance():
                 value=[
                     SpecPosition(
                         name="Позиция 1",
-                        quantity=1.0,
+                        quantity=Decimal("1.0"),
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("100.01"),  # ровно tolerance
                         unit_of_measurement="шт",
@@ -322,19 +289,10 @@ def test_check_price_validation_succeeds_when_within_tolerance():
                 ],
                 sources=[Source(document=document)],
             ),
-            TotalAmountField(
-                value=_make_payment("100.01"),
-                sources=[Source(document=document)],
-            ),
+            _make_total_amount_field("100.01", document),
         ]
     )
-    contract = DummyContract(
-        id=uuid4(),
-        file_name="contract.pdf",
-        documents=[document],
-        fields=fields,
-        errors=[],
-    )
+    contract = _make_contract(document, fields)
     check = CheckPriceValidation()
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
