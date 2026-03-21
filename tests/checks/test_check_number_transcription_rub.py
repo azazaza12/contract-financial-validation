@@ -17,7 +17,7 @@ from app.domain.entities.single_supplier import (
 from app.domain.entities.validation import CheckStatus
 from app.domain.entities.validation_errors import NumberTranscriptionErrorCheckResult
 from app.domain.service.checker import TranscriptionCheckIssue, TranscriptionCheckResult
-from app.domain.service.checks.check_14_number_transcription_rub import (
+from app.domain.service.checks.check_number_transcription_rub import (
     Check14NumberTranscriptionRub,
 )
 from tests.domain.pipeline.conftest import create_context
