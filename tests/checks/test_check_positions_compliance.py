@@ -59,9 +59,10 @@ def test_check1_can_run_as_task_and_save_result():
 
     contract = DummyContract(
         id=uuid4(),
-        file_name="contract.pdf",
         documents=[document],
         fields=fields,
+        user_id="test-user",
+        contract_name="contract.pdf",
         errors=[],
     )
 
@@ -115,9 +116,10 @@ def test_check1_raises_when_required_field_is_missing():
     )
     contract = DummyContract(
         id=uuid4(),
-        file_name="contract.pdf",
         documents=[document],
         fields=fields,
+        user_id="test-user",
+        contract_name="contract.pdf",
         errors=[],
     )
 
@@ -174,9 +176,10 @@ def test_check1_raises_when_required_field_has_collision():
     )
     contract = DummyContract(
         id=uuid4(),
-        file_name="contract.pdf",
         documents=[document],
         fields=fields,
+        user_id="test-user",
+        contract_name="contract.pdf",
         errors=[],
     )
 
