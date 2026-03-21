@@ -13,6 +13,7 @@ from app.domain.entities.single_supplier import (
     Amount,
     Payment,
     SingleSupplierDocument,
+    TotalAmount,
     TotalAmountField,
     Vat,
 )
@@ -38,20 +39,31 @@ def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:
     amount = Amount(value=Decimal(value), transcription=None)
     return Payment(
         amount=amount,
-        vat_list=[Vat(amount=amount, rate=Decimal(vat_rate))],
+        vat=Vat(amount=amount, rate=Decimal(vat_rate)),
         include_vat=True,
     )
 
 
 def _make_advance(*, percent: Decimal | None, payment_value: str | None) -> AdvancePayment:
-    payment = _make_payment(payment_value) if payment_value is not None else None
-    return AdvancePayment(percent=percent, payment=payment)
+    total = _make_payment(payment_value) if payment_value is not None else None
+    return AdvancePayment(percent=percent, total=total, payments=None)
 
 
-def _run_check(*, total_amount: str, advances: list[AdvancePayment]):
+def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]):
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    if total_amount is not None:
+        total_payment = _make_payment(total_amount)
+    else:
+        total_payment = Payment(
+            amount=None,
+            vat=Vat(amount=None, rate=Decimal("20.00")),
+            include_vat=True,
+        )
     total_amount_field = TotalAmountField(
-        value=_make_payment(total_amount),
+        value=TotalAmount(
+            total=total_payment,
+            taxes=None,
+        ),
         sources=[Source(document=document)],
     )
     advance_payments_field = AdvancePaymentsField(
@@ -60,7 +72,8 @@ def _run_check(*, total_amount: str, advances: list[AdvancePayment]):
     )
     contract = DummyContract(
         id=uuid4(),
-        file_name="contract.pdf",
+        user_id="test-user",
+        contract_name="contract.pdf",
         documents=[document],
         fields=FieldCollector([total_amount_field, advance_payments_field]),
         errors=[],
@@ -216,3 +229,35 @@ def test_payment_percent_can_return_multiple_errors():
     assert len(called_result.errors) > 1
     assert any(isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors)
     assert any(isinstance(err, PaymentPercentSumDiscrepancyCheckResult) for err in called_result.errors)
+
+
+def test_payment_percent_sum_checked_when_contract_total_amount_missing():
+    called_result = _run_check(
+        total_amount=None,
+        advances=[
+            _make_advance(percent=Decimal("50.00"), payment_value="50.00"),
+            _make_advance(percent=Decimal("50.00"), payment_value="50.00"),
+        ],
+    )
+
+    assert called_result.status == CheckStatus.success
+    assert called_result.errors == []
+
+
+def test_payment_percent_sum_fails_when_contract_total_missing_but_percents_not_100():
+    called_result = _run_check(
+        total_amount=None,
+        advances=[
+            _make_advance(percent=Decimal("30.00"), payment_value="30.00"),
+            _make_advance(percent=Decimal("30.00"), payment_value="30.00"),
+        ],
+    )
+
+    assert called_result.status == CheckStatus.failed
+    assert any(
+        isinstance(err, PaymentPercentSumDiscrepancyCheckResult)
+        for err in called_result.errors
+    )
+    assert not any(
+        isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors
+    )
