@@ -10,6 +10,7 @@ from app.domain.entities.single_supplier import (
     Amount,
     Payment,
     SingleSupplierDocument,
+    TotalAmount,
     TotalAmountField,
     Vat,
 )
@@ -25,10 +26,13 @@ from tests.domain.pipeline.conftest import create_context
 def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmountField:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     return TotalAmountField(
-        value=Payment(
-            amount=Amount(value=Decimal(value), transcription=transcription),
-            vat_list=[],
-            include_vat=False,
+        value=TotalAmount(
+            total=Payment(
+                amount=Amount(value=Decimal(value), transcription=transcription),
+                vat=Vat(amount=None, rate=None),
+                include_vat=False,
+            ),
+            taxes=None,
         ),
         sources=[Source(document=document)],
     )
@@ -109,23 +113,24 @@ def test_check_14_passes_realistic_nested_amounts_to_service():
 
     document = SingleSupplierDocument(id=uuid4(), file_name="contract.pdf")
     total_amount_field = TotalAmountField(
-        value=Payment(
-            amount=Amount(
-                value=Decimal("1217291.25"),
-                transcription=(
-                    "Один миллион двести семнадцать тысяч двести девяносто один"
+        value=TotalAmount(
+            total=Payment(
+                amount=Amount(
+                    value=Decimal("1217291.25"),
+                    transcription=(
+                        "Один миллион двести семнадцать тысяч двести девяносто один"
+                    ),
                 ),
-            ),
-            vat_list=[
-                Vat(
+                vat=Vat(
                     amount=Amount(
                         value=Decimal("200748.43"),
                         transcription="Двести тысяч семьсот сорок восемь",
                     ),
                     rate=Decimal("20.00"),
-                )
-            ],
-            include_vat=True,
+                ),
+                include_vat=True,
+            ),
+            taxes=None,
         ),
         sources=[Source(document=document)],
     )
@@ -133,45 +138,43 @@ def test_check_14_passes_realistic_nested_amounts_to_service():
         value=[
             AdvancePayment(
                 percent=Decimal("97.69"),
-                payment=Payment(
+                total=Payment(
                     amount=Amount(
                         value=Decimal("1189129.80"),
                         transcription=(
                             "Один миллион сто восемьдесят девять тысяч сто двадцать девять"
                         ),
                     ),
-                    vat_list=[
-                        Vat(
-                            amount=Amount(
-                                value=Decimal("198188.30"),
-                                transcription=(
-                                    "Сто девяносто восемь тысяч сто восемьдесят восемь"
-                                ),
+                    vat=Vat(
+                        amount=Amount(
+                            value=Decimal("198188.30"),
+                            transcription=(
+                                "Сто девяносто восемь тысяч сто восемьдесят восемь"
                             ),
-                            rate=Decimal("20.00"),
-                        )
-                    ],
+                        ),
+                        rate=Decimal("20.00"),
+                    ),
                     include_vat=True,
                 ),
+                payments=None,
             ),
             AdvancePayment(
                 percent=Decimal("2.31"),
-                payment=Payment(
+                total=Payment(
                     amount=Amount(
                         value=Decimal("28161.45"),
                         transcription="Двадцать восемь тысяч сто шестьдесят один",
                     ),
-                    vat_list=[
-                        Vat(
-                            amount=Amount(
-                                value=Decimal("2560.13"),
-                                transcription="Две тысячи пятьсот шестьдесят",
-                            ),
-                            rate=Decimal("10.00"),
-                        )
-                    ],
+                    vat=Vat(
+                        amount=Amount(
+                            value=Decimal("2560.13"),
+                            transcription="Две тысячи пятьсот шестьдесят",
+                        ),
+                        rate=Decimal("10.00"),
+                    ),
                     include_vat=True,
                 ),
+                payments=None,
             ),
         ],
         sources=[Source(document=document)],
