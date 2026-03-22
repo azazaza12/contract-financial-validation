@@ -18,7 +18,7 @@ from app.domain.entities.validation import CheckStatus
 from app.domain.entities.validation_errors import NumberTranscriptionErrorCheckResult
 from app.domain.service.checker import TranscriptionCheckIssue, TranscriptionCheckResult
 from app.domain.service.checks.check_number_transcription_rub import (
-    Check14NumberTranscriptionRub,
+    CheckNumberTranscriptionRub,
 )
 from tests.domain.pipeline.conftest import create_context
 
@@ -42,7 +42,7 @@ def test_check_14_succeeds_when_no_transcription_issues():
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
     ctx = create_context(check_transcription_compliance_service=service_mock)
-    check = Check14NumberTranscriptionRub(ctx=ctx)
+    check = CheckNumberTranscriptionRub(ctx=ctx)
 
     result = asyncio.run(
         check.execute(
@@ -78,7 +78,7 @@ def test_check_14_maps_each_issue_to_validation_error():
         ]
     )
     ctx = create_context(check_transcription_compliance_service=service_mock)
-    check = Check14NumberTranscriptionRub(ctx=ctx)
+    check = CheckNumberTranscriptionRub(ctx=ctx)
 
     result = asyncio.run(
         check.execute(
@@ -109,7 +109,7 @@ def test_check_14_passes_realistic_nested_amounts_to_service():
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
     ctx = create_context(check_transcription_compliance_service=service_mock)
-    check = Check14NumberTranscriptionRub(ctx=ctx)
+    check = CheckNumberTranscriptionRub(ctx=ctx)
 
     document = SingleSupplierDocument(id=uuid4(), file_name="contract.pdf")
     total_amount_field = TotalAmountField(

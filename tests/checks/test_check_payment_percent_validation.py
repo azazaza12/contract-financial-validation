@@ -44,7 +44,9 @@ def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:
     )
 
 
-def _make_advance(*, percent: Decimal | None, payment_value: str | None) -> AdvancePayment:
+def _make_advance(
+    *, percent: Decimal | None, payment_value: str | None
+) -> AdvancePayment:
     total = _make_payment(payment_value) if payment_value is not None else None
     return AdvancePayment(percent=percent, total=total, payments=None)
 
@@ -97,7 +99,9 @@ def test_payment_percent_validates_amount_by_percent_even_when_some_percents_mis
     )
 
     assert called_result.status == CheckStatus.failed
-    assert any(isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors)
+    assert any(
+        isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors
+    )
     assert not any(
         isinstance(err, PaymentPercentSumDiscrepancyCheckResult)
         for err in called_result.errors
@@ -157,7 +161,9 @@ def test_payment_percent_fails_when_amount_does_not_match_percent():
     )
 
     assert called_result.status == CheckStatus.failed
-    assert any(isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors)
+    assert any(
+        isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors
+    )
 
 
 def test_payment_percent_succeeds_when_percent_sum_difference_within_tolerance():
@@ -196,7 +202,9 @@ def test_payment_percent_fails_when_amount_difference_exceeds_tolerance():
     )
 
     assert called_result.status == CheckStatus.failed
-    assert any(isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors)
+    assert any(
+        isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors
+    )
 
 
 def test_payment_percent_succeeds_when_payment_list_is_empty():
@@ -227,8 +235,13 @@ def test_payment_percent_can_return_multiple_errors():
 
     assert called_result.status == CheckStatus.failed
     assert len(called_result.errors) > 1
-    assert any(isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors)
-    assert any(isinstance(err, PaymentPercentSumDiscrepancyCheckResult) for err in called_result.errors)
+    assert any(
+        isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors
+    )
+    assert any(
+        isinstance(err, PaymentPercentSumDiscrepancyCheckResult)
+        for err in called_result.errors
+    )
 
 
 def test_payment_percent_sum_checked_when_contract_total_amount_missing():

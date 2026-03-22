@@ -49,14 +49,18 @@ def _make_payment(value: str) -> Payment:
     )
 
 
-def _make_total_amount_field(value: str, document: SingleSupplierDocument) -> TotalAmountField:
+def _make_total_amount_field(
+    value: str, document: SingleSupplierDocument
+) -> TotalAmountField:
     return TotalAmountField(
         value=TotalAmount(total=_make_payment(value), taxes=None),
         sources=[Source(document=document)],
     )
 
 
-def _make_contract(document: SingleSupplierDocument, fields: FieldCollector) -> DummyContract:
+def _make_contract(
+    document: SingleSupplierDocument, fields: FieldCollector
+) -> DummyContract:
     return DummyContract(
         id=uuid4(),
         documents=[document],
@@ -234,8 +238,7 @@ def test_check_price_validation_fails_when_total_amount_mismatch():
     called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
     assert called_result.status == CheckStatus.failed
     assert any(
-        isinstance(err, AmountDiscrepancyCheckResult)
-        for err in called_result.errors
+        isinstance(err, AmountDiscrepancyCheckResult) for err in called_result.errors
     )
 
 
@@ -268,8 +271,7 @@ def test_check_price_validation_fails_when_values_not_positive():
     called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
     assert called_result.status == CheckStatus.failed
     assert any(
-        isinstance(err, AmountNotPositiveCheckResult)
-        for err in called_result.errors
+        isinstance(err, AmountNotPositiveCheckResult) for err in called_result.errors
     )
 
 
