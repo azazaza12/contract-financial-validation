@@ -83,12 +83,8 @@ def test_check1_can_run_as_task_and_save_result():
     asyncio.run(CheckTask(check=check).run(ctx))
 
     check_result_repo.save_for_contract.assert_called_once()
-    called_contract = check_result_repo.save_for_contract.call_args.kwargs[
-        "contract"
-    ]
-    called_result = check_result_repo.save_for_contract.call_args.kwargs[
-        "result"
-    ]
+    called_contract = check_result_repo.save_for_contract.call_args.kwargs["contract"]
+    called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
 
     assert called_contract is contract
     assert called_result.check_name == "CheckPositionsCompliance"

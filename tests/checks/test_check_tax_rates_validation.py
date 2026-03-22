@@ -15,7 +15,7 @@ from app.domain.entities.validation_errors import (
     PaymentVatRateNotFoundCheckResult,
     PaymentVatRatesDifferCheckResult,
 )
-from app.domain.service.checks.check_tax_rates_validation import Check15NDSRateValidation
+from app.domain.service.checks.check_tax_rates_validation import CheckTaxRatesValidation
 
 
 def _payment(*, vat_rate: Decimal | None) -> Payment:
@@ -61,7 +61,7 @@ def _run(
     tax_rates: list[Decimal | None] | None,
     advances: list[AdvancePayment] | None,
 ):
-    check = Check15NDSRateValidation()
+    check = CheckTaxRatesValidation()
     ta = _total_amount_field(total_rate=total_rate, tax_rates=tax_rates)
     adv_field = (
         AdvancePaymentsField(value=advances, sources=[])
