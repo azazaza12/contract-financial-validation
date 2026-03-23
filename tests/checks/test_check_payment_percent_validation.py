@@ -23,7 +23,7 @@ from app.domain.entities.validation_errors import (
     PaymentPercentSumDiscrepancyCheckResult,
 )
 from app.domain.pipeline.task import CheckTask
-from app.domain.service.checks.check_payment_percent_validation import (
+from app.domain.checks.check_payment_percent_validation import (
     CheckPaymentPercentValidation,
 )
 from tests.domain.pipeline.conftest import create_context

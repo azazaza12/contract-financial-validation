@@ -12,7 +12,7 @@ from app.domain.entities.single_supplier import (
 )
 from app.domain.entities.validation import CheckStatus
 from app.domain.entities.validation_errors import AmountDiscrepancyCheckResult
-from app.domain.service.checks.check_amounts_validation import (
+from app.domain.checks.check_amounts_validation import (
     CheckTotalAmountsValidation,
 )
 
