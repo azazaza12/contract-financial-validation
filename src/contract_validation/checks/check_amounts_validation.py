@@ -22,17 +22,16 @@ class CheckTotalAmountsValidation(BaseCheck):
             from app.config import ValidationSettings
 
             tolerance = ValidationSettings().AMOUNT_TOLERANCE
-        self.errors: list[BaseResultChecker] = []
         self.tolerance = tolerance
 
-    def all_equal(self, values: list[Decimal]) -> None:
+    def all_equal(self, values: list[Decimal], errors: list[BaseResultChecker]) -> None:
         if not values:
             return
         reference_value = values[0]
         for value in values[1:]:
             difference = abs(value - reference_value)
             if difference > self.tolerance:
-                self.errors.append(
+                errors.append(
                     AmountDiscrepancyCheckResult(
                         value=value,
                         reference_value=reference_value,
@@ -67,7 +66,9 @@ class CheckTotalAmountsValidation(BaseCheck):
         return target
 
     def collect_advances_sum(
-        self, advance_payments_field: AdvancePaymentsField
+        self,
+        advance_payments_field: AdvancePaymentsField,
+        errors: list[BaseResultChecker],
     ) -> list[Decimal]:
         target: list[Decimal] = []
         total_amount_sum = Decimal("0.00")
@@ -89,7 +90,7 @@ class CheckTotalAmountsValidation(BaseCheck):
             if total_amount is not None and adv_amount_sum is not None:
                 diff = abs(total_amount - adv_amount_sum)
                 if diff > self.tolerance:
-                    self.errors.append(
+                    errors.append(
                         AmountDiscrepancyCheckResult(
                             reference_value=total_amount,
                             value=adv_amount_sum,
@@ -107,11 +108,13 @@ class CheckTotalAmountsValidation(BaseCheck):
         advance_payments_field: AdvancePaymentsField | None,
     ) -> CheckExecutionResult:
 
-        self.errors = []
+        errors: list[BaseResultChecker] = []
         amounts_to_compare: list[Decimal] = []
         amounts_to_compare.extend(self.collect_total_sum(total_amount_field))
         if advance_payments_field is not None:
-            amounts_to_compare.extend(self.collect_advances_sum(advance_payments_field))
-        self.all_equal(amounts_to_compare)
+            amounts_to_compare.extend(
+                self.collect_advances_sum(advance_payments_field, errors)
+            )
+        self.all_equal(amounts_to_compare, errors)
 
-        return self._result(self.errors)
+        return self._result(errors)
