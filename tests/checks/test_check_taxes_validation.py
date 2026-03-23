@@ -16,7 +16,7 @@ from app.domain.entities.validation_errors import (
     VatAmountCalculationDiscrepancy,
     VatAmountDiscrepancy,
 )
-from app.domain.checks import CheckTaxesValidation
+from app.domain.checks.check_taxes_validation import CheckTaxesValidation
 
 
 def _make_payment(
