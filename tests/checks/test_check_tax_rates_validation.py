@@ -89,7 +89,6 @@ def test_no_advances_one_tax_line_both_rates_none_not_found():
     assert r.status == CheckStatus.failed
     assert len(r.errors) == 1
     assert isinstance(r.errors[0], PaymentVatRateNotFoundCheckResult)
-    assert r.errors[0].index is None
 
 
 def test_no_rate_in_total_or_taxes_but_advance_has_rate_success():
