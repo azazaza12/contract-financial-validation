@@ -43,12 +43,13 @@ class CheckTotalAmountsValidation(BaseCheck):
         total_amount_sum = Decimal("0.00")
         has_any = False
         for payment in payments:
-            if payment.amount is not None:
-                total_amount_sum += payment.amount.value
-                has_any = True
-        if has_any:
-            return total_amount_sum
-        return
+            if payment.amount is None:
+                continue
+            total_amount_sum += payment.amount.value
+            has_any = True
+        if not has_any:
+            return None
+        return total_amount_sum
 
     def collect_total_sum(self, total_amount_field: TotalAmountField) -> list[Decimal]:
         target: list[Decimal] = []
@@ -57,12 +58,15 @@ class CheckTotalAmountsValidation(BaseCheck):
         )
         if total_amount_sum is not None:
             target.append(total_amount_sum)
-        if total_amount_field.value.taxes is not None:
-            taxes_total_amount_sum = self.collect_sums_from_payments(
-                total_amount_field.value.taxes
-            )
-            if taxes_total_amount_sum is not None:
-                target.append(taxes_total_amount_sum)
+        if total_amount_field.value.taxes is None:
+            return target
+
+        taxes_total_amount_sum = self.collect_sums_from_payments(
+            total_amount_field.value.taxes
+        )
+        if taxes_total_amount_sum is None:
+            return target
+        target.append(taxes_total_amount_sum)
         return target
 
     def collect_advances_sum(
@@ -74,32 +78,39 @@ class CheckTotalAmountsValidation(BaseCheck):
         total_amount_sum = Decimal("0.00")
         total_payments_sum = Decimal("0.00")
         has_any = False
-        for adv in advance_payments_field.value:
+        for advance_payment in advance_payments_field.value:
             total_amount = None
             adv_amount_sum = None
-            if adv.total is not None:
-                total_amount = self.collect_sums_from_payments([adv.total])
+            if advance_payment.total is not None:
+                total_amount = self.collect_sums_from_payments([advance_payment.total])
                 if total_amount is not None:
                     total_amount_sum += total_amount
                     has_any = True
-            if adv.payments is not None:
-                adv_amount_sum = self.collect_sums_from_payments(adv.payments)
+            if advance_payment.payments is not None:
+                adv_amount_sum = self.collect_sums_from_payments(
+                    advance_payment.payments
+                )
                 if adv_amount_sum is not None:
                     total_payments_sum += adv_amount_sum
                     has_any = True
-            if total_amount is not None and adv_amount_sum is not None:
-                diff = abs(total_amount - adv_amount_sum)
-                if diff > self.tolerance:
-                    errors.append(
-                        AmountDiscrepancyCheckResult(
-                            reference_value=total_amount,
-                            value=adv_amount_sum,
-                            difference=diff,
-                        )
-                    )
-        if has_any:
-            target.append(total_amount_sum)
-            target.append(total_payments_sum)
+            if total_amount is None or adv_amount_sum is None:
+                continue
+
+            diff = abs(total_amount - adv_amount_sum)
+            if diff <= self.tolerance:
+                continue
+
+            errors.append(
+                AmountDiscrepancyCheckResult(
+                    reference_value=total_amount,
+                    value=adv_amount_sum,
+                    difference=diff,
+                )
+            )
+        if not has_any:
+            return target
+        target.append(total_amount_sum)
+        target.append(total_payments_sum)
         return target
 
     async def execute(

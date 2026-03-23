@@ -102,21 +102,25 @@ class CheckTaxRatesValidation(BaseCheck):
             return self._result(errors)
 
         contract_rate = ta.total.vat.rate
-        for adv in advance_payments_field.value:
-            if adv.payments is not None and len(adv.payments) > 0:
-                advance_total_rate = adv.total and adv.total.vat.rate
-                if advance_total_rate is not None:
-                    mismatch = _payment_lines_mismatch_vs_reference(
-                        advance_total_rate,
-                        adv.payments,
-                    )
-                    if mismatch is not None:
-                        errors.append(mismatch)
-                        return self._result(errors)
-            else:
-                mismatch = _aggregate_rate_vs_contract(contract_rate, adv.total)
+        for advance_payment in advance_payments_field.value:
+            if not advance_payment.payments:
+                mismatch = _aggregate_rate_vs_contract(contract_rate, advance_payment.total)
                 if mismatch is not None:
                     errors.append(mismatch)
                     return self._result(errors)
+                continue
+
+            advance_total_rate = advance_payment.total and advance_payment.total.vat.rate
+            if advance_total_rate is None:
+                continue
+
+            mismatch = _payment_lines_mismatch_vs_reference(
+                advance_total_rate,
+                advance_payment.payments,
+            )
+            if mismatch is None:
+                continue
+            errors.append(mismatch)
+            return self._result(errors)
 
         return self._result(errors)

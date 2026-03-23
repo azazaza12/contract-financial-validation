@@ -31,17 +31,17 @@ class CheckPositionsCompliance(BaseCheck):
             document_object, position_names
         )
 
-        if not result.success:
+        if result.success:
             logger.info(
-                "Document object - [%s]\nInappropriate items found:\n [%s]",
+                "Document object - [%s]\nAll items correspond to the subject of the purchase",
                 document_object,
-                result.text,
             )
-            errors.append(PositionsComplianceErrorCheckResult(message=result.text))
             return self._result(errors)
 
         logger.info(
-            "Document object - [%s]\nAll items correspond to the subject of the purchase",
+            "Document object - [%s]\nInappropriate items found:\n [%s]",
             document_object,
+            result.text,
         )
+        errors.append(PositionsComplianceErrorCheckResult(message=result.text))
         return self._result(errors)

@@ -70,36 +70,39 @@ class CheckTaxesValidation(BaseCheck):
     ) -> None:
         has_any = False
         advances_vat_total = Decimal("0.00")
-        for adv in advance_payments_field.value:
+        for advance_payment in advance_payments_field.value:
             advance_aggregate_vat = None
-            if adv.total is not None:
+            if advance_payment.total is not None:
                 advance_aggregate_vat = self.validate_payments_and_sum_vat(
-                    [adv.total], errors
+                    [advance_payment.total], errors
                 )
                 has_any = True
             if advance_aggregate_vat is not None:
                 advances_vat_total += advance_aggregate_vat
 
             advance_lines_vat = None
-            if adv.payments is not None:
+            if advance_payment.payments is not None:
                 advance_lines_vat = self.validate_payments_and_sum_vat(
-                    adv.payments, errors
+                    advance_payment.payments, errors
                 )
             if advance_lines_vat is not None:
                 has_any = True
 
-            if advance_aggregate_vat is not None and advance_lines_vat is not None:
-                diff = abs(advance_aggregate_vat - advance_lines_vat)
-                if diff > self.tolerance:
-                    errors.append(
-                        VatAmountDiscrepancy(
-                            reference_value=advance_aggregate_vat,
-                            value=advance_lines_vat,
-                            difference=diff,
-                        )
-                    )
-        if has_any:
-            vat_amounts.append(advances_vat_total)
+            if advance_aggregate_vat is None or advance_lines_vat is None:
+                continue
+            diff = abs(advance_aggregate_vat - advance_lines_vat)
+            if diff <= self.tolerance:
+                continue
+            errors.append(
+                VatAmountDiscrepancy(
+                    reference_value=advance_aggregate_vat,
+                    value=advance_lines_vat,
+                    difference=diff,
+                )
+            )
+        if not has_any:
+            return
+        vat_amounts.append(advances_vat_total)
 
     def validate_payments_and_sum_vat(
         self, payments: list[Payment] | None, errors: list[BaseResultChecker]

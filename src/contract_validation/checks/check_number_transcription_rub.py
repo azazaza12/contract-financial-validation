@@ -38,16 +38,19 @@ class CheckNumberTranscriptionRub(BaseCheck):
             if isinstance(field, TotalAmountField):
                 total_amount = field.value
                 amounts.extend(self._amounts_from_payment(total_amount.total))
-                if total_amount.taxes is not None:
-                    for tax_payment in total_amount.taxes:
-                        amounts.extend(self._amounts_from_payment(tax_payment))
-            elif isinstance(field, AdvancePaymentsField):
-                for adv in field.value:
-                    if adv.total is not None:
-                        amounts.extend(self._amounts_from_payment(adv.total))
-                    if adv.payments is not None:
-                        for p in adv.payments:
-                            amounts.extend(self._amounts_from_payment(p))
+                if total_amount.taxes is None:
+                    continue
+                for tax_payment in total_amount.taxes:
+                    amounts.extend(self._amounts_from_payment(tax_payment))
+                continue
+
+            for advance_payment in field.value:
+                if advance_payment.total is not None:
+                    amounts.extend(self._amounts_from_payment(advance_payment.total))
+                if advance_payment.payments is None:
+                    continue
+                for payment in advance_payment.payments:
+                    amounts.extend(self._amounts_from_payment(payment))
         return amounts
 
     async def execute(
@@ -56,11 +59,11 @@ class CheckNumberTranscriptionRub(BaseCheck):
         advance_payments_field: AdvancePaymentsField | None,
     ) -> CheckExecutionResult:
         errors: list[BaseResultChecker] = []
-        extracted_pairs = self._extract_amounts_from_fields(
+        extracted_amounts = self._extract_amounts_from_fields(
             [f for f in (total_amount_field, advance_payments_field) if f is not None]
         )
         result = await self.ctx.check_transcription_compliance_service.evaluate(
-            extracted_pairs
+            extracted_amounts
         )
         for issue in result.issues:
             errors.append(
