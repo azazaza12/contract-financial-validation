@@ -1,0 +1,122 @@
+from __future__ import annotations
+
+from decimal import Decimal
+
+from app.domain.entities.validation import CheckExecutionResult, BaseResultChecker
+from app.domain.entities.validation_errors import (
+    PaymentVatRateNotFoundCheckResult,
+    PaymentVatRatesDifferCheckResult,
+)
+from app.domain.entities.single_supplier import (
+    AdvancePayment,
+    AdvancePaymentsField,
+    Payment,
+    TotalAmount,
+    TotalAmountField,
+)
+from app.domain.checks.base import BaseCheck
+
+
+def _payment_lines_mismatch_vs_reference(
+    reference_rate: Decimal | None,
+    lines: list[Payment],
+) -> PaymentVatRatesDifferCheckResult | None:
+    for payment in lines:
+        line_rate = payment.vat.rate
+        if line_rate != reference_rate:
+            return PaymentVatRatesDifferCheckResult(
+                index=None,
+                rate_one=reference_rate,
+                rate_two=line_rate,
+            )
+    return None
+
+
+def _total_amount_has_any_vat_rate(ta: TotalAmount) -> bool:
+    if ta.total.vat.rate is not None:
+        return True
+    taxes = ta.taxes
+    if taxes:
+        return any(p.vat.rate is not None for p in taxes)
+    return False
+
+
+def _advance_has_any_vat_rate(adv: AdvancePayment) -> bool:
+    if adv.total is not None and adv.total.vat.rate is not None:
+        return True
+    if adv.payments:
+        return any(p.vat.rate is not None for p in adv.payments)
+    return False
+
+
+def _advances_field_has_any_vat_rate(
+    advance_payments_field: AdvancePaymentsField | None,
+) -> bool:
+    if advance_payments_field is None or len(advance_payments_field.value) == 0:
+        return False
+    return any(_advance_has_any_vat_rate(adv) for adv in advance_payments_field.value)
+
+
+def _aggregate_rate_vs_contract(
+    contract_rate: Decimal | None,
+    aggregate: Payment | None,
+) -> PaymentVatRatesDifferCheckResult | None:
+    if aggregate is None:
+        return None
+    adv_rate = aggregate.vat.rate
+    if contract_rate == adv_rate:
+        return None
+    return PaymentVatRatesDifferCheckResult(
+        index=None,
+        rate_one=contract_rate,
+        rate_two=adv_rate,
+    )
+
+
+class CheckTaxRatesValidation(BaseCheck):
+    async def execute(
+        self,
+        total_amount_field: TotalAmountField,
+        advance_payments_field: AdvancePaymentsField | None,
+    ) -> CheckExecutionResult:
+        errors: list[BaseResultChecker] = []
+        ta = total_amount_field.value
+        taxes = ta.taxes
+
+        if not (
+            _total_amount_has_any_vat_rate(ta)
+            or _advances_field_has_any_vat_rate(advance_payments_field)
+        ):
+            errors.append(PaymentVatRateNotFoundCheckResult())
+            return self._result(errors)
+
+        if taxes is not None and len(taxes) > 0:
+            total_rate = ta.total.vat.rate
+            if total_rate is not None:
+                mismatch = _payment_lines_mismatch_vs_reference(total_rate, taxes)
+                if mismatch is not None:
+                    errors.append(mismatch)
+                    return self._result(errors)
+
+        if advance_payments_field is None or len(advance_payments_field.value) == 0:
+            return self._result(errors)
+
+        contract_rate = ta.total.vat.rate
+        for adv in advance_payments_field.value:
+            if adv.payments is not None and len(adv.payments) > 0:
+                advance_total_rate = adv.total and adv.total.vat.rate
+                if advance_total_rate is not None:
+                    mismatch = _payment_lines_mismatch_vs_reference(
+                        advance_total_rate,
+                        adv.payments,
+                    )
+                    if mismatch is not None:
+                        errors.append(mismatch)
+                        return self._result(errors)
+            else:
+                mismatch = _aggregate_rate_vs_contract(contract_rate, adv.total)
+                if mismatch is not None:
+                    errors.append(mismatch)
+                    return self._result(errors)
+
+        return self._result(errors)

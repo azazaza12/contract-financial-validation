@@ -18,10 +18,10 @@ from app.domain.entities.validation import CheckStatus
 from app.domain.entities.merge_types import Source
 from app.domain.pipeline.task import CheckTask
 from app.domain.service.checker import EvaluateResult
-from app.domain.service.checks.check_positions_compliance import (
+from app.domain.checks.check_positions_compliance import (
     CheckPositionsCompliance,
 )
-from app.domain.service.checks.errors import (
+from app.domain.checks.errors import (
     MissingRequiredFieldError,
     MultiplyRequiredFieldError,
 )

@@ -26,8 +26,8 @@ from app.domain.entities.validation_errors import (
     PositionCostDiscrepancyCheckResult,
 )
 from app.domain.pipeline.task import CheckTask
-from app.domain.service.checks.check_price_validation import CheckPriceValidation
-from app.domain.service.checks.errors import (
+from app.domain.checks.check_price_validation import CheckPriceValidation
+from app.domain.checks.errors import (
     MissingRequiredFieldError,
     MultiplyRequiredFieldError,
 )
