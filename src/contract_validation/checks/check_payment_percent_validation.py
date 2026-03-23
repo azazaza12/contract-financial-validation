@@ -18,7 +18,7 @@ from app.domain.entities.single_supplier import (
 logger = logging.getLogger(__name__)
 
 
-def _advance_line_amount(adv: AdvancePayment) -> Decimal | None:
+def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
     if adv.total is not None and adv.total.amount is not None:
         return adv.total.amount.value
     if adv.payments:
@@ -68,22 +68,24 @@ class CheckPaymentPercentValidation(BaseCheck):
 
         total_percent = Decimal("0.00")
 
-        for payment in payments:
-            if payment.percent is not None:
-                line_amount = _advance_line_amount(payment)
+        for advance_payment in payments:
+            if advance_payment.percent is not None:
+                line_amount = _calculate_advance_line_amount(advance_payment)
                 if total_amount is not None and line_amount is not None:
-                    expected_amount = total_amount * payment.percent / Decimal("100.00")
+                    expected_amount = (
+                        total_amount * advance_payment.percent / Decimal("100.00")
+                    )
                     diff_amount = abs(line_amount - expected_amount)
                     if diff_amount > self.tolerance:
                         errors.append(
                             PaymentAmountPercentDiscrepancy(
                                 amount=line_amount,
                                 expected_amount=expected_amount,
-                                percent=payment.percent,
+                                percent=advance_payment.percent,
                                 contract_total_amount=total_amount,
                             )
                         )
-                total_percent += payment.percent
+                total_percent += advance_payment.percent
 
         all_percents_specified = all(p.percent is not None for p in payments)
         if all_percents_specified:
