@@ -20,11 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class CheckTaxesValidation(BaseCheck):
-    def __init__(self, tolerance: Decimal | None = None):
-        if tolerance is None:
-            from app.config import ValidationSettings
-
-            tolerance = ValidationSettings().AMOUNT_TOLERANCE
+    def __init__(self, tolerance: Decimal):
         self.tolerance = tolerance
 
     def check_vat_amounts_consistent(
