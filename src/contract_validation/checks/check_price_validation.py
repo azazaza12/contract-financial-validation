@@ -73,7 +73,7 @@ class CheckPriceValidation(BaseCheck):
                 )
 
         if errors:
-            logger.warning(
+            logger.info(
                 "[%s] found errors: [%d]", self.__class__.__name__, len(errors)
             )
         else:
