@@ -1,14 +1,14 @@
 import logging
 
-from app.domain.entities.validation_errors import NumberTranscriptionErrorCheckResult
 from app.domain.checks.base import BaseCheck
-from app.domain.entities.validation import CheckExecutionResult, BaseResultChecker
 from app.domain.entities.single_supplier import (
     AdvancePaymentsField,
     Amount,
     Payment,
     TotalAmountField,
 )
+from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
+from app.domain.entities.validation_errors import NumberTranscriptionErrorCheckResult
 from app.domain.pipeline.task import Context
 
 

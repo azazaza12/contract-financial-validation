@@ -3,10 +3,17 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
+
+
 pytestmark = pytest.mark.asyncio
 
 DEFAULT_TOLERANCE = Decimal("0.01")
 
+from app.domain.checks.check_price_validation import CheckPriceValidation
+from app.domain.checks.errors import (
+    MissingRequiredFieldError,
+    MultiplyRequiredFieldError,
+)
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source
 from app.domain.entities.single_supplier import (
@@ -26,11 +33,6 @@ from app.domain.entities.validation_errors import (
     PositionCostDiscrepancyCheckResult,
 )
 from app.domain.pipeline.task import CheckTask
-from app.domain.checks.check_price_validation import CheckPriceValidation
-from app.domain.checks.errors import (
-    MissingRequiredFieldError,
-    MultiplyRequiredFieldError,
-)
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
