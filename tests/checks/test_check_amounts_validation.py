@@ -1,5 +1,6 @@
-import asyncio
 from decimal import Decimal
+
+import pytest
 
 from app.domain.entities.single_supplier import (
     AdvancePayment,
@@ -15,6 +16,8 @@ from app.domain.entities.validation_errors import AmountDiscrepancyCheckResult
 from app.domain.checks.check_amounts_validation import (
     CheckTotalAmountsValidation,
 )
+
+pytestmark = pytest.mark.asyncio
 
 
 def _make_payment(amount_value: str | None) -> Payment:
@@ -47,30 +50,28 @@ def _make_total_amount_field(
     )
 
 
-def _run_check(
+async def _run_check(
     *,
     total_amount: str | None,
     taxes_amounts: list[str | None] | None,
     advances: list[AdvancePayment] | None,
 ):
     check = CheckTotalAmountsValidation()
-    return asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total_amount=total_amount,
-                taxes_amounts=taxes_amounts,
-            ),
-            advance_payments_field=(
-                AdvancePaymentsField(value=advances, sources=[])
-                if advances is not None
-                else None
-            ),
-        )
+    return await check.execute(
+        total_amount_field=_make_total_amount_field(
+            total_amount=total_amount,
+            taxes_amounts=taxes_amounts,
+        ),
+        advance_payments_field=(
+            AdvancePaymentsField(value=advances, sources=[])
+            if advances is not None
+            else None
+        ),
     )
 
 
-def test_total_amounts_succeeds_when_total_taxes_and_advances_match():
-    result = _run_check(
+async def test_total_amounts_succeeds_when_total_taxes_and_advances_match():
+    result = await _run_check(
         total_amount="100.00",
         taxes_amounts=["100.00"],
         advances=[
@@ -91,8 +92,8 @@ def test_total_amounts_succeeds_when_total_taxes_and_advances_match():
     assert result.errors == []
 
 
-def test_total_amounts_fails_when_total_and_taxes_differ():
-    result = _run_check(
+async def test_total_amounts_fails_when_total_and_taxes_differ():
+    result = await _run_check(
         total_amount="100.00",
         taxes_amounts=["90.00"],
         advances=None,
@@ -102,8 +103,8 @@ def test_total_amounts_fails_when_total_and_taxes_differ():
     assert any(isinstance(err, AmountDiscrepancyCheckResult) for err in result.errors)
 
 
-def test_total_amounts_fails_when_advance_total_and_payments_differ():
-    result = _run_check(
+async def test_total_amounts_fails_when_advance_total_and_payments_differ():
+    result = await _run_check(
         total_amount="100.00",
         taxes_amounts=["100.00"],
         advances=[
@@ -119,8 +120,8 @@ def test_total_amounts_fails_when_advance_total_and_payments_differ():
     assert any(isinstance(err, AmountDiscrepancyCheckResult) for err in result.errors)
 
 
-def test_total_amounts_skips_none_amounts_without_crash():
-    result = _run_check(
+async def test_total_amounts_skips_none_amounts_without_crash():
+    result = await _run_check(
         total_amount=None,
         taxes_amounts=[None],
         advances=[
@@ -136,8 +137,8 @@ def test_total_amounts_skips_none_amounts_without_crash():
     assert result.errors == []
 
 
-def test_total_amounts_tolerance_allows_exactly_one_cent():
-    result = _run_check(
+async def test_total_amounts_tolerance_allows_exactly_one_cent():
+    result = await _run_check(
         total_amount="100.00",
         taxes_amounts=["100.01"],
         advances=None,
@@ -147,8 +148,8 @@ def test_total_amounts_tolerance_allows_exactly_one_cent():
     assert result.errors == []
 
 
-def test_total_amounts_fails_when_tolerance_exceeded():
-    result = _run_check(
+async def test_total_amounts_fails_when_tolerance_exceeded():
+    result = await _run_check(
         total_amount="100.00",
         taxes_amounts=["100.02"],
         advances=None,
@@ -158,8 +159,8 @@ def test_total_amounts_fails_when_tolerance_exceeded():
     assert any(isinstance(err, AmountDiscrepancyCheckResult) for err in result.errors)
 
 
-def test_total_amounts_succeeds_with_only_total_amount():
-    result = _run_check(
+async def test_total_amounts_succeeds_with_only_total_amount():
+    result = await _run_check(
         total_amount="100.00",
         taxes_amounts=None,
         advances=None,
@@ -169,8 +170,8 @@ def test_total_amounts_succeeds_with_only_total_amount():
     assert result.errors == []
 
 
-def test_total_amounts_succeeds_when_taxes_list_is_empty():
-    result = _run_check(
+async def test_total_amounts_succeeds_when_taxes_list_is_empty():
+    result = await _run_check(
         total_amount="100.00",
         taxes_amounts=[],
         advances=None,
@@ -180,8 +181,8 @@ def test_total_amounts_succeeds_when_taxes_list_is_empty():
     assert result.errors == []
 
 
-def test_total_amounts_succeeds_with_multiple_taxes_when_sum_matches_total():
-    result = _run_check(
+async def test_total_amounts_succeeds_with_multiple_taxes_when_sum_matches_total():
+    result = await _run_check(
         total_amount="100.00",
         taxes_amounts=["60.00", "40.00"],
         advances=None,
@@ -191,8 +192,8 @@ def test_total_amounts_succeeds_with_multiple_taxes_when_sum_matches_total():
     assert result.errors == []
 
 
-def test_total_amounts_succeeds_with_multiple_advances_and_nested_payments():
-    result = _run_check(
+async def test_total_amounts_succeeds_with_multiple_advances_and_nested_payments():
+    result = await _run_check(
         total_amount="300.00",
         taxes_amounts=["300.00"],
         advances=[
