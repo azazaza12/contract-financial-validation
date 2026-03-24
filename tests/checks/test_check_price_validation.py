@@ -1,5 +1,5 @@
 from decimal import Decimal
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -87,14 +87,15 @@ async def test_check_price_validation_can_run_as_task_and_save_result():
 
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
-    check_result_repo = MagicMock()
-    ctx = create_context(contract=contract, check_result_repo=check_result_repo)
+    contract_repo = MagicMock()
+    contract_repo.save_check_result = AsyncMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    check_result_repo.save_for_contract.assert_called_once()
-    called_contract = check_result_repo.save_for_contract.call_args.kwargs["contract"]
-    called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
+    contract_repo.save_check_result.assert_awaited_once()
+    called_contract = contract_repo.save_check_result.call_args.kwargs["contract"]
+    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
 
     assert called_contract is contract
     assert called_result.check_name == "CheckPriceValidation"
@@ -123,15 +124,16 @@ async def test_check_price_validation_raises_when_required_field_is_missing():
 
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
-    check_result_repo = MagicMock()
-    ctx = create_context(contract=contract, check_result_repo=check_result_repo)
+    contract_repo = MagicMock()
+    contract_repo.save_check_result = AsyncMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     with pytest.raises(MissingRequiredFieldError) as err:
         await CheckTask(check=check).run(ctx)
 
     assert err.value.check_name == "CheckPriceValidation"
     assert err.value.param_name == "total_amount_field"
-    check_result_repo.save_for_contract.assert_not_called()
+    contract_repo.save_check_result.assert_not_awaited()
 
 
 async def test_check_price_validation_raises_when_required_field_has_collision():
@@ -157,8 +159,9 @@ async def test_check_price_validation_raises_when_required_field_has_collision()
 
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
-    check_result_repo = MagicMock()
-    ctx = create_context(contract=contract, check_result_repo=check_result_repo)
+    contract_repo = MagicMock()
+    contract_repo.save_check_result = AsyncMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     with pytest.raises(MultiplyRequiredFieldError) as err:
         await CheckTask(check=check).run(ctx)
@@ -166,7 +169,7 @@ async def test_check_price_validation_raises_when_required_field_has_collision()
     assert err.value.check_name == "CheckPriceValidation"
     assert err.value.param_name == "total_amount_field"
     assert err.value.count == 2
-    check_result_repo.save_for_contract.assert_not_called()
+    contract_repo.save_check_result.assert_not_awaited()
 
 
 async def test_check_price_validation_fails_when_position_total_mismatch():
@@ -190,12 +193,13 @@ async def test_check_price_validation_fails_when_position_total_mismatch():
     )
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
-    check_result_repo = MagicMock()
-    ctx = create_context(contract=contract, check_result_repo=check_result_repo)
+    contract_repo = MagicMock()
+    contract_repo.save_check_result = AsyncMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
+    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
     assert called_result.status == CheckStatus.failed
     assert any(
         isinstance(err, PositionCostDiscrepancyCheckResult)
@@ -224,12 +228,13 @@ async def test_check_price_validation_fails_when_total_amount_mismatch():
     )
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
-    check_result_repo = MagicMock()
-    ctx = create_context(contract=contract, check_result_repo=check_result_repo)
+    contract_repo = MagicMock()
+    contract_repo.save_check_result = AsyncMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
+    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
     assert called_result.status == CheckStatus.failed
     assert any(
         isinstance(err, AmountDiscrepancyCheckResult) for err in called_result.errors
@@ -257,12 +262,13 @@ async def test_check_price_validation_fails_when_values_not_positive():
     )
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
-    check_result_repo = MagicMock()
-    ctx = create_context(contract=contract, check_result_repo=check_result_repo)
+    contract_repo = MagicMock()
+    contract_repo.save_check_result = AsyncMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
+    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
     assert called_result.status == CheckStatus.failed
     assert any(
         isinstance(err, AmountNotPositiveCheckResult) for err in called_result.errors
@@ -290,10 +296,11 @@ async def test_check_price_validation_succeeds_when_within_tolerance():
     )
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
-    check_result_repo = MagicMock()
-    ctx = create_context(contract=contract, check_result_repo=check_result_repo)
+    contract_repo = MagicMock()
+    contract_repo.save_check_result = AsyncMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
+    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
     assert called_result.status == CheckStatus.success

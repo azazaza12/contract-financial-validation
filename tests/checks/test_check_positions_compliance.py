@@ -64,19 +64,20 @@ async def test_check1_can_run_as_task_and_save_result():
         text=None,
         error=None,
     )
-    check_result_repo = MagicMock()
+    contract_repo = MagicMock()
+    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(
         contract=contract,
-        check_result_repo=check_result_repo,
+        contract_repo=contract_repo,
         check_position_compliance_service=position_service,
     )
     check = CheckPositionsCompliance(ctx=ctx)
 
     await CheckTask(check=check).run(ctx)
 
-    check_result_repo.save_for_contract.assert_called_once()
-    called_contract = check_result_repo.save_for_contract.call_args.kwargs["contract"]
-    called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
+    contract_repo.save_check_result.assert_awaited_once()
+    called_contract = contract_repo.save_check_result.call_args.kwargs["contract"]
+    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
 
     assert called_contract is contract
     assert called_result.check_name == "CheckPositionsCompliance"
@@ -112,10 +113,11 @@ async def test_check1_raises_when_required_field_is_missing():
     )
 
     position_service = AsyncMock()
-    check_result_repo = MagicMock()
+    contract_repo = MagicMock()
+    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(
         contract=contract,
-        check_result_repo=check_result_repo,
+        contract_repo=contract_repo,
         check_position_compliance_service=position_service,
     )
     check = CheckPositionsCompliance(ctx=ctx)
@@ -125,7 +127,7 @@ async def test_check1_raises_when_required_field_is_missing():
 
     assert err.value.check_name == "CheckPositionsCompliance"
     assert err.value.param_name == "document_object_field"
-    check_result_repo.save_for_contract.assert_not_called()
+    contract_repo.save_check_result.assert_not_awaited()
 
 
 async def test_check1_raises_when_required_field_has_collision():
@@ -172,10 +174,11 @@ async def test_check1_raises_when_required_field_has_collision():
     )
 
     position_service = AsyncMock()
-    check_result_repo = MagicMock()
+    contract_repo = MagicMock()
+    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(
         contract=contract,
-        check_result_repo=check_result_repo,
+        contract_repo=contract_repo,
         check_position_compliance_service=position_service,
     )
     check = CheckPositionsCompliance(ctx=ctx)
@@ -186,4 +189,4 @@ async def test_check1_raises_when_required_field_has_collision():
     assert err.value.check_name == "CheckPositionsCompliance"
     assert err.value.param_name == "spec_positions_field"
     assert err.value.count == 2
-    check_result_repo.save_for_contract.assert_not_called()
+    contract_repo.save_check_result.assert_not_awaited()
