@@ -29,6 +29,8 @@ from tests.domain.pipeline.conftest import DummyContract, create_context
 
 pytestmark = pytest.mark.asyncio
 
+DEFAULT_TOLERANCE = Decimal("0.01")
+
 
 def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:
     amount = Amount(value=Decimal(value), transcription=None)
@@ -77,7 +79,7 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
     )
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
-    check = CheckPaymentPercentValidation()
+    check = CheckPaymentPercentValidation(tolerance=DEFAULT_TOLERANCE)
 
     await CheckTask(check=check).run(ctx)
 

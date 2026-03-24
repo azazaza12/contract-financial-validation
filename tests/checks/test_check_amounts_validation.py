@@ -19,6 +19,8 @@ from app.domain.checks.check_amounts_validation import (
 
 pytestmark = pytest.mark.asyncio
 
+DEFAULT_TOLERANCE = Decimal("0.01")
+
 
 def _make_payment(amount_value: str | None) -> Payment:
     amount = (
@@ -56,7 +58,7 @@ async def _run_check(
     taxes_amounts: list[str | None] | None,
     advances: list[AdvancePayment] | None,
 ):
-    check = CheckTotalAmountsValidation()
+    check = CheckTotalAmountsValidation(tolerance=DEFAULT_TOLERANCE)
     return await check.execute(
         total_amount_field=_make_total_amount_field(
             total_amount=total_amount,

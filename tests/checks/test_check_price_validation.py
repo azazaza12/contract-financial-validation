@@ -5,6 +5,8 @@ from uuid import uuid4
 import pytest
 pytestmark = pytest.mark.asyncio
 
+DEFAULT_TOLERANCE = Decimal("0.01")
+
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source
 from app.domain.entities.single_supplier import (
@@ -84,7 +86,7 @@ async def test_check_price_validation_can_run_as_task_and_save_result():
     )
 
     contract = _make_contract(document, fields)
-    check = CheckPriceValidation()
+    check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
@@ -120,7 +122,7 @@ async def test_check_price_validation_raises_when_required_field_is_missing():
     )
 
     contract = _make_contract(document, fields)
-    check = CheckPriceValidation()
+    check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
@@ -154,7 +156,7 @@ async def test_check_price_validation_raises_when_required_field_has_collision()
     )
 
     contract = _make_contract(document, fields)
-    check = CheckPriceValidation()
+    check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
@@ -187,7 +189,7 @@ async def test_check_price_validation_fails_when_position_total_mismatch():
         ]
     )
     contract = _make_contract(document, fields)
-    check = CheckPriceValidation()
+    check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
@@ -221,7 +223,7 @@ async def test_check_price_validation_fails_when_total_amount_mismatch():
         ]
     )
     contract = _make_contract(document, fields)
-    check = CheckPriceValidation()
+    check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
@@ -254,7 +256,7 @@ async def test_check_price_validation_fails_when_values_not_positive():
         ]
     )
     contract = _make_contract(document, fields)
-    check = CheckPriceValidation()
+    check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
@@ -287,7 +289,7 @@ async def test_check_price_validation_succeeds_when_within_tolerance():
         ]
     )
     contract = _make_contract(document, fields)
-    check = CheckPriceValidation()
+    check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 

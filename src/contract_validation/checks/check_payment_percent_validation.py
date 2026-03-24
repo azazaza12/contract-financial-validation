@@ -38,11 +38,7 @@ def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
 
 class CheckPaymentPercentValidation(BaseCheck):
 
-    def __init__(self, tolerance: Decimal | None = None):
-        if tolerance is None:
-            from app.config import ValidationSettings
-
-            tolerance = ValidationSettings().AMOUNT_TOLERANCE
+    def __init__(self, tolerance: Decimal):
         self.tolerance = tolerance
 
     async def execute(
