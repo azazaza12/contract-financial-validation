@@ -17,7 +17,7 @@ from .single_supplier import (
     TotalAmountField,
     Vat,
 )
-from .unknow import UnknowDocument
+from .unknown import UnknownDocument
 
 
 __all__ = [
@@ -37,7 +37,7 @@ __all__ = [
     "SpecPosition",
     "SpecPositionsField",
     "TotalAmountField",
-    "UnknowDocument",
+    "UnknownDocument",
     "ValueCandidate",
     "Vat",
 ]
