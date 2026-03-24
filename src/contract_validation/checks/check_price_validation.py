@@ -1,14 +1,16 @@
 import logging
 from decimal import Decimal
+
+from app.domain.checks.base import BaseCheck
+from app.domain.entities.single_supplier import SpecPositionsField, TotalAmountField
+from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
 from app.domain.entities.validation_errors import (
     AmountDiscrepancyCheckResult,
     AmountNotFoundCheckResult,
     AmountNotPositiveCheckResult,
     PositionCostDiscrepancyCheckResult,
 )
-from app.domain.checks.base import BaseCheck
-from app.domain.entities.single_supplier import SpecPositionsField, TotalAmountField
-from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
+
 
 logger = logging.getLogger(__name__)
 
@@ -73,9 +75,7 @@ class CheckPriceValidation(BaseCheck):
                 )
 
         if errors:
-            logger.info(
-                "[%s] found errors: [%d]", self.__class__.__name__, len(errors)
-            )
+            logger.info("[%s] found errors: [%d]", self.__class__.__name__, len(errors))
         else:
             logger.info("[%s] succeeded", self.__class__.__name__)
         return self._result(errors)

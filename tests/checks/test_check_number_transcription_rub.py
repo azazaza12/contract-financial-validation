@@ -4,6 +4,9 @@ from uuid import uuid4
 
 import pytest
 
+from app.domain.checks.check_number_transcription_rub import (
+    CheckNumberTranscriptionRub,
+)
 from app.domain.entities.merge_types import Source
 from app.domain.entities.single_supplier import (
     AdvancePayment,
@@ -18,10 +21,8 @@ from app.domain.entities.single_supplier import (
 from app.domain.entities.validation import CheckStatus
 from app.domain.entities.validation_errors import NumberTranscriptionErrorCheckResult
 from app.domain.service.checker import TranscriptionCheckIssue, TranscriptionCheckResult
-from app.domain.checks.check_number_transcription_rub import (
-    CheckNumberTranscriptionRub,
-)
 from tests.domain.pipeline.conftest import create_context
+
 
 pytestmark = pytest.mark.asyncio
 

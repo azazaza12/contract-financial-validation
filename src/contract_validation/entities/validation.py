@@ -1,5 +1,6 @@
-from enum import Enum
 from dataclasses import dataclass
+from enum import Enum
+
 from app.domain.entities.validation_errors import BaseResultChecker
 
 
