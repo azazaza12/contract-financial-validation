@@ -9,16 +9,13 @@ from app.domain.entities.single_supplier import (
 )
 from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
 from app.domain.entities.validation_errors import NumberTranscriptionErrorCheckResult
-from app.domain.pipeline.task import Context
+from app.domain.service.checker import ITranscriptionComplianceService
 
 
 logger = logging.getLogger(__name__)
 
 
 class CheckNumberTranscriptionRub(BaseCheck):
-    def __init__(self, ctx: Context):
-        super().__init__()
-        self.ctx = ctx
 
     @staticmethod
     def _amounts_from_payment(payment: Payment) -> list[Amount]:
@@ -57,12 +54,13 @@ class CheckNumberTranscriptionRub(BaseCheck):
         self,
         total_amount_field: TotalAmountField | None,
         advance_payments_field: AdvancePaymentsField | None,
+        check_transcription_compliance_service: ITranscriptionComplianceService
     ) -> CheckExecutionResult:
         errors: list[BaseResultChecker] = []
         extracted_amounts = self._extract_amounts_from_fields(
             [f for f in (total_amount_field, advance_payments_field) if f is not None]
         )
-        result = await self.ctx.check_transcription_compliance_service.evaluate(
+        result = await check_transcription_compliance_service.evaluate(
             extracted_amounts
         )
         for issue in result.issues:
