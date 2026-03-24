@@ -3,19 +3,10 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+
+
 pytestmark = pytest.mark.asyncio
 
-from app.domain.entities.field import FieldCollector
-from app.domain.entities.single_supplier import (
-    DocumentObjectField,
-    SingleSupplierDocument,
-    SpecPosition,
-    SpecPositionsField,
-)
-from app.domain.entities.validation import CheckStatus
-from app.domain.entities.merge_types import Source
-from app.domain.pipeline.task import CheckTask
-from app.domain.service.checker import EvaluateResult
 from app.domain.checks.check_positions_compliance import (
     CheckPositionsCompliance,
 )
@@ -23,6 +14,17 @@ from app.domain.checks.errors import (
     MissingRequiredFieldError,
     MultiplyRequiredFieldError,
 )
+from app.domain.entities.field import FieldCollector
+from app.domain.entities.merge_types import Source
+from app.domain.entities.single_supplier import (
+    DocumentObjectField,
+    SingleSupplierDocument,
+    SpecPosition,
+    SpecPositionsField,
+)
+from app.domain.entities.validation import CheckStatus
+from app.domain.pipeline.task import CheckTask
+from app.domain.service.checker import EvaluateResult
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 

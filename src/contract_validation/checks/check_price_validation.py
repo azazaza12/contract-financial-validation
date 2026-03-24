@@ -1,14 +1,16 @@
 import logging
 from decimal import Decimal
+
+from app.domain.checks.base import BaseCheck
+from app.domain.entities.single_supplier import SpecPositionsField, TotalAmountField
+from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
 from app.domain.entities.validation_errors import (
     AmountDiscrepancyCheckResult,
     AmountNotFoundCheckResult,
     AmountNotPositiveCheckResult,
     PositionCostDiscrepancyCheckResult,
 )
-from app.domain.checks.base import BaseCheck
-from app.domain.entities.single_supplier import SpecPositionsField, TotalAmountField
-from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
+
 
 logger = logging.getLogger(__name__)
 

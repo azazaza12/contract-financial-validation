@@ -1,19 +1,20 @@
 import logging
 from decimal import Decimal
-from app.domain.entities.validation import CheckExecutionResult, BaseResultChecker
+
+from app.domain.checks.base import BaseCheck
 from app.domain.entities.single_supplier import (
-    TotalAmountField,
     AdvancePaymentsField,
     Payment,
+    TotalAmountField,
 )
+from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
 from app.domain.entities.validation_errors import (
-    VatAmountDiscrepancy,
+    AmountNotPositiveCheckResult,
     VatAmountCalculationDiscrepancy,
+    VatAmountDiscrepancy,
     VatAmountNotPositiveCheckResult,
     VatRateNotPositiveCheckResult,
-    AmountNotPositiveCheckResult,
 )
-from app.domain.checks.base import BaseCheck
 
 
 logger = logging.getLogger(__name__)

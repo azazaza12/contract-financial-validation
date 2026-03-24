@@ -4,6 +4,9 @@ from uuid import uuid4
 
 import pytest
 
+from app.domain.checks.check_payment_percent_validation import (
+    CheckPaymentPercentValidation,
+)
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source
 from app.domain.entities.single_supplier import (
@@ -22,10 +25,8 @@ from app.domain.entities.validation_errors import (
     PaymentPercentSumDiscrepancyCheckResult,
 )
 from app.domain.pipeline.task import CheckTask
-from app.domain.checks.check_payment_percent_validation import (
-    CheckPaymentPercentValidation,
-)
 from tests.domain.pipeline.conftest import DummyContract, create_context
+
 
 pytestmark = pytest.mark.asyncio
 
