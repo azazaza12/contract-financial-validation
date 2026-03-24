@@ -36,7 +36,6 @@ def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
 
 
 class CheckPaymentPercentValidation(BaseCheck):
-
     def __init__(self, tolerance: Decimal):
         self.tolerance = tolerance
 
