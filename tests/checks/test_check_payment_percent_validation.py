@@ -1,5 +1,5 @@
 from decimal import Decimal
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
@@ -77,13 +77,14 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
         fields=FieldCollector([total_amount_field, advance_payments_field]),
         errors=[],
     )
-    check_result_repo = MagicMock()
-    ctx = create_context(contract=contract, check_result_repo=check_result_repo)
+    contract_repo = MagicMock()
+    contract_repo.save_check_result = AsyncMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
     check = CheckPaymentPercentValidation(tolerance=DEFAULT_TOLERANCE)
 
     await CheckTask(check=check).run(ctx)
 
-    return check_result_repo.save_for_contract.call_args.kwargs["result"]
+    return contract_repo.save_check_result.call_args.kwargs["result"]
 
 
 async def test_payment_percent_validates_amount_by_percent_even_when_some_percents_missing():
