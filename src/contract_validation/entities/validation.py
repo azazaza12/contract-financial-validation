@@ -1,0 +1,17 @@
+from enum import Enum
+from dataclasses import dataclass
+from app.domain.entities.validation_errors import BaseResultChecker
+
+
+class CheckStatus(Enum):
+    success = "SUCCESS"
+    failed = "FAILED"
+    progress = "PROGRESS"
+    pending = "PENDING"
+
+
+@dataclass(kw_only=True)
+class CheckExecutionResult:
+    check_name: str
+    errors: list[BaseResultChecker]
+    status: CheckStatus
