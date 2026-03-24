@@ -3,7 +3,7 @@ from decimal import Decimal
 import pytest
 
 from app.domain.checks.check_taxes_validation import CheckTaxesValidation
-from app.domain.entities.single_supplier import (
+from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
     Amount,

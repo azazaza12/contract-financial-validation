@@ -5,7 +5,7 @@ import pytest
 from app.domain.checks.check_amounts_validation import (
     CheckTotalAmountsValidation,
 )
-from app.domain.entities.single_supplier import (
+from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
     Amount,

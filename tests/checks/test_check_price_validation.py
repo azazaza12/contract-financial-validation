@@ -16,10 +16,10 @@ from app.domain.checks.errors import (
 )
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source
-from app.domain.entities.single_supplier import (
+from app.domain.entities.single_supplier import SingleSupplierDocument
+from app.domain.entities.single_supplier_fields import (
     Amount,
     Payment,
-    SingleSupplierDocument,
     SpecPosition,
     SpecPositionsField,
     TotalAmount,

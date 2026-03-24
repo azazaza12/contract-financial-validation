@@ -1,7 +1,7 @@
 import logging
 
 from app.domain.checks.base import BaseCheck
-from app.domain.entities.single_supplier import (
+from app.domain.entities.single_supplier_fields import (
     AdvancePaymentsField,
     Amount,
     Payment,
@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 class CheckNumberTranscriptionRub(BaseCheck):
-
     @staticmethod
     def _amounts_from_payment(payment: Payment) -> list[Amount]:
         out: list[Amount] = []
@@ -54,7 +53,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
         self,
         total_amount_field: TotalAmountField | None,
         advance_payments_field: AdvancePaymentsField | None,
-        check_transcription_compliance_service: ITranscriptionComplianceService
+        check_transcription_compliance_service: ITranscriptionComplianceService,
     ) -> CheckExecutionResult:
         errors: list[BaseResultChecker] = []
         extracted_amounts = self._extract_amounts_from_fields(
