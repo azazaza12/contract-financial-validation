@@ -8,12 +8,12 @@ from app.domain.checks.check_number_transcription_rub import (
     CheckNumberTranscriptionRub,
 )
 from app.domain.entities.merge_types import Source
-from app.domain.entities.single_supplier import (
+from app.domain.entities.single_supplier import SingleSupplierDocument
+from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
     Amount,
     Payment,
-    SingleSupplierDocument,
     TotalAmount,
     TotalAmountField,
     Vat,
@@ -21,7 +21,6 @@ from app.domain.entities.single_supplier import (
 from app.domain.entities.validation import CheckStatus
 from app.domain.entities.validation_errors import NumberTranscriptionErrorCheckResult
 from app.domain.service.checker import TranscriptionCheckIssue, TranscriptionCheckResult
-from tests.domain.pipeline.conftest import create_context
 
 
 pytestmark = pytest.mark.asyncio
@@ -45,8 +44,7 @@ def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmou
 async def test_check_14_succeeds_when_no_transcription_issues():
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
-    ctx = create_context(check_transcription_compliance_service=service_mock)
-    check = CheckNumberTranscriptionRub(ctx=ctx)
+    check = CheckNumberTranscriptionRub()
 
     result = await check.execute(
         total_amount_field=_make_total_amount_field(
@@ -54,6 +52,7 @@ async def test_check_14_succeeds_when_no_transcription_issues():
             transcription="Сто",
         ),
         advance_payments_field=AdvancePaymentsField(value=[], sources=[]),
+        check_transcription_compliance_service=service_mock,
     )
 
     assert result.status == CheckStatus.success
@@ -79,8 +78,7 @@ async def test_check_14_maps_each_issue_to_validation_error():
             ),
         ]
     )
-    ctx = create_context(check_transcription_compliance_service=service_mock)
-    check = CheckNumberTranscriptionRub(ctx=ctx)
+    check = CheckNumberTranscriptionRub()
 
     result = await check.execute(
         total_amount_field=_make_total_amount_field(
@@ -88,6 +86,7 @@ async def test_check_14_maps_each_issue_to_validation_error():
             transcription="Сто один",
         ),
         advance_payments_field=AdvancePaymentsField(value=[], sources=[]),
+        check_transcription_compliance_service=service_mock,
     )
 
     assert result.status == CheckStatus.failed
@@ -108,8 +107,7 @@ async def test_check_14_maps_each_issue_to_validation_error():
 async def test_check_14_passes_realistic_nested_amounts_to_service():
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
-    ctx = create_context(check_transcription_compliance_service=service_mock)
-    check = CheckNumberTranscriptionRub(ctx=ctx)
+    check = CheckNumberTranscriptionRub()
 
     document = SingleSupplierDocument(id=uuid4(), file_name="contract.pdf")
     total_amount_field = TotalAmountField(
@@ -183,6 +181,7 @@ async def test_check_14_passes_realistic_nested_amounts_to_service():
     result = await check.execute(
         total_amount_field=total_amount_field,
         advance_payments_field=advance_payments_field,
+        check_transcription_compliance_service=service_mock,
     )
 
     assert result.status == CheckStatus.success

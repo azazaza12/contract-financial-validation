@@ -3,14 +3,16 @@ from .document import BaseDocument
 from .field import BaseField, FieldCollector
 from .merge_types import Source, ValueCandidate
 from .single_supplier import (
+    SingleSupplierContract,
+    SingleSupplierDocument,
+    SingleSupplierExtractionTask,
+)
+from .single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
     Amount,
     DocumentObjectField,
     Payment,
-    SingleSupplierContract,
-    SingleSupplierDocument,
-    SingleSupplierExtractionTask,
     SpecPosition,
     SpecPositionsField,
     TotalAmount,

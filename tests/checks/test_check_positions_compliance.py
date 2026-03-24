@@ -16,9 +16,9 @@ from app.domain.checks.errors import (
 )
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source
-from app.domain.entities.single_supplier import (
+from app.domain.entities.single_supplier import SingleSupplierDocument
+from app.domain.entities.single_supplier_fields import (
     DocumentObjectField,
-    SingleSupplierDocument,
     SpecPosition,
     SpecPositionsField,
 )
@@ -73,7 +73,7 @@ async def test_check1_can_run_as_task_and_save_result():
         contract_repo=contract_repo,
         check_position_compliance_service=position_service,
     )
-    check = CheckPositionsCompliance(ctx=ctx)
+    check = CheckPositionsCompliance()
 
     await CheckTask(check=check).run(ctx)
 
@@ -122,7 +122,7 @@ async def test_check1_raises_when_required_field_is_missing():
         contract_repo=contract_repo,
         check_position_compliance_service=position_service,
     )
-    check = CheckPositionsCompliance(ctx=ctx)
+    check = CheckPositionsCompliance()
 
     with pytest.raises(MissingRequiredFieldError) as err:
         await CheckTask(check=check).run(ctx)
@@ -183,7 +183,7 @@ async def test_check1_raises_when_required_field_has_collision():
         contract_repo=contract_repo,
         check_position_compliance_service=position_service,
     )
-    check = CheckPositionsCompliance(ctx=ctx)
+    check = CheckPositionsCompliance()
 
     with pytest.raises(MultiplyRequiredFieldError) as err:
         await CheckTask(check=check).run(ctx)

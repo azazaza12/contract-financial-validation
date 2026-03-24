@@ -9,12 +9,12 @@ from app.domain.checks.check_payment_percent_validation import (
 )
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source
-from app.domain.entities.single_supplier import (
+from app.domain.entities.single_supplier import SingleSupplierDocument
+from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
     Amount,
     Payment,
-    SingleSupplierDocument,
     TotalAmount,
     TotalAmountField,
     Vat,
