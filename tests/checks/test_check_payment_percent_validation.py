@@ -1,10 +1,8 @@
 import asyncio
-from dataclasses import dataclass
 from decimal import Decimal
 from unittest.mock import MagicMock
 from uuid import uuid4
 
-from app.domain.entities.contract import BaseContract
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source
 from app.domain.entities.single_supplier import (
@@ -26,13 +24,7 @@ from app.domain.pipeline.task import CheckTask
 from app.domain.checks.check_payment_percent_validation import (
     CheckPaymentPercentValidation,
 )
-from tests.domain.pipeline.conftest import create_context
-
-
-@dataclass(kw_only=True)
-class DummyContract(BaseContract):
-    def build_pipeline(self, pipeline):
-        return pipeline
+from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
 def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:
