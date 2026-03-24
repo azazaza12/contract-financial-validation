@@ -386,3 +386,49 @@ def test_check_nds_allows_zero_vat_rate():
 
     assert result.status == CheckStatus.success
     assert result.errors == []
+
+
+def test_check_nds_ignores_empty_taxes_list():
+    check = CheckTaxesValidation()
+    total_payment = _make_payment(
+        amount="120.00",
+        vat_amount="20.00",
+        vat_rate="20.00",
+        include_vat=True,
+    )
+
+    result = asyncio.run(
+        check.execute(
+            total_amount_field=_make_total_amount_field(
+                total=total_payment, taxes=[]
+            ),
+            advance_payments_field=None,
+        )
+    )
+
+    assert result.status == CheckStatus.success
+    assert not any(isinstance(error, VatAmountDiscrepancy) for error in result.errors)
+
+
+def test_check_nds_ignores_advances_without_totals_and_payments():
+    check = CheckTaxesValidation()
+    total_payment = _make_payment(
+        amount="120.00",
+        vat_amount="20.00",
+        vat_rate="20.00",
+        include_vat=True,
+    )
+    advances = [
+        AdvancePayment(percent=Decimal("50.00"), total=None, payments=[]),
+        AdvancePayment(percent=Decimal("50.00"), total=None, payments=[]),
+    ]
+
+    result = asyncio.run(
+        check.execute(
+            total_amount_field=_make_total_amount_field(total=total_payment, taxes=None),
+            advance_payments_field=AdvancePaymentsField(value=advances, sources=[]),
+        )
+    )
+
+    assert result.status == CheckStatus.success
+    assert not any(isinstance(error, VatAmountDiscrepancy) for error in result.errors)

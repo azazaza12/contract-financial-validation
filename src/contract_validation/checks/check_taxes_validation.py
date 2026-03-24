@@ -108,7 +108,7 @@ class CheckTaxesValidation(BaseCheck):
         self, payments: list[Payment] | None, errors: list[BaseResultChecker]
     ) -> Decimal | None:
         vat_amount_sum = Decimal("0.00")
-        if payments is None:
+        if payments is None or len(payments) == 0:
             return None
         for payment in payments:
             amount = None
