@@ -37,8 +37,6 @@ def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
 
 
 class CheckPaymentPercentValidation(BaseCheck):
-    flag_payments_with_different_vat_rate: bool = False
-    flag_no_percentage: bool = False
 
     def __init__(self, tolerance: Decimal | None = None):
         if tolerance is None:
