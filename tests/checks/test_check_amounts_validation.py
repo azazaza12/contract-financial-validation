@@ -2,6 +2,9 @@ from decimal import Decimal
 
 import pytest
 
+from app.domain.checks.check_amounts_validation import (
+    CheckTotalAmountsValidation,
+)
 from app.domain.entities.single_supplier import (
     AdvancePayment,
     AdvancePaymentsField,
@@ -13,9 +16,7 @@ from app.domain.entities.single_supplier import (
 )
 from app.domain.entities.validation import CheckStatus
 from app.domain.entities.validation_errors import AmountDiscrepancyCheckResult
-from app.domain.checks.check_amounts_validation import (
-    CheckTotalAmountsValidation,
-)
+
 
 pytestmark = pytest.mark.asyncio
 

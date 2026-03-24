@@ -2,11 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from app.domain.entities.validation import CheckExecutionResult, BaseResultChecker
-from app.domain.entities.validation_errors import (
-    PaymentVatRateNotFoundCheckResult,
-    PaymentVatRatesDifferCheckResult,
-)
+from app.domain.checks.base import BaseCheck
 from app.domain.entities.single_supplier import (
     AdvancePayment,
     AdvancePaymentsField,
@@ -14,7 +10,11 @@ from app.domain.entities.single_supplier import (
     TotalAmount,
     TotalAmountField,
 )
-from app.domain.checks.base import BaseCheck
+from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
+from app.domain.entities.validation_errors import (
+    PaymentVatRateNotFoundCheckResult,
+    PaymentVatRatesDifferCheckResult,
+)
 
 
 def _payment_lines_mismatch_vs_reference(
@@ -104,13 +104,17 @@ class CheckTaxRatesValidation(BaseCheck):
         contract_rate = ta.total.vat.rate
         for advance_payment in advance_payments_field.value:
             if not advance_payment.payments:
-                mismatch = _aggregate_rate_vs_contract(contract_rate, advance_payment.total)
+                mismatch = _aggregate_rate_vs_contract(
+                    contract_rate, advance_payment.total
+                )
                 if mismatch is not None:
                     errors.append(mismatch)
                     return self._result(errors)
                 continue
 
-            advance_total_rate = advance_payment.total and advance_payment.total.vat.rate
+            advance_total_rate = (
+                advance_payment.total and advance_payment.total.vat.rate
+            )
             if advance_total_rate is None:
                 continue
 
