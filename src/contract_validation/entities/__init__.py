@@ -13,6 +13,7 @@ from .single_supplier import (
     SingleSupplierExtractionTask,
     SpecPosition,
     SpecPositionsField,
+    TotalAmount,
     TotalAmountField,
     Vat,
 )
