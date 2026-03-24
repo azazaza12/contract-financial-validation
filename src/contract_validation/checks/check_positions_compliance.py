@@ -6,28 +6,26 @@ from app.domain.entities.validation import BaseResultChecker, CheckExecutionResu
 from app.domain.entities.validation_errors import (
     PositionsComplianceErrorCheckResult,
 )
-from app.domain.pipeline.task import Context
+from app.domain.service.checker import IPositionsComplianceService
 
 
 logger = logging.getLogger(__name__)
 
 
 class CheckPositionsCompliance(BaseCheck):
-    def __init__(self, ctx: Context):
-        super().__init__()
-        self.ctx = ctx
 
     async def execute(
         self,
         document_object_field: DocumentObjectField,
         spec_positions_field: SpecPositionsField,
+        position_compliance_service: IPositionsComplianceService,
     ) -> CheckExecutionResult:
 
         errors: list[BaseResultChecker] = []
         document_object = document_object_field.value
         spec_positions = spec_positions_field.value
         position_names = [position.name for position in spec_positions]
-        result = await self.ctx.check_position_compliance_service.evaluate(
+        result = await position_compliance_service.evaluate(
             document_object, position_names
         )
 
