@@ -1,17 +1,16 @@
 import logging
 from decimal import Decimal
 
-from app.domain.entities.validation_errors import (
-    PaymentAmountPercentDiscrepancy,
-    PaymentPercentSumDiscrepancyCheckResult,
-)
-
-from app.domain.entities.validation import CheckExecutionResult, BaseResultChecker
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.single_supplier import (
     AdvancePayment,
     AdvancePaymentsField,
     TotalAmountField,
+)
+from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
+from app.domain.entities.validation_errors import (
+    PaymentAmountPercentDiscrepancy,
+    PaymentPercentSumDiscrepancyCheckResult,
 )
 
 

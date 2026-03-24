@@ -2,11 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from app.domain.entities.validation import CheckExecutionResult, BaseResultChecker
-from app.domain.entities.validation_errors import (
-    PaymentVatRateNotFoundCheckResult,
-    PaymentVatRatesDifferCheckResult,
-)
+from app.domain.checks.base import BaseCheck
 from app.domain.entities.single_supplier import (
     AdvancePayment,
     AdvancePaymentsField,
@@ -14,7 +10,11 @@ from app.domain.entities.single_supplier import (
     TotalAmount,
     TotalAmountField,
 )
-from app.domain.checks.base import BaseCheck
+from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
+from app.domain.entities.validation_errors import (
+    PaymentVatRateNotFoundCheckResult,
+    PaymentVatRatesDifferCheckResult,
+)
 
 
 def _payment_lines_mismatch_vs_reference(
