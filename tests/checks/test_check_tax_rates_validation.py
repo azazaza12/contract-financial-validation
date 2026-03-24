@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 
+from app.domain.checks.check_tax_rates_validation import CheckTaxRatesValidation
 from app.domain.entities.single_supplier import (
     AdvancePayment,
     AdvancePaymentsField,
@@ -16,7 +17,7 @@ from app.domain.entities.validation_errors import (
     PaymentVatRateNotFoundCheckResult,
     PaymentVatRatesDifferCheckResult,
 )
-from app.domain.checks.check_tax_rates_validation import CheckTaxRatesValidation
+
 
 pytestmark = pytest.mark.asyncio
 

@@ -1,11 +1,11 @@
 import logging
 
+from app.domain.checks.base import BaseCheck
+from app.domain.entities.single_supplier import DocumentObjectField, SpecPositionsField
+from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
 from app.domain.entities.validation_errors import (
     PositionsComplianceErrorCheckResult,
 )
-from app.domain.entities.validation import CheckExecutionResult, BaseResultChecker
-from app.domain.entities.single_supplier import DocumentObjectField, SpecPositionsField
-from app.domain.checks.base import BaseCheck
 from app.domain.pipeline.task import Context
 
 
