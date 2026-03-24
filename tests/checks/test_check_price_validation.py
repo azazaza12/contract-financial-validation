@@ -1,12 +1,10 @@
 import asyncio
-from dataclasses import dataclass
 from decimal import Decimal
 from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
 
-from app.domain.entities.contract import BaseContract
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source
 from app.domain.entities.single_supplier import (
@@ -31,13 +29,7 @@ from app.domain.checks.errors import (
     MissingRequiredFieldError,
     MultiplyRequiredFieldError,
 )
-from tests.domain.pipeline.conftest import create_context
-
-
-@dataclass(kw_only=True)
-class DummyContract(BaseContract):
-    def build_pipeline(self, pipeline):
-        return pipeline
+from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
 def _make_payment(value: str) -> Payment:
