@@ -75,9 +75,7 @@ class CheckPriceValidation(BaseCheck):
                 )
 
         if errors:
-            logger.info(
-                "[%s] found errors: [%d]", self.__class__.__name__, len(errors)
-            )
+            logger.info("[%s] found errors: [%d]", self.__class__.__name__, len(errors))
         else:
             logger.info("[%s] succeeded", self.__class__.__name__)
         return self._result(errors)
