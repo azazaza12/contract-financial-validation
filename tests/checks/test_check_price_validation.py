@@ -1,9 +1,9 @@
-import asyncio
 from decimal import Decimal
 from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
+pytestmark = pytest.mark.asyncio
 
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source
@@ -63,7 +63,7 @@ def _make_contract(
     )
 
 
-def test_check_price_validation_can_run_as_task_and_save_result():
+async def test_check_price_validation_can_run_as_task_and_save_result():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -88,7 +88,7 @@ def test_check_price_validation_can_run_as_task_and_save_result():
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
-    asyncio.run(CheckTask(check=check).run(ctx))
+    await CheckTask(check=check).run(ctx)
 
     check_result_repo.save_for_contract.assert_called_once()
     called_contract = check_result_repo.save_for_contract.call_args.kwargs["contract"]
@@ -100,7 +100,7 @@ def test_check_price_validation_can_run_as_task_and_save_result():
     assert called_result.errors == []
 
 
-def test_check_price_validation_raises_when_required_field_is_missing():
+async def test_check_price_validation_raises_when_required_field_is_missing():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -125,14 +125,14 @@ def test_check_price_validation_raises_when_required_field_is_missing():
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
     with pytest.raises(MissingRequiredFieldError) as err:
-        asyncio.run(CheckTask(check=check).run(ctx))
+        await CheckTask(check=check).run(ctx)
 
     assert err.value.check_name == "CheckPriceValidation"
     assert err.value.param_name == "total_amount_field"
     check_result_repo.save_for_contract.assert_not_called()
 
 
-def test_check_price_validation_raises_when_required_field_has_collision():
+async def test_check_price_validation_raises_when_required_field_has_collision():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -159,7 +159,7 @@ def test_check_price_validation_raises_when_required_field_has_collision():
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
     with pytest.raises(MultiplyRequiredFieldError) as err:
-        asyncio.run(CheckTask(check=check).run(ctx))
+        await CheckTask(check=check).run(ctx)
 
     assert err.value.check_name == "CheckPriceValidation"
     assert err.value.param_name == "total_amount_field"
@@ -167,7 +167,7 @@ def test_check_price_validation_raises_when_required_field_has_collision():
     check_result_repo.save_for_contract.assert_not_called()
 
 
-def test_check_price_validation_fails_when_position_total_mismatch():
+async def test_check_price_validation_fails_when_position_total_mismatch():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -191,7 +191,7 @@ def test_check_price_validation_fails_when_position_total_mismatch():
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
-    asyncio.run(CheckTask(check=check).run(ctx))
+    await CheckTask(check=check).run(ctx)
 
     called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
     assert called_result.status == CheckStatus.failed
@@ -201,7 +201,7 @@ def test_check_price_validation_fails_when_position_total_mismatch():
     )
 
 
-def test_check_price_validation_fails_when_total_amount_mismatch():
+async def test_check_price_validation_fails_when_total_amount_mismatch():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -225,7 +225,7 @@ def test_check_price_validation_fails_when_total_amount_mismatch():
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
-    asyncio.run(CheckTask(check=check).run(ctx))
+    await CheckTask(check=check).run(ctx)
 
     called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
     assert called_result.status == CheckStatus.failed
@@ -234,7 +234,7 @@ def test_check_price_validation_fails_when_total_amount_mismatch():
     )
 
 
-def test_check_price_validation_fails_when_values_not_positive():
+async def test_check_price_validation_fails_when_values_not_positive():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -258,7 +258,7 @@ def test_check_price_validation_fails_when_values_not_positive():
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
-    asyncio.run(CheckTask(check=check).run(ctx))
+    await CheckTask(check=check).run(ctx)
 
     called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
     assert called_result.status == CheckStatus.failed
@@ -267,7 +267,7 @@ def test_check_price_validation_fails_when_values_not_positive():
     )
 
 
-def test_check_price_validation_succeeds_when_within_tolerance():
+async def test_check_price_validation_succeeds_when_within_tolerance():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -291,7 +291,7 @@ def test_check_price_validation_succeeds_when_within_tolerance():
     check_result_repo = MagicMock()
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
 
-    asyncio.run(CheckTask(check=check).run(ctx))
+    await CheckTask(check=check).run(ctx)
 
     called_result = check_result_repo.save_for_contract.call_args.kwargs["result"]
     assert called_result.status == CheckStatus.success

@@ -1,9 +1,9 @@
-import asyncio
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+pytestmark = pytest.mark.asyncio
 
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.single_supplier import (
@@ -26,7 +26,7 @@ from app.domain.checks.errors import (
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
-def test_check1_can_run_as_task_and_save_result():
+async def test_check1_can_run_as_task_and_save_result():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -72,7 +72,7 @@ def test_check1_can_run_as_task_and_save_result():
     )
     check = CheckPositionsCompliance(ctx=ctx)
 
-    asyncio.run(CheckTask(check=check).run(ctx))
+    await CheckTask(check=check).run(ctx)
 
     check_result_repo.save_for_contract.assert_called_once()
     called_contract = check_result_repo.save_for_contract.call_args.kwargs["contract"]
@@ -84,7 +84,7 @@ def test_check1_can_run_as_task_and_save_result():
     assert called_result.errors == []
 
 
-def test_check1_raises_when_required_field_is_missing():
+async def test_check1_raises_when_required_field_is_missing():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -121,14 +121,14 @@ def test_check1_raises_when_required_field_is_missing():
     check = CheckPositionsCompliance(ctx=ctx)
 
     with pytest.raises(MissingRequiredFieldError) as err:
-        asyncio.run(CheckTask(check=check).run(ctx))
+        await CheckTask(check=check).run(ctx)
 
     assert err.value.check_name == "CheckPositionsCompliance"
     assert err.value.param_name == "document_object_field"
     check_result_repo.save_for_contract.assert_not_called()
 
 
-def test_check1_raises_when_required_field_has_collision():
+async def test_check1_raises_when_required_field_has_collision():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -181,7 +181,7 @@ def test_check1_raises_when_required_field_has_collision():
     check = CheckPositionsCompliance(ctx=ctx)
 
     with pytest.raises(MultiplyRequiredFieldError) as err:
-        asyncio.run(CheckTask(check=check).run(ctx))
+        await CheckTask(check=check).run(ctx)
 
     assert err.value.check_name == "CheckPositionsCompliance"
     assert err.value.param_name == "spec_positions_field"

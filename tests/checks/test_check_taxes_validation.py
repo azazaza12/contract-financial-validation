@@ -1,5 +1,6 @@
-import asyncio
 from decimal import Decimal
+
+import pytest
 
 from app.domain.entities.single_supplier import (
     AdvancePayment,
@@ -17,6 +18,8 @@ from app.domain.entities.validation_errors import (
     VatAmountDiscrepancy,
 )
 from app.domain.checks.check_taxes_validation import CheckTaxesValidation
+
+pytestmark = pytest.mark.asyncio
 
 
 def _make_payment(
@@ -47,7 +50,7 @@ def _make_total_amount_field(
     return TotalAmountField(value=TotalAmount(total=total, taxes=taxes), sources=[])
 
 
-def test_check_nds_succeeds_when_formula_and_sums_are_valid():
+async def test_check_nds_succeeds_when_formula_and_sums_are_valid():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount="120.00",
@@ -100,20 +103,16 @@ def test_check_nds_succeeds_when_formula_and_sums_are_valid():
         ),
     ]
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total=total_payment, taxes=taxes
-            ),
-            advance_payments_field=AdvancePaymentsField(value=advances, sources=[]),
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=taxes),
+        advance_payments_field=AdvancePaymentsField(value=advances, sources=[]),
     )
 
     assert result.status == CheckStatus.success
     assert result.errors == []
 
 
-def test_check_nds_fails_when_formula_is_incorrect():
+async def test_check_nds_fails_when_formula_is_incorrect():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount="120.00",
@@ -130,13 +129,9 @@ def test_check_nds_fails_when_formula_is_incorrect():
         ),
     ]
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total=total_payment, taxes=taxes
-            ),
-            advance_payments_field=None,
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=taxes),
+        advance_payments_field=None,
     )
 
     assert result.status == CheckStatus.failed
@@ -145,7 +140,7 @@ def test_check_nds_fails_when_formula_is_incorrect():
     )
 
 
-def test_check_nds_fails_when_total_and_taxes_vat_sums_differ():
+async def test_check_nds_fails_when_total_and_taxes_vat_sums_differ():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount="120.00",
@@ -162,20 +157,16 @@ def test_check_nds_fails_when_total_and_taxes_vat_sums_differ():
         ),
     ]
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total=total_payment, taxes=taxes
-            ),
-            advance_payments_field=None,
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=taxes),
+        advance_payments_field=None,
     )
 
     assert result.status == CheckStatus.failed
     assert any(isinstance(error, VatAmountDiscrepancy) for error in result.errors)
 
 
-def test_check_nds_compares_sums_even_when_amount_is_missing():
+async def test_check_nds_compares_sums_even_when_amount_is_missing():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount="120.00",
@@ -211,13 +202,9 @@ def test_check_nds_compares_sums_even_when_amount_is_missing():
         )
     ]
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total=total_payment, taxes=taxes
-            ),
-            advance_payments_field=AdvancePaymentsField(value=advances, sources=[]),
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=taxes),
+        advance_payments_field=AdvancePaymentsField(value=advances, sources=[]),
     )
 
     assert result.status == CheckStatus.success
@@ -226,7 +213,7 @@ def test_check_nds_compares_sums_even_when_amount_is_missing():
     )
 
 
-def test_check_nds_succeeds_when_vat_is_not_included_and_formula_is_correct():
+async def test_check_nds_succeeds_when_vat_is_not_included_and_formula_is_correct():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount="100.00",
@@ -243,20 +230,16 @@ def test_check_nds_succeeds_when_vat_is_not_included_and_formula_is_correct():
         )
     ]
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total=total_payment, taxes=taxes
-            ),
-            advance_payments_field=None,
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=taxes),
+        advance_payments_field=None,
     )
 
     assert result.status == CheckStatus.success
     assert result.errors == []
 
 
-def test_check_nds_tolerance_allows_exactly_one_cent_difference():
+async def test_check_nds_tolerance_allows_exactly_one_cent_difference():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount="120.00",
@@ -273,13 +256,9 @@ def test_check_nds_tolerance_allows_exactly_one_cent_difference():
         )
     ]
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total=total_payment, taxes=taxes
-            ),
-            advance_payments_field=None,
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=taxes),
+        advance_payments_field=None,
     )
 
     assert result.status == CheckStatus.success
@@ -288,7 +267,7 @@ def test_check_nds_tolerance_allows_exactly_one_cent_difference():
     )
 
 
-def test_check_nds_tolerance_fails_when_difference_is_above_one_cent():
+async def test_check_nds_tolerance_fails_when_difference_is_above_one_cent():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount="120.00",
@@ -305,13 +284,9 @@ def test_check_nds_tolerance_fails_when_difference_is_above_one_cent():
         )
     ]
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total=total_payment, taxes=taxes
-            ),
-            advance_payments_field=None,
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=taxes),
+        advance_payments_field=None,
     )
 
     assert result.status == CheckStatus.failed
@@ -320,7 +295,7 @@ def test_check_nds_tolerance_fails_when_difference_is_above_one_cent():
     )
 
 
-def test_check_nds_fails_when_amount_is_not_positive():
+async def test_check_nds_fails_when_amount_is_not_positive():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount="0.00",
@@ -329,13 +304,9 @@ def test_check_nds_fails_when_amount_is_not_positive():
         include_vat=True,
     )
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total=total_payment, taxes=None
-            ),
-            advance_payments_field=None,
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=None),
+        advance_payments_field=None,
     )
 
     assert result.status == CheckStatus.failed
@@ -344,7 +315,7 @@ def test_check_nds_fails_when_amount_is_not_positive():
     )
 
 
-def test_check_nds_allows_zero_vat_amount():
+async def test_check_nds_allows_zero_vat_amount():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount=None,
@@ -353,20 +324,16 @@ def test_check_nds_allows_zero_vat_amount():
         include_vat=True,
     )
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total=total_payment, taxes=None
-            ),
-            advance_payments_field=None,
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=None),
+        advance_payments_field=None,
     )
 
     assert result.status == CheckStatus.success
     assert result.errors == []
 
 
-def test_check_nds_allows_zero_vat_rate():
+async def test_check_nds_allows_zero_vat_rate():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount="120.00",
@@ -375,20 +342,16 @@ def test_check_nds_allows_zero_vat_rate():
         include_vat=True,
     )
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total=total_payment, taxes=None
-            ),
-            advance_payments_field=None,
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=None),
+        advance_payments_field=None,
     )
 
     assert result.status == CheckStatus.success
     assert result.errors == []
 
 
-def test_check_nds_ignores_empty_taxes_list():
+async def test_check_nds_ignores_empty_taxes_list():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount="120.00",
@@ -397,20 +360,16 @@ def test_check_nds_ignores_empty_taxes_list():
         include_vat=True,
     )
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(
-                total=total_payment, taxes=[]
-            ),
-            advance_payments_field=None,
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=[]),
+        advance_payments_field=None,
     )
 
     assert result.status == CheckStatus.success
     assert not any(isinstance(error, VatAmountDiscrepancy) for error in result.errors)
 
 
-def test_check_nds_ignores_advances_without_totals_and_payments():
+async def test_check_nds_ignores_advances_without_totals_and_payments():
     check = CheckTaxesValidation()
     total_payment = _make_payment(
         amount="120.00",
@@ -423,11 +382,9 @@ def test_check_nds_ignores_advances_without_totals_and_payments():
         AdvancePayment(percent=Decimal("50.00"), total=None, payments=[]),
     ]
 
-    result = asyncio.run(
-        check.execute(
-            total_amount_field=_make_total_amount_field(total=total_payment, taxes=None),
-            advance_payments_field=AdvancePaymentsField(value=advances, sources=[]),
-        )
+    result = await check.execute(
+        total_amount_field=_make_total_amount_field(total=total_payment, taxes=None),
+        advance_payments_field=AdvancePaymentsField(value=advances, sources=[]),
     )
 
     assert result.status == CheckStatus.success

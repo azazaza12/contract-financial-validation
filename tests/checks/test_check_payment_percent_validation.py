@@ -1,7 +1,8 @@
-import asyncio
 from decimal import Decimal
 from unittest.mock import MagicMock
 from uuid import uuid4
+
+import pytest
 
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source
@@ -26,6 +27,8 @@ from app.domain.checks.check_payment_percent_validation import (
 )
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
+pytestmark = pytest.mark.asyncio
+
 
 def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:
     amount = Amount(value=Decimal(value), transcription=None)
@@ -43,7 +46,7 @@ def _make_advance(
     return AdvancePayment(percent=percent, total=total, payments=None)
 
 
-def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]):
+async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]):
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     if total_amount is not None:
         total_payment = _make_payment(total_amount)
@@ -76,13 +79,13 @@ def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]):
     ctx = create_context(contract=contract, check_result_repo=check_result_repo)
     check = CheckPaymentPercentValidation()
 
-    asyncio.run(CheckTask(check=check).run(ctx))
+    await CheckTask(check=check).run(ctx)
 
     return check_result_repo.save_for_contract.call_args.kwargs["result"]
 
 
-def test_payment_percent_validates_amount_by_percent_even_when_some_percents_missing():
-    called_result = _run_check(
+async def test_payment_percent_validates_amount_by_percent_even_when_some_percents_missing():
+    called_result = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("30.00"), payment_value="40.00"),
@@ -100,8 +103,8 @@ def test_payment_percent_validates_amount_by_percent_even_when_some_percents_mis
     )
 
 
-def test_payment_percent_validates_percent_sum_when_all_percents_are_specified():
-    called_result = _run_check(
+async def test_payment_percent_validates_percent_sum_when_all_percents_are_specified():
+    called_result = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("30.00"), payment_value="30.00"),
@@ -116,8 +119,8 @@ def test_payment_percent_validates_percent_sum_when_all_percents_are_specified()
     )
 
 
-def test_payment_percent_succeeds_for_valid_percent_distribution():
-    called_result = _run_check(
+async def test_payment_percent_succeeds_for_valid_percent_distribution():
+    called_result = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("50.00"), payment_value="50.00"),
@@ -129,8 +132,8 @@ def test_payment_percent_succeeds_for_valid_percent_distribution():
     assert called_result.errors == []
 
 
-def test_payment_percent_succeeds_for_valid_three_payments():
-    called_result = _run_check(
+async def test_payment_percent_succeeds_for_valid_three_payments():
+    called_result = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("30.00"), payment_value="30.00"),
@@ -143,8 +146,8 @@ def test_payment_percent_succeeds_for_valid_three_payments():
     assert called_result.errors == []
 
 
-def test_payment_percent_fails_when_amount_does_not_match_percent():
-    called_result = _run_check(
+async def test_payment_percent_fails_when_amount_does_not_match_percent():
+    called_result = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("50.00"), payment_value="60.00"),
@@ -158,8 +161,8 @@ def test_payment_percent_fails_when_amount_does_not_match_percent():
     )
 
 
-def test_payment_percent_succeeds_when_percent_sum_difference_within_tolerance():
-    called_result = _run_check(
+async def test_payment_percent_succeeds_when_percent_sum_difference_within_tolerance():
+    called_result = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("49.99"), payment_value="49.99"),
@@ -171,8 +174,8 @@ def test_payment_percent_succeeds_when_percent_sum_difference_within_tolerance()
     assert called_result.errors == []
 
 
-def test_payment_percent_succeeds_when_amount_difference_within_tolerance():
-    called_result = _run_check(
+async def test_payment_percent_succeeds_when_amount_difference_within_tolerance():
+    called_result = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("50.00"), payment_value="50.01"),
@@ -184,8 +187,8 @@ def test_payment_percent_succeeds_when_amount_difference_within_tolerance():
     assert called_result.errors == []
 
 
-def test_payment_percent_fails_when_amount_difference_exceeds_tolerance():
-    called_result = _run_check(
+async def test_payment_percent_fails_when_amount_difference_exceeds_tolerance():
+    called_result = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("50.00"), payment_value="50.02"),
@@ -199,15 +202,15 @@ def test_payment_percent_fails_when_amount_difference_exceeds_tolerance():
     )
 
 
-def test_payment_percent_succeeds_when_payment_list_is_empty():
-    called_result = _run_check(total_amount="100.00", advances=[])
+async def test_payment_percent_succeeds_when_payment_list_is_empty():
+    called_result = await _run_check(total_amount="100.00", advances=[])
 
     assert called_result.status == CheckStatus.success
     assert called_result.errors == []
 
 
-def test_payment_percent_succeeds_for_single_100_percent_payment():
-    called_result = _run_check(
+async def test_payment_percent_succeeds_for_single_100_percent_payment():
+    called_result = await _run_check(
         total_amount="100.00",
         advances=[_make_advance(percent=Decimal("100.00"), payment_value="100.00")],
     )
@@ -216,8 +219,8 @@ def test_payment_percent_succeeds_for_single_100_percent_payment():
     assert called_result.errors == []
 
 
-def test_payment_percent_can_return_multiple_errors():
-    called_result = _run_check(
+async def test_payment_percent_can_return_multiple_errors():
+    called_result = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("30.00"), payment_value="60.00"),
@@ -236,8 +239,8 @@ def test_payment_percent_can_return_multiple_errors():
     )
 
 
-def test_payment_percent_sum_checked_when_contract_total_amount_missing():
-    called_result = _run_check(
+async def test_payment_percent_sum_checked_when_contract_total_amount_missing():
+    called_result = await _run_check(
         total_amount=None,
         advances=[
             _make_advance(percent=Decimal("50.00"), payment_value="50.00"),
@@ -249,8 +252,8 @@ def test_payment_percent_sum_checked_when_contract_total_amount_missing():
     assert called_result.errors == []
 
 
-def test_payment_percent_sum_fails_when_contract_total_missing_but_percents_not_100():
-    called_result = _run_check(
+async def test_payment_percent_sum_fails_when_contract_total_missing_but_percents_not_100():
+    called_result = await _run_check(
         total_amount=None,
         advances=[
             _make_advance(percent=Decimal("30.00"), payment_value="30.00"),
