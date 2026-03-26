@@ -32,7 +32,7 @@ from app.domain.entities.validation_errors import (
     AmountNotPositiveCheckResult,
     PositionCostDiscrepancyCheckResult,
 )
-from app.domain.pipeline.task import CheckTask
+from app.domain.pipeline.task import CheckTask, TaskStatus
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
@@ -105,7 +105,7 @@ async def test_check_price_validation_can_run_as_task_and_save_result():
     assert called_result.errors == []
 
 
-async def test_check_price_validation_raises_when_required_field_is_missing():
+async def test_check_price_validation_skips_when_required_field_is_missing():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -130,15 +130,17 @@ async def test_check_price_validation_raises_when_required_field_is_missing():
     contract_repo.save_check_result = AsyncMock()
     ctx = create_context(contract=contract, contract_repo=contract_repo)
 
-    with pytest.raises(MissingRequiredFieldError) as err:
-        await CheckTask(check=check).run(ctx)
+    await CheckTask(check=check).run(ctx)
 
-    assert err.value.check_name == "CheckPriceValidation"
-    assert err.value.param_name == "total_amount_field"
+    records = ctx.records_reg.records[ctx.pipeline.id]
+    assert records[-1].status == TaskStatus.SKIPPED
+    assert "missing required field for 'total_amount_field'" in (
+        records[-1].error_message or ""
+    )
     contract_repo.save_check_result.assert_not_awaited()
 
 
-async def test_check_price_validation_raises_when_required_field_has_collision():
+async def test_check_price_validation_skips_when_required_field_has_collision():
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -165,12 +167,11 @@ async def test_check_price_validation_raises_when_required_field_has_collision()
     contract_repo.save_check_result = AsyncMock()
     ctx = create_context(contract=contract, contract_repo=contract_repo)
 
-    with pytest.raises(MultiplyRequiredFieldError) as err:
-        await CheckTask(check=check).run(ctx)
+    await CheckTask(check=check).run(ctx)
 
-    assert err.value.check_name == "CheckPriceValidation"
-    assert err.value.param_name == "total_amount_field"
-    assert err.value.count == 2
+    records = ctx.records_reg.records[ctx.pipeline.id]
+    assert records[-1].status == TaskStatus.SKIPPED
+    assert "collision for 'total_amount_field'" in (records[-1].error_message or "")
     contract_repo.save_check_result.assert_not_awaited()
 
 
