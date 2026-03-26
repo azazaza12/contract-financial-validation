@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from app.domain.entities.field import BaseField
-from app.domain.merge.defaults import FLEXIBLE_REGISTRY, STRICT_REGISTRY
+from app.domain.merge.defaults import STRICT_REGISTRY
 
 
 class DocumentObjectField(BaseField[str]):
@@ -36,7 +36,7 @@ class TotalAmount:
 
 @dataclass(kw_only=True, frozen=True)
 class TotalAmountField(BaseField[TotalAmount]):
-    merge_registry = FLEXIBLE_REGISTRY
+    merge_registry = STRICT_REGISTRY
 
 
 @dataclass(kw_only=True, frozen=True)
