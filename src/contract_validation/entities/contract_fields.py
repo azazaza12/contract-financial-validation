@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from app.domain.entities.field import BaseField
 from app.domain.merge.defaults import STRICT_REGISTRY
+from app.domain.service.nomenclature_classifier import NomenclatureArticle
 
 
 class DocumentObjectField(BaseField[str]):
@@ -62,4 +63,15 @@ class SpecPosition:
 
 @dataclass(kw_only=True, frozen=True)
 class SpecPositionsField(BaseField[list[SpecPosition]]):
+    merge_registry = STRICT_REGISTRY
+
+
+@dataclass(kw_only=True, frozen=True)
+class NomenclatureClassification:
+    position: SpecPosition
+    articles: list[NomenclatureArticle]
+
+
+@dataclass(kw_only=True, frozen=True)
+class NomenclatureClassificationsField(BaseField[list[NomenclatureClassification]]):
     merge_registry = STRICT_REGISTRY
