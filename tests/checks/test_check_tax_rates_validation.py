@@ -88,7 +88,6 @@ async def test_no_advances_no_taxes_empty_list_success():
 
 
 async def test_no_advances_one_tax_line_both_rates_none_not_found():
-    """Нигде нет ставки (total, taxes, авансов нет)."""
     r = await _run(total_rate=None, tax_rates=[None], advances=None)
     assert r.status == CheckStatus.failed
     assert len(r.errors) == 1
@@ -96,7 +95,6 @@ async def test_no_advances_one_tax_line_both_rates_none_not_found():
 
 
 async def test_no_rate_in_total_or_taxes_but_advance_has_rate_success():
-    """Ставка только в AdvancePaymentsField — глобальной ошибки «не найдена» нет."""
     r = await _run(
         total_rate=None,
         tax_rates=[None],
@@ -157,7 +155,6 @@ async def test_no_advances_multiple_taxes_all_lines_match_total_success():
 
 
 async def test_no_advances_multiple_taxes_no_total_rate_all_none_not_found():
-    """Нигде нет ставки (в т.ч. в total и во всех строках taxes)."""
     r = await _run(
         total_rate=None,
         tax_rates=[None, None],
@@ -168,7 +165,6 @@ async def test_no_advances_multiple_taxes_no_total_rate_all_none_not_found():
 
 
 async def test_no_advances_multiple_taxes_no_total_but_lines_have_rates_success():
-    """total_rate=None — строки taxes с любыми ставками не сверяются с total."""
     r = await _run(
         total_rate=None,
         tax_rates=[Decimal("20"), Decimal("10")],
@@ -192,7 +188,6 @@ async def test_advances_with_payments_match_advance_total():
 
 
 async def test_advances_with_payments_no_advance_total_skips_line_check():
-    """Без total у аванса строки payments не сверяются (в т.ч. с договором)."""
     r = await _run(
         total_rate=Decimal("20"),
         tax_rates=None,
@@ -232,7 +227,6 @@ async def test_advances_with_payments_line_differs_from_advance_total_failed():
 
 
 async def test_advances_with_payments_no_advance_total_mixed_rates_success():
-    """Без advance total сверка payments не делается — даже при разных ставках."""
     r = await _run(
         total_rate=None,
         tax_rates=None,
@@ -251,7 +245,6 @@ async def test_advances_with_payments_no_advance_total_mixed_rates_success():
 
 
 async def test_advances_with_payments_no_advance_total_all_rates_none_not_found():
-    """Нигде нет ставки: total/taxes без ставки, в авансе тоже ни total, ни строки."""
     r = await _run(
         total_rate=None,
         tax_rates=None,
