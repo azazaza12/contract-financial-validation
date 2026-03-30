@@ -4,11 +4,6 @@ from uuid import uuid4
 
 import pytest
 
-
-pytestmark = pytest.mark.asyncio
-
-DEFAULT_TOLERANCE = Decimal("0.01")
-
 from app.domain.checks.check_price_validation import CheckPriceValidation
 from app.domain.checks.errors import (
     MissingRequiredFieldError,
@@ -34,6 +29,10 @@ from app.domain.entities.validation_errors import (
 )
 from app.domain.pipeline.task import CheckTask
 from tests.domain.pipeline.conftest import DummyContract, create_context
+
+
+pytestmark = pytest.mark.asyncio
+DEFAULT_TOLERANCE = Decimal("0.01")
 
 
 def _make_payment(value: str) -> Payment:

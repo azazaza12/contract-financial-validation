@@ -87,7 +87,7 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
     return check_result_repo.save_for_contract.call_args.kwargs["result"]
 
 
-async def test_payment_percent_validates_amount_by_percent_even_when_some_percents_missing():
+async def test_payment_percent_validates_amount_even_when_percents_missing():
     called_result = await _run_check(
         total_amount="100.00",
         advances=[
@@ -255,7 +255,7 @@ async def test_payment_percent_sum_checked_when_contract_total_amount_missing():
     assert called_result.errors == []
 
 
-async def test_payment_percent_sum_fails_when_contract_total_missing_but_percents_not_100():
+async def test_payment_percent_sum_fails_without_total_when_not_100():
     called_result = await _run_check(
         total_amount=None,
         advances=[
