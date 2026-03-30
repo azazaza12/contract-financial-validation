@@ -53,8 +53,9 @@ class CheckPaymentPercentValidation(BaseCheck):
 
         if total_amount is None:
             logger.info(
-                "Contract total amount is missing: amount-vs-percent comparison skipped; "
-                "percent sum check still runs when all percents are specified"
+                "Contract total amount is missing: amount-vs-percent "
+                "comparison skipped; percent sum check still runs "
+                "when all percents are specified"
             )
 
         if not payments:

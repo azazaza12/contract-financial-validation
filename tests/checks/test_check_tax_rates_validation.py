@@ -88,7 +88,7 @@ async def test_no_advances_no_taxes_empty_list_success():
 
 
 async def test_no_advances_one_tax_line_both_rates_none_not_found():
-    """Нигде нет ставки (total, taxes, авансов нет) — PaymentVatRateNotFoundCheckResult."""
+    """Нигде нет ставки (total, taxes, авансов нет)."""
     r = await _run(total_rate=None, tax_rates=[None], advances=None)
     assert r.status == CheckStatus.failed
     assert len(r.errors) == 1

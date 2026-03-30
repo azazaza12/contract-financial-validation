@@ -4,9 +4,6 @@ from uuid import uuid4
 
 import pytest
 
-
-pytestmark = pytest.mark.asyncio
-
 from app.domain.checks.check_positions_compliance import (
     CheckPositionsCompliance,
 )
@@ -26,6 +23,9 @@ from app.domain.entities.validation import CheckStatus
 from app.domain.pipeline.task import CheckTask
 from app.domain.service.checker import EvaluateResult
 from tests.domain.pipeline.conftest import DummyContract, create_context
+
+
+pytestmark = pytest.mark.asyncio
 
 
 async def test_check1_can_run_as_task_and_save_result():
