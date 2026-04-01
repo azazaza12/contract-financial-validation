@@ -33,7 +33,8 @@ class CheckPositionsCompliance(BaseCheck):
 
         if result.success:
             logger.info(
-                "Document object - [%s]\nAll items correspond to the subject of the purchase",
+                "Document object - [%s]\nAll items correspond "
+                "to the subject of the purchase",
                 document_object,
             )
             return self._result(errors)
