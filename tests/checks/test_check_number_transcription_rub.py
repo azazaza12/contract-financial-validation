@@ -140,7 +140,8 @@ async def test_check_14_passes_realistic_nested_amounts_to_service():
                     amount=Amount(
                         value=Decimal("1189129.80"),
                         transcription=(
-                            "Один миллион сто восемьдесят девять тысяч сто двадцать девять"
+                            "Один миллион сто восемьдесят девять тысяч "
+                            "сто двадцать девять"
                         ),
                     ),
                     vat=Vat(
