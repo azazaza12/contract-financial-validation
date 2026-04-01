@@ -13,6 +13,7 @@ from .single_supplier import (
     SingleSupplierExtractionTask,
     SpecPosition,
     SpecPositionsField,
+    TotalAmount,
     TotalAmountField,
     Vat,
 )
@@ -35,6 +36,7 @@ __all__ = [
     "Source",
     "SpecPosition",
     "SpecPositionsField",
+    "TotalAmount",
     "TotalAmountField",
     "UnknownDocument",
     "ValueCandidate",
