@@ -38,6 +38,7 @@ __all__ = [
     "Source",
     "SpecPosition",
     "SpecPositionsField",
+    "TotalAmount",
     "TotalAmountField",
     "UnknownDocument",
     "ValueCandidate",

@@ -6,6 +6,7 @@ from .errors import (
     MultiplyRequiredFieldError,
 )
 
+
 __all__ = [
     "BaseCheck",
     "CheckInputError",
