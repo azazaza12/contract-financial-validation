@@ -53,7 +53,6 @@ async def test_check1_can_run_as_task_and_save_result():
         fields=fields,
         user_id="test-user",
         contract_name="contract.pdf",
-        errors=[],
     )
 
     position_service = AsyncMock()
@@ -107,7 +106,6 @@ async def test_check1_skips_when_required_field_is_missing():
         fields=fields,
         user_id="test-user",
         contract_name="contract.pdf",
-        errors=[],
     )
 
     position_service = AsyncMock()
@@ -170,7 +168,6 @@ async def test_check1_skips_when_required_field_has_collision():
         fields=fields,
         user_id="test-user",
         contract_name="contract.pdf",
-        errors=[],
     )
 
     position_service = AsyncMock()

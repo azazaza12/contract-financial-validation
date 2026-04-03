@@ -76,7 +76,6 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
         contract_name="contract.pdf",
         documents=[document],
         fields=FieldCollector([total_amount_field, advance_payments_field]),
-        errors=[],
     )
     contract_repo = MagicMock()
     contract_repo.save_check_result = AsyncMock()
