@@ -58,7 +58,6 @@ def _make_contract(
         fields=fields,
         user_id="test-user",
         contract_name="contract.pdf",
-        errors=[],
     )
 
 
