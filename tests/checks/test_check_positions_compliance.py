@@ -1,6 +1,6 @@
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
-from uuid import uuid4
+from uuid import uuid6
 
 import pytest
 
@@ -29,7 +29,7 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_check1_can_run_as_task_and_save_result():
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
             DocumentObjectField(
@@ -52,7 +52,7 @@ async def test_check1_can_run_as_task_and_save_result():
     )
 
     contract = DummyContract(
-        id=uuid4(),
+        id=uuid6(),
         documents=[document],
         fields=fields,
         user_id="test-user",
@@ -87,7 +87,7 @@ async def test_check1_can_run_as_task_and_save_result():
 
 
 async def test_check1_raises_when_required_field_is_missing():
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
             SpecPositionsField(
@@ -105,7 +105,7 @@ async def test_check1_raises_when_required_field_is_missing():
         ]
     )
     contract = DummyContract(
-        id=uuid4(),
+        id=uuid6(),
         documents=[document],
         fields=fields,
         user_id="test-user",
@@ -131,7 +131,7 @@ async def test_check1_raises_when_required_field_is_missing():
 
 
 async def test_check1_raises_when_required_field_has_collision():
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
             DocumentObjectField(
@@ -165,7 +165,7 @@ async def test_check1_raises_when_required_field_has_collision():
         ]
     )
     contract = DummyContract(
-        id=uuid4(),
+        id=uuid6(),
         documents=[document],
         fields=fields,
         user_id="test-user",
