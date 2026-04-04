@@ -1,6 +1,6 @@
 from decimal import Decimal
 from unittest.mock import MagicMock
-from uuid import uuid4
+from uuid import uuid6
 
 import pytest
 
@@ -57,7 +57,7 @@ def _make_contract(
     document: SingleSupplierDocument, fields: FieldCollector
 ) -> DummyContract:
     return DummyContract(
-        id=uuid4(),
+        id=uuid6(),
         documents=[document],
         fields=fields,
         user_id="test-user",
@@ -67,7 +67,7 @@ def _make_contract(
 
 
 async def test_check_price_validation_can_run_as_task_and_save_result():
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
             SpecPositionsField(
@@ -104,7 +104,7 @@ async def test_check_price_validation_can_run_as_task_and_save_result():
 
 
 async def test_check_price_validation_raises_when_required_field_is_missing():
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
             SpecPositionsField(
@@ -136,7 +136,7 @@ async def test_check_price_validation_raises_when_required_field_is_missing():
 
 
 async def test_check_price_validation_raises_when_required_field_has_collision():
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
             SpecPositionsField(
@@ -171,7 +171,7 @@ async def test_check_price_validation_raises_when_required_field_has_collision()
 
 
 async def test_check_price_validation_fails_when_position_total_mismatch():
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
             SpecPositionsField(
@@ -205,7 +205,7 @@ async def test_check_price_validation_fails_when_position_total_mismatch():
 
 
 async def test_check_price_validation_fails_when_total_amount_mismatch():
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
             SpecPositionsField(
@@ -238,7 +238,7 @@ async def test_check_price_validation_fails_when_total_amount_mismatch():
 
 
 async def test_check_price_validation_fails_when_values_not_positive():
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
             SpecPositionsField(
@@ -271,7 +271,7 @@ async def test_check_price_validation_fails_when_values_not_positive():
 
 
 async def test_check_price_validation_succeeds_when_within_tolerance():
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
             SpecPositionsField(
