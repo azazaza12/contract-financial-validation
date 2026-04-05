@@ -77,7 +77,7 @@ async def test_check1_can_run_as_task_and_save_result():
     called_result = contract_repo.save_check_result.call_args.kwargs["result"]
 
     assert called_contract is contract
-    assert called_result.check_name == "CheckPositionsCompliance"
+    assert called_result.label == "CheckPositionsCompliance"
     assert called_result.status == CheckStatus.success
     assert called_result.errors == []
 
