@@ -15,7 +15,7 @@ class BaseCheck(ABC):
     def _result(self, errors: list[BaseResultChecker]) -> CheckExecutionResult:
         status = CheckStatus.failed if errors else CheckStatus.success
         return CheckExecutionResult(
-            check_name=self.__class__.__name__,
+            label=self.__class__.__name__,
             status=status,
             errors=errors,
         )

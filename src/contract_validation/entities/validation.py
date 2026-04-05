@@ -13,6 +13,13 @@ class CheckStatus(Enum):
 
 @dataclass(kw_only=True)
 class CheckExecutionResult:
-    check_name: str
+    label: str
     errors: list[BaseResultChecker]
+    status: CheckStatus
+
+
+@dataclass(kw_only=True)
+class CheckErrorEntry:
+    label: str
+    error: BaseResultChecker
     status: CheckStatus
