@@ -1,6 +1,6 @@
 from decimal import Decimal
 from unittest.mock import AsyncMock
-from uuid import uuid6
+from uuid import uuid4
 
 import pytest
 
@@ -28,7 +28,7 @@ pytestmark = pytest.mark.asyncio
 
 
 def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmountField:
-    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     return TotalAmountField(
         value=TotalAmount(
             total=Payment(
@@ -111,7 +111,7 @@ async def test_check_14_passes_realistic_nested_amounts_to_service():
     ctx = create_context(check_transcription_compliance_service=service_mock)
     check = CheckNumberTranscriptionRub(ctx=ctx)
 
-    document = SingleSupplierDocument(id=uuid6(), file_name="contract.pdf")
+    document = SingleSupplierDocument(id=uuid4(), file_name="contract.pdf")
     total_amount_field = TotalAmountField(
         value=TotalAmount(
             total=Payment(
