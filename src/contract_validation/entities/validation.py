@@ -23,4 +23,3 @@ class CheckExecutionResult:
 class CheckErrorEntry(BaseContractError):
     label: str
     error: BaseResultChecker
-    status: CheckStatus
