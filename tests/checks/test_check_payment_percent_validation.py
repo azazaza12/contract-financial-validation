@@ -1,6 +1,6 @@
 from decimal import Decimal
 from unittest.mock import MagicMock
-from uuid import uuid6
+from uuid import uuid4
 
 import pytest
 
@@ -50,7 +50,7 @@ def _make_advance(
 
 
 async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]):
-    document = SingleSupplierDocument(id=uuid6(), file_name="doc-1.pdf")
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     if total_amount is not None:
         total_payment = _make_payment(total_amount)
     else:
@@ -71,7 +71,7 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
         sources=[Source(document=document)],
     )
     contract = DummyContract(
-        id=uuid6(),
+        id=uuid4(),
         user_id="test-user",
         contract_name="contract.pdf",
         documents=[document],
