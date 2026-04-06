@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
+from app.domain.entities.errors import BaseContractError
 from app.domain.entities.validation_errors import BaseResultChecker
 
 
@@ -19,7 +20,7 @@ class CheckExecutionResult:
 
 
 @dataclass(kw_only=True)
-class CheckErrorEntry:
+class CheckErrorEntry(BaseContractError):
     label: str
     error: BaseResultChecker
     status: CheckStatus
