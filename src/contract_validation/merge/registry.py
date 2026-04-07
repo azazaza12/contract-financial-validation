@@ -42,7 +42,7 @@ class MergeRegistry:
         seen = set()
         for c in candidates:
             for s in c.sources:
-                s_id = id(s.document)
+                s_id = s.document_id
                 if s_id not in seen:
                     all_sources.append(s)
                     seen.add(s_id)
