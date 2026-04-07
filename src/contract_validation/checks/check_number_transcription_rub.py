@@ -7,8 +7,8 @@ from app.domain.entities.single_supplier_fields import (
     Payment,
     TotalAmountField,
 )
-from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
-from app.domain.entities.validation_errors import NumberTranscriptionErrorCheckResult
+from app.domain.entities.validation import CheckExecutionResult
+from app.domain.entities.errors import BaseCheckError, NumberTranscriptionError
 from app.domain.service.checker import ITranscriptionComplianceService
 
 
@@ -55,7 +55,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
         advance_payments_field: AdvancePaymentsField | None,
         check_transcription_compliance_service: ITranscriptionComplianceService,
     ) -> CheckExecutionResult:
-        errors: list[BaseResultChecker] = []
+        errors: list[BaseCheckError] = []
         extracted_amounts = self._extract_amounts_from_fields(
             [f for f in (total_amount_field, advance_payments_field) if f is not None]
         )
@@ -64,8 +64,6 @@ class CheckNumberTranscriptionRub(BaseCheck):
         )
         for issue in result.issues:
             errors.append(
-                NumberTranscriptionErrorCheckResult.model_validate(
-                    issue, from_attributes=True
-                )
+                NumberTranscriptionError.model_validate(issue, from_attributes=True)
             )
         return self._result(errors)

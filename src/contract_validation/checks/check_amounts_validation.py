@@ -8,9 +8,9 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
-from app.domain.entities.validation_errors import (
-    AmountDiscrepancyCheckResult,
-    BaseResultChecker,
+from app.domain.entities.errors import (
+    AmountDiscrepancyError,
+    BaseCheckError,
 )
 
 
@@ -21,7 +21,7 @@ class CheckTotalAmountsValidation(BaseCheck):
     def __init__(self, tolerance: Decimal):
         self.tolerance = tolerance
 
-    def all_equal(self, values: list[Decimal], errors: list[BaseResultChecker]) -> None:
+    def all_equal(self, values: list[Decimal], errors: list[BaseCheckError]) -> None:
         if not values:
             return
         reference_value = values[0]
@@ -29,7 +29,7 @@ class CheckTotalAmountsValidation(BaseCheck):
             difference = abs(value - reference_value)
             if difference > self.tolerance:
                 errors.append(
-                    AmountDiscrepancyCheckResult(
+                    AmountDiscrepancyError(
                         value=value,
                         reference_value=reference_value,
                         difference=difference,
@@ -69,7 +69,7 @@ class CheckTotalAmountsValidation(BaseCheck):
     def collect_advances_sum(
         self,
         advance_payments_field: AdvancePaymentsField,
-        errors: list[BaseResultChecker],
+        errors: list[BaseCheckError],
     ) -> list[Decimal]:
         target: list[Decimal] = []
         total_amount_sum = Decimal("0.00")
@@ -98,7 +98,7 @@ class CheckTotalAmountsValidation(BaseCheck):
                 continue
 
             errors.append(
-                AmountDiscrepancyCheckResult(
+                AmountDiscrepancyError(
                     reference_value=total_amount,
                     value=adv_amount_sum,
                     difference=diff,
@@ -116,7 +116,7 @@ class CheckTotalAmountsValidation(BaseCheck):
         advance_payments_field: AdvancePaymentsField | None,
     ) -> CheckExecutionResult:
 
-        errors: list[BaseResultChecker] = []
+        errors: list[BaseCheckError] = []
         amounts_to_compare: list[Decimal] = []
         amounts_to_compare.extend(self.collect_total_sum(total_amount_field))
         if advance_payments_field is not None:

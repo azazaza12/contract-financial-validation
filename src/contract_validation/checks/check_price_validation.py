@@ -6,12 +6,13 @@ from app.domain.entities.single_supplier_fields import (
     SpecPositionsField,
     TotalAmountField,
 )
-from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
-from app.domain.entities.validation_errors import (
-    AmountDiscrepancyCheckResult,
-    AmountNotFoundCheckResult,
-    AmountNotPositiveCheckResult,
-    PositionCostDiscrepancyCheckResult,
+from app.domain.entities.validation import CheckExecutionResult
+from app.domain.entities.errors import (
+    AmountDiscrepancyError,
+    AmountNotFoundError,
+    AmountNotPositiveError,
+    BaseCheckError,
+    PositionCostDiscrepancyError,
 )
 
 
@@ -27,7 +28,7 @@ class CheckPriceValidation(BaseCheck):
         spec_positions_field: SpecPositionsField,
         total_amount_field: TotalAmountField,
     ) -> CheckExecutionResult:
-        errors: list[BaseResultChecker] = []
+        errors: list[BaseCheckError] = []
 
         spec_positions = spec_positions_field.value
         total_payment = total_amount_field.value.total
@@ -40,12 +41,12 @@ class CheckPriceValidation(BaseCheck):
             quantity_dec = Decimal(str(spec_position.quantity))
             price = spec_position.unit_price
             if price <= 0:
-                errors.append(AmountNotPositiveCheckResult(value=price))
+                errors.append(AmountNotPositiveError(value=price))
             position_total_amount_calculated = quantity_dec * price
             total_calculated += position_total_amount_calculated
             position_total_amount = spec_position.total_price
             if position_total_amount <= 0:
-                errors.append(AmountNotPositiveCheckResult(value=position_total_amount))
+                errors.append(AmountNotPositiveError(value=position_total_amount))
             position_name = spec_position.name
             position_amount_difference = abs(
                 position_total_amount - position_total_amount_calculated
@@ -53,7 +54,7 @@ class CheckPriceValidation(BaseCheck):
 
             if position_amount_difference > self.tolerance:
                 errors.append(
-                    PositionCostDiscrepancyCheckResult(
+                    PositionCostDiscrepancyError(
                         count=count,
                         position_name=position_name,
                         cost=position_total_amount,
@@ -63,14 +64,14 @@ class CheckPriceValidation(BaseCheck):
                 )
 
         if total_amount is None:
-            errors.append(AmountNotFoundCheckResult())
+            errors.append(AmountNotFoundError())
         elif total_amount <= 0:
-            errors.append(AmountNotPositiveCheckResult(value=total_amount))
+            errors.append(AmountNotPositiveError(value=total_amount))
         else:
             difference = abs(total_calculated - total_amount)
             if difference > self.tolerance:
                 errors.append(
-                    AmountDiscrepancyCheckResult(
+                    AmountDiscrepancyError(
                         reference_value=total_amount,
                         value=total_calculated,
                         difference=difference,
