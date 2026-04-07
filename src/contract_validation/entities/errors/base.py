@@ -1,10 +1,10 @@
-from pydantic import BaseModel, computed_field
+from dataclasses import dataclass
 
 
-class BaseContractError(BaseModel):
+@dataclass(kw_only=True)
+class BaseContractError:
     source: str = ""
 
-    @computed_field
     @property
     def error_type(self) -> str:
         return type(self).__name__
