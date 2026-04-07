@@ -7,13 +7,14 @@ from app.domain.entities.single_supplier_fields import (
     Payment,
     TotalAmountField,
 )
-from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
-from app.domain.entities.validation_errors import (
-    AmountNotPositiveCheckResult,
-    VatAmountCalculationDiscrepancy,
-    VatAmountDiscrepancy,
-    VatAmountNotPositiveCheckResult,
-    VatRateNotPositiveCheckResult,
+from app.domain.entities.validation import CheckExecutionResult
+from app.domain.entities.errors import (
+    AmountNotPositiveError,
+    BaseCheckError,
+    VatAmountCalculationDiscrepancyError,
+    VatAmountDiscrepancyError,
+    VatAmountNotPositiveError,
+    VatRateNotPositiveError,
 )
 
 
@@ -25,7 +26,7 @@ class CheckTaxesValidation(BaseCheck):
         self.tolerance = tolerance
 
     def check_vat_amounts_consistent(
-        self, vat_amounts: list[Decimal], errors: list[BaseResultChecker]
+        self, vat_amounts: list[Decimal], errors: list[BaseCheckError]
     ) -> None:
         if not vat_amounts:
             return
@@ -34,7 +35,7 @@ class CheckTaxesValidation(BaseCheck):
             difference = abs(value - reference_value)
             if difference > self.tolerance:
                 errors.append(
-                    VatAmountDiscrepancy(
+                    VatAmountDiscrepancyError(
                         value=value,
                         reference_value=reference_value,
                         difference=difference,
@@ -45,7 +46,7 @@ class CheckTaxesValidation(BaseCheck):
         self,
         total_amount_field: TotalAmountField,
         vat_amounts: list[Decimal],
-        errors: list[BaseResultChecker],
+        errors: list[BaseCheckError],
     ) -> None:
         total_amount_payment = total_amount_field.value.total
         taxes = total_amount_field.value.taxes
@@ -63,7 +64,7 @@ class CheckTaxesValidation(BaseCheck):
         self,
         advance_payments_field: AdvancePaymentsField,
         vat_amounts: list[Decimal],
-        errors: list[BaseResultChecker],
+        errors: list[BaseCheckError],
     ) -> None:
         has_any = False
         advances_vat_total = Decimal("0.00")
@@ -91,7 +92,7 @@ class CheckTaxesValidation(BaseCheck):
             if diff <= self.tolerance:
                 continue
             errors.append(
-                VatAmountDiscrepancy(
+                VatAmountDiscrepancyError(
                     reference_value=advance_aggregate_vat,
                     value=advance_lines_vat,
                     difference=diff,
@@ -102,7 +103,7 @@ class CheckTaxesValidation(BaseCheck):
         vat_amounts.append(advances_vat_total)
 
     def validate_payments_and_sum_vat(
-        self, payments: list[Payment] | None, errors: list[BaseResultChecker]
+        self, payments: list[Payment] | None, errors: list[BaseCheckError]
     ) -> Decimal | None:
         vat_amount_sum = Decimal("0.00")
         if payments is None or len(payments) == 0:
@@ -113,16 +114,16 @@ class CheckTaxesValidation(BaseCheck):
             if payment.amount is not None:
                 amount = payment.amount.value
                 if amount <= 0:
-                    errors.append(AmountNotPositiveCheckResult(value=amount))
+                    errors.append(AmountNotPositiveError(value=amount))
                     continue
             if payment.vat.amount is not None:
                 vat_amount = payment.vat.amount.value
                 if vat_amount < 0:
-                    errors.append(VatAmountNotPositiveCheckResult(value=vat_amount))
+                    errors.append(VatAmountNotPositiveError(value=vat_amount))
                     continue
             vat_rate = payment.vat.rate
             if vat_rate is not None and vat_rate < 0:
-                errors.append(VatRateNotPositiveCheckResult(value=vat_rate))
+                errors.append(VatRateNotPositiveError(value=vat_rate))
                 continue
             include_vat = payment.include_vat
             if amount is not None and vat_rate is not None and vat_amount is not None:
@@ -133,7 +134,7 @@ class CheckTaxesValidation(BaseCheck):
                 diff_vat_amount = abs(vat_amount - expected_vat_amount)
                 if diff_vat_amount > self.tolerance:
                     errors.append(
-                        VatAmountCalculationDiscrepancy(
+                        VatAmountCalculationDiscrepancyError(
                             expected_vat_amount=expected_vat_amount,
                             vat_amount=vat_amount,
                             difference=diff_vat_amount,
@@ -148,7 +149,7 @@ class CheckTaxesValidation(BaseCheck):
         total_amount_field: TotalAmountField,
         advance_payments_field: AdvancePaymentsField | None,
     ) -> CheckExecutionResult:
-        errors: list[BaseResultChecker] = []
+        errors: list[BaseCheckError] = []
         vat_amounts_to_compare: list[Decimal] = []
 
         self.append_vat_from_total_amount(

@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from app.domain.entities.errors import (
-    MergeFieldMessage,
-    ValuesDiscrepancyMessage,
+    BaseMergeError,
+    ValuesDiscrepancyError,
 )
 from app.domain.entities.merge_types import Source, ValueCandidate
 
@@ -53,11 +53,11 @@ def merge_scalar_strict(
     candidates: list[ValueCandidate],
     path: str,
     registry: "MergeRegistry",
-    errors: list[MergeFieldMessage],
+    errors: list[BaseMergeError],
 ) -> ValueCandidate | None:
     if not all_equal(candidates):
         errors.append(
-            ValuesDiscrepancyMessage(
+            ValuesDiscrepancyError(
                 candidates=candidates,
                 path=path,
             )
@@ -74,7 +74,7 @@ def merge_scalar_pick_first(
     candidates: list[ValueCandidate],
     path: str,
     registry: "MergeRegistry",
-    errors: list[MergeFieldMessage],
+    errors: list[BaseMergeError],
 ) -> ValueCandidate | None:
     return ValueCandidate(
         value=candidates[0].value,
@@ -86,13 +86,13 @@ def merge_list_strict(
     candidates: list[ValueCandidate],
     path: str,
     registry: "MergeRegistry",
-    errors: list[MergeFieldMessage],
+    errors: list[BaseMergeError],
 ) -> ValueCandidate | None:
     lengths = [len(c.value) for c in candidates]
 
     if len(set(lengths)) > 1:
         errors.append(
-            ValuesDiscrepancyMessage(
+            ValuesDiscrepancyError(
                 candidates=candidates,
                 path=path,
             )
@@ -121,7 +121,7 @@ def merge_list_flexible(
     candidates: list[ValueCandidate],
     path: str,
     registry: "MergeRegistry",
-    errors: list[MergeFieldMessage],
+    errors: list[BaseMergeError],
 ) -> ValueCandidate | None:
     max_length = max(len(c.value) for c in candidates)
     merged_list = []
@@ -147,7 +147,7 @@ def merge_list_concat(
     candidates: list[ValueCandidate],
     path: str,
     registry: "MergeRegistry",
-    errors: list[MergeFieldMessage],
+    errors: list[BaseMergeError],
 ) -> ValueCandidate | None:
     result = []
     for c in candidates:
@@ -163,7 +163,7 @@ def merge_dataclass_default(
     candidates: list[ValueCandidate],
     path: str,
     registry: "MergeRegistry",
-    errors: list[MergeFieldMessage],
+    errors: list[BaseMergeError],
 ) -> ValueCandidate | None:
     merged_kwargs = {}
 

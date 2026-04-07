@@ -2,7 +2,7 @@ import logging
 from dataclasses import is_dataclass
 from typing import TYPE_CHECKING, Callable
 
-from app.domain.entities.errors import MergeFieldMessage
+from app.domain.entities.errors import BaseMergeError
 from app.domain.entities.merge_types import ValueCandidate
 from app.domain.exceptions import UnknownHandlerTypeError
 from app.domain.merge.handlers import (
@@ -36,7 +36,7 @@ class MergeRegistry:
         self,
         candidates: list[ValueCandidate],
         path: str,
-        errors: list[MergeFieldMessage],
+        errors: list[BaseMergeError],
     ) -> ValueCandidate | None:
         all_sources = []
         seen = set()

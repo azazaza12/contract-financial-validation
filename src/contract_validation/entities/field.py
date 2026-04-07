@@ -1,7 +1,7 @@
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, ClassVar, Iterator
 
-from app.domain.entities.errors import MergeFieldMessage
+from app.domain.entities.errors import BaseMergeError
 from app.domain.entities.merge_types import Source, ValueCandidate
 from app.domain.merge.defaults import DEFAULT_REGISTRY
 
@@ -21,7 +21,7 @@ class BaseField[T]:
     @classmethod
     def solve_collision(
         cls, fields: list["BaseField"]
-    ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
+    ) -> tuple[list["BaseField"], list[BaseMergeError]]:
         if not fields:
             raise ValueError(f"{cls.__name__}: empty collision")
 
@@ -29,14 +29,14 @@ class BaseField[T]:
             cls.merge_registry if cls.merge_registry is not None else DEFAULT_REGISTRY
         )
 
-        errors: list[MergeFieldMessage] = []
+        errors: list[BaseMergeError] = []
         candidates = [ValueCandidate(value=f.value, sources=f.sources) for f in fields]
         merged = registry.merge(candidates=candidates, path="value", errors=errors)
 
         if errors:
             incorrect_fields = [replace(f, is_correct=False) for f in fields]
             for error in errors:
-                error.field_type = cls
+                error.field_name = cls.__name__
             return incorrect_fields, errors
 
         if merged is None:

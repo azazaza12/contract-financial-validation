@@ -5,10 +5,8 @@ from app.domain.entities.single_supplier_fields import (
     DocumentObjectField,
     SpecPositionsField,
 )
-from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
-from app.domain.entities.validation_errors import (
-    PositionsComplianceErrorCheckResult,
-)
+from app.domain.entities.validation import CheckExecutionResult
+from app.domain.entities.errors import BaseCheckError, PositionsComplianceError
 from app.domain.service.checker import IPositionsComplianceService
 
 
@@ -23,7 +21,7 @@ class CheckPositionsCompliance(BaseCheck):
         position_compliance_service: IPositionsComplianceService,
     ) -> CheckExecutionResult:
 
-        errors: list[BaseResultChecker] = []
+        errors: list[BaseCheckError] = []
         document_object = document_object_field.value
         spec_positions = spec_positions_field.value
         position_names = [position.name for position in spec_positions]
@@ -44,5 +42,5 @@ class CheckPositionsCompliance(BaseCheck):
             document_object,
             result.text,
         )
-        errors.append(PositionsComplianceErrorCheckResult(message=result.text))
+        errors.append(PositionsComplianceError(message=result.text or ""))
         return self._result(errors)

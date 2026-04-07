@@ -7,10 +7,11 @@ from app.domain.entities.single_supplier_fields import (
     AdvancePaymentsField,
     TotalAmountField,
 )
-from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
-from app.domain.entities.validation_errors import (
-    PaymentAmountPercentDiscrepancy,
-    PaymentPercentSumDiscrepancyCheckResult,
+from app.domain.entities.validation import CheckExecutionResult
+from app.domain.entities.errors import (
+    BaseCheckError,
+    PaymentAmountPercentDiscrepancyError,
+    PaymentPercentSumDiscrepancyError,
 )
 
 
@@ -44,7 +45,7 @@ class CheckPaymentPercentValidation(BaseCheck):
         advance_payments_field: AdvancePaymentsField,
         total_amount_field: TotalAmountField,
     ) -> CheckExecutionResult:
-        errors: list[BaseResultChecker] = []
+        errors: list[BaseCheckError] = []
         payments = advance_payments_field.value
         total_payment = total_amount_field.value.total
         total_amount = (
@@ -79,7 +80,7 @@ class CheckPaymentPercentValidation(BaseCheck):
                 continue
 
             errors.append(
-                PaymentAmountPercentDiscrepancy(
+                PaymentAmountPercentDiscrepancyError(
                     amount=line_amount,
                     expected_amount=expected_amount,
                     percent=advance_payment.percent,
@@ -92,7 +93,7 @@ class CheckPaymentPercentValidation(BaseCheck):
             percent_diff = abs(total_percent - Decimal("100.00"))
             if percent_diff > self.tolerance:
                 errors.append(
-                    PaymentPercentSumDiscrepancyCheckResult(total_percent=total_percent)
+                    PaymentPercentSumDiscrepancyError(total_percent=total_percent)
                 )
         if errors:
             logger.warning("Errors in payment distribution were identified")

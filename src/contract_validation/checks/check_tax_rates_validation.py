@@ -10,21 +10,22 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmount,
     TotalAmountField,
 )
-from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
-from app.domain.entities.validation_errors import (
-    PaymentVatRateNotFoundCheckResult,
-    PaymentVatRatesDifferCheckResult,
+from app.domain.entities.validation import CheckExecutionResult
+from app.domain.entities.errors import (
+    BaseCheckError,
+    PaymentVatRateNotFoundError,
+    PaymentVatRatesDifferError,
 )
 
 
 def _payment_lines_mismatch_vs_reference(
     reference_rate: Decimal | None,
     lines: list[Payment],
-) -> PaymentVatRatesDifferCheckResult | None:
+) -> PaymentVatRatesDifferError | None:
     for payment in lines:
         line_rate = payment.vat.rate
         if line_rate != reference_rate:
-            return PaymentVatRatesDifferCheckResult(
+            return PaymentVatRatesDifferError(
                 index=None,
                 rate_one=reference_rate,
                 rate_two=line_rate,
@@ -60,13 +61,13 @@ def _advances_field_has_any_vat_rate(
 def _aggregate_rate_vs_contract(
     contract_rate: Decimal | None,
     aggregate: Payment | None,
-) -> PaymentVatRatesDifferCheckResult | None:
+) -> PaymentVatRatesDifferError | None:
     if aggregate is None:
         return None
     adv_rate = aggregate.vat.rate
     if contract_rate == adv_rate:
         return None
-    return PaymentVatRatesDifferCheckResult(
+    return PaymentVatRatesDifferError(
         index=None,
         rate_one=contract_rate,
         rate_two=adv_rate,
@@ -79,7 +80,7 @@ class CheckTaxRatesValidation(BaseCheck):
         total_amount_field: TotalAmountField,
         advance_payments_field: AdvancePaymentsField | None,
     ) -> CheckExecutionResult:
-        errors: list[BaseResultChecker] = []
+        errors: list[BaseCheckError] = []
         ta = total_amount_field.value
         taxes = ta.taxes
 
@@ -87,7 +88,7 @@ class CheckTaxRatesValidation(BaseCheck):
             _total_amount_has_any_vat_rate(ta)
             or _advances_field_has_any_vat_rate(advance_payments_field)
         ):
-            errors.append(PaymentVatRateNotFoundCheckResult())
+            errors.append(PaymentVatRateNotFoundError())
             return self._result(errors)
 
         if taxes is not None and len(taxes) > 0:
