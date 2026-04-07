@@ -15,13 +15,11 @@ from app.domain.entities.errors.checks import (
     VatAmountDiscrepancyError,
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
-    check_error_from_dict,
 )
 from app.domain.entities.errors.merge import (
     BaseMergeError,
     ValueNotDefinedError,
     ValuesDiscrepancyError,
-    merge_error_from_dict,
 )
 
 __all__ = [
@@ -44,6 +42,4 @@ __all__ = [
     "AmountDiscrepancyError",
     "PositionsComplianceError",
     "NumberTranscriptionError",
-    "check_error_from_dict",
-    "merge_error_from_dict",
 ]

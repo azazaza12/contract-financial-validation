@@ -1,15 +1,19 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import ClassVar
-
-from pydantic import TypeAdapter
+from typing import Any, ClassVar
 
 from app.domain.entities.errors.base import BaseContractError
 
 
 @dataclass
 class BaseCheckError(BaseContractError):
+    _registry: ClassVar[dict[str, type["BaseCheckError"]]] = {}
+
     kind: ClassVar[str] = "check"
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        BaseCheckError._registry[cls.__name__] = cls
 
 
 @dataclass
@@ -98,31 +102,3 @@ class NumberTranscriptionError(BaseCheckError):
     value: Decimal
     transcription: str
     expected_transcription: str
-
-
-# TODO: create dynamically
-_CHECK_ERROR_BY_TYPE: dict[str, type[BaseCheckError]] = {
-    "AmountNotFoundError": AmountNotFoundError,
-    "AmountNotPositiveError": AmountNotPositiveError,
-    "VatAmountNotPositiveError": VatAmountNotPositiveError,
-    "VatRateNotPositiveError": VatRateNotPositiveError,
-    "PaymentVatRateNotFoundError": PaymentVatRateNotFoundError,
-    "PaymentVatRatesDifferError": PaymentVatRatesDifferError,
-    "PaymentAmountPercentDiscrepancyError": PaymentAmountPercentDiscrepancyError,
-    "VatAmountDiscrepancyError": VatAmountDiscrepancyError,
-    "VatAmountCalculationDiscrepancyError": VatAmountCalculationDiscrepancyError,
-    "PaymentPercentSumDiscrepancyError": PaymentPercentSumDiscrepancyError,
-    "PositionCostDiscrepancyError": PositionCostDiscrepancyError,
-    "AmountDiscrepancyError": AmountDiscrepancyError,
-    "PositionsComplianceError": PositionsComplianceError,
-    "NumberTranscriptionError": NumberTranscriptionError,
-}
-
-
-def check_error_from_dict(data: dict) -> BaseCheckError:
-    error_type = data.get("error_type")
-    if error_type not in _CHECK_ERROR_BY_TYPE:
-        msg = f"Unknown check error type: {error_type!r}"
-        raise ValueError(msg)
-    cls = _CHECK_ERROR_BY_TYPE[error_type]
-    return TypeAdapter(cls).validate_python(data)
