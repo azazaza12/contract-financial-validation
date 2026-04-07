@@ -21,6 +21,7 @@ from app.domain.entities.errors.merge import (
     BaseMergeError,
     ValueNotDefinedError,
     ValuesDiscrepancyError,
+    merge_error_from_dict,
 )
 
 __all__ = [
@@ -44,4 +45,5 @@ __all__ = [
     "PositionsComplianceError",
     "NumberTranscriptionError",
     "check_error_from_dict",
+    "merge_error_from_dict",
 ]

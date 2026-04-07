@@ -1,12 +1,11 @@
 from dataclasses import dataclass
 from typing import Any
-
-from app.domain.entities.document import BaseDocument
+from uuid import UUID
 
 
 @dataclass(frozen=True)
 class Source:
-    document: BaseDocument
+    document_id: UUID
 
 
 @dataclass(frozen=True)

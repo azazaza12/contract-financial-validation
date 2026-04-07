@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import ClassVar
 
 from pydantic import TypeAdapter
 
@@ -8,7 +9,7 @@ from app.domain.entities.errors.base import BaseContractError
 
 @dataclass
 class BaseCheckError(BaseContractError):
-    pass
+    kind: ClassVar[str] = "check"
 
 
 @dataclass
@@ -99,6 +100,7 @@ class NumberTranscriptionError(BaseCheckError):
     expected_transcription: str
 
 
+# TODO: create dynamically
 _CHECK_ERROR_BY_TYPE: dict[str, type[BaseCheckError]] = {
     "AmountNotFoundError": AmountNotFoundError,
     "AmountNotPositiveError": AmountNotPositiveError,

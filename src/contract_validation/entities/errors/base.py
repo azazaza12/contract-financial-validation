@@ -1,8 +1,10 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
 
 @dataclass(kw_only=True)
 class BaseContractError:
+    kind: ClassVar[str]
     source: str = ""
 
     @property
