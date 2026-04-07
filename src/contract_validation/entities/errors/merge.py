@@ -7,7 +7,7 @@ from app.domain.entities.merge_types import ValueCandidate
 
 @dataclass
 class BaseMergeError(BaseContractError):
-    field_name: str | None = None
+    field_name: str
     path: str = ""
 
 
