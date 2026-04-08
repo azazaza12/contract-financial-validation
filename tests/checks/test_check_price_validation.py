@@ -1,12 +1,12 @@
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
-from app.domain.entities.validation_errors import (
-    AmountDiscrepancyCheckResult,
-    AmountNotPositiveCheckResult,
-    PositionCostDiscrepancyCheckResult,
+from app.domain.entities.errors import (
+    AmountDiscrepancyError,
+    AmountNotPositiveError,
+    PositionCostDiscrepancyError,
 )
 
 from app.domain.checks.check_price_validation import CheckPriceValidation
@@ -22,7 +22,6 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
     Vat,
 )
-from app.domain.entities.validation import CheckStatus
 from app.domain.pipeline.task import CheckTask, TaskStatus
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
@@ -44,8 +43,8 @@ def _make_total_amount_field(
     value: str, document: SingleSupplierDocument
 ) -> TotalAmountField:
     return TotalAmountField(
-        value=TotalAmount(total=_make_payment(value), taxes=None),
-        sources=[Source(document=document)],
+        value=TotalAmount(total=_make_payment(value), taxes=[]),
+        sources=[Source(document_id=document.id)],
     )
 
 
@@ -75,7 +74,7 @@ async def test_check_price_validation_can_run_as_task_and_save_result():
                         unit_of_measurement="шт",
                     )
                 ],
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("100.00", document),
         ]
@@ -84,19 +83,13 @@ async def test_check_price_validation_can_run_as_task_and_save_result():
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     contract_repo = MagicMock()
-    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    contract_repo.save_check_result.assert_awaited_once()
-    called_contract = contract_repo.save_check_result.call_args.kwargs["contract"]
-    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
-
-    assert called_contract is contract
-    assert called_result.label == "CheckPriceValidation"
-    assert called_result.status == CheckStatus.success
-    assert called_result.errors == []
+    contract_repo.save_errors.assert_awaited_once_with(
+        contract, [], kind="check", source="CheckPriceValidation"
+    )
 
 
 async def test_check_price_validation_skips_when_required_field_is_missing():
@@ -113,7 +106,7 @@ async def test_check_price_validation_skips_when_required_field_is_missing():
                         unit_of_measurement="шт",
                     )
                 ],
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
         ]
     )
@@ -121,17 +114,16 @@ async def test_check_price_validation_skips_when_required_field_is_missing():
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     contract_repo = MagicMock()
-    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    records = ctx.records_reg.records[ctx.pipeline.id]
+    records = await ctx.records_reg.get_all(ctx.pipeline.id)
     assert records[-1].status == TaskStatus.SKIPPED
     assert "missing required field for 'total_amount_field'" in (
         records[-1].error_message or ""
     )
-    contract_repo.save_check_result.assert_not_awaited()
+    contract_repo.save_errors.assert_not_awaited()
 
 
 async def test_check_price_validation_skips_when_required_field_has_collision():
@@ -148,7 +140,7 @@ async def test_check_price_validation_skips_when_required_field_has_collision():
                         unit_of_measurement="шт",
                     )
                 ],
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("100.00", document),
             _make_total_amount_field("200.00", document),
@@ -158,15 +150,14 @@ async def test_check_price_validation_skips_when_required_field_has_collision():
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     contract_repo = MagicMock()
-    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    records = ctx.records_reg.records[ctx.pipeline.id]
+    records = await ctx.records_reg.get_all(ctx.pipeline.id)
     assert records[-1].status == TaskStatus.SKIPPED
     assert "collision for 'total_amount_field'" in (records[-1].error_message or "")
-    contract_repo.save_check_result.assert_not_awaited()
+    contract_repo.save_errors.assert_not_awaited()
 
 
 async def test_check_price_validation_fails_when_position_total_mismatch():
@@ -183,7 +174,7 @@ async def test_check_price_validation_fails_when_position_total_mismatch():
                         unit_of_measurement="шт",
                     )
                 ],
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("600.00", document),
         ]
@@ -191,17 +182,12 @@ async def test_check_price_validation_fails_when_position_total_mismatch():
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     contract_repo = MagicMock()
-    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
-    assert called_result.status == CheckStatus.failed
-    assert any(
-        isinstance(err, PositionCostDiscrepancyCheckResult)
-        for err in called_result.errors
-    )
+    called_errors = contract_repo.save_errors.call_args.args[1]
+    assert any(isinstance(err, PositionCostDiscrepancyError) for err in called_errors)
 
 
 async def test_check_price_validation_fails_when_total_amount_mismatch():
@@ -218,7 +204,7 @@ async def test_check_price_validation_fails_when_total_amount_mismatch():
                         unit_of_measurement="шт",
                     )
                 ],
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("150.00", document),  # рассчитано 100.00
         ]
@@ -226,16 +212,12 @@ async def test_check_price_validation_fails_when_total_amount_mismatch():
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     contract_repo = MagicMock()
-    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
-    assert called_result.status == CheckStatus.failed
-    assert any(
-        isinstance(err, AmountDiscrepancyCheckResult) for err in called_result.errors
-    )
+    called_errors = contract_repo.save_errors.call_args.args[1]
+    assert any(isinstance(err, AmountDiscrepancyError) for err in called_errors)
 
 
 async def test_check_price_validation_fails_when_values_not_positive():
@@ -252,7 +234,7 @@ async def test_check_price_validation_fails_when_values_not_positive():
                         unit_of_measurement="шт",
                     )
                 ],
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("0.00", document),
         ]
@@ -260,16 +242,12 @@ async def test_check_price_validation_fails_when_values_not_positive():
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     contract_repo = MagicMock()
-    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
-    assert called_result.status == CheckStatus.failed
-    assert any(
-        isinstance(err, AmountNotPositiveCheckResult) for err in called_result.errors
-    )
+    called_errors = contract_repo.save_errors.call_args.args[1]
+    assert any(isinstance(err, AmountNotPositiveError) for err in called_errors)
 
 
 async def test_check_price_validation_succeeds_when_within_tolerance():
@@ -286,7 +264,7 @@ async def test_check_price_validation_succeeds_when_within_tolerance():
                         unit_of_measurement="шт",
                     )
                 ],
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("100.01", document),
         ]
@@ -294,10 +272,9 @@ async def test_check_price_validation_succeeds_when_within_tolerance():
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
     contract_repo = MagicMock()
-    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(contract=contract, contract_repo=contract_repo)
 
     await CheckTask(check=check).run(ctx)
 
-    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
-    assert called_result.status == CheckStatus.success
+    called_errors = contract_repo.save_errors.call_args.args[1]
+    assert called_errors == []
