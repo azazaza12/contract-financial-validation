@@ -1,11 +1,11 @@
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
-from app.domain.entities.validation_errors import (
-    PaymentAmountPercentDiscrepancy,
-    PaymentPercentSumDiscrepancyCheckResult,
+from app.domain.entities.errors import (
+    PaymentAmountPercentDiscrepancyError,
+    PaymentPercentSumDiscrepancyError,
 )
 
 from app.domain.checks.check_payment_percent_validation import (
@@ -23,7 +23,6 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
     Vat,
 )
-from app.domain.entities.validation import CheckStatus
 from app.domain.pipeline.task import CheckTask
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
@@ -46,7 +45,7 @@ def _make_advance(
     *, percent: Decimal | None, payment_value: str | None
 ) -> AdvancePayment:
     total = _make_payment(payment_value) if payment_value is not None else None
-    return AdvancePayment(percent=percent, total=total, payments=None)
+    return AdvancePayment(percent=percent, total=total, payments=[])
 
 
 async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]):
@@ -62,13 +61,13 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
     total_amount_field = TotalAmountField(
         value=TotalAmount(
             total=total_payment,
-            taxes=None,
+            taxes=[],
         ),
-        sources=[Source(document=document)],
+        sources=[Source(document_id=document.id)],
     )
     advance_payments_field = AdvancePaymentsField(
         value=advances,
-        sources=[Source(document=document)],
+        sources=[Source(document_id=document.id)],
     )
     contract = DummyContract(
         id=uuid4(),
@@ -78,17 +77,16 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
         fields=FieldCollector([total_amount_field, advance_payments_field]),
     )
     contract_repo = MagicMock()
-    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(contract=contract, contract_repo=contract_repo)
     check = CheckPaymentPercentValidation(tolerance=DEFAULT_TOLERANCE)
 
     await CheckTask(check=check).run(ctx)
 
-    return contract_repo.save_check_result.call_args.kwargs["result"]
+    return contract_repo.save_errors.call_args.args[1]
 
 
 async def test_payment_percent_validates_amount_even_when_percents_missing():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("30.00"), payment_value="40.00"),
@@ -96,18 +94,16 @@ async def test_payment_percent_validates_amount_even_when_percents_missing():
         ],
     )
 
-    assert called_result.status == CheckStatus.failed
     assert any(
-        isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors
+        isinstance(err, PaymentAmountPercentDiscrepancyError) for err in called_errors
     )
     assert not any(
-        isinstance(err, PaymentPercentSumDiscrepancyCheckResult)
-        for err in called_result.errors
+        isinstance(err, PaymentPercentSumDiscrepancyError) for err in called_errors
     )
 
 
 async def test_payment_percent_validates_percent_sum_when_all_percents_are_specified():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("30.00"), payment_value="30.00"),
@@ -115,15 +111,13 @@ async def test_payment_percent_validates_percent_sum_when_all_percents_are_speci
         ],
     )
 
-    assert called_result.status == CheckStatus.failed
     assert any(
-        isinstance(err, PaymentPercentSumDiscrepancyCheckResult)
-        for err in called_result.errors
+        isinstance(err, PaymentPercentSumDiscrepancyError) for err in called_errors
     )
 
 
 async def test_payment_percent_succeeds_for_valid_percent_distribution():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("50.00"), payment_value="50.00"),
@@ -131,12 +125,11 @@ async def test_payment_percent_succeeds_for_valid_percent_distribution():
         ],
     )
 
-    assert called_result.status == CheckStatus.success
-    assert called_result.errors == []
+    assert called_errors == []
 
 
 async def test_payment_percent_succeeds_for_valid_three_payments():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("30.00"), payment_value="30.00"),
@@ -145,12 +138,11 @@ async def test_payment_percent_succeeds_for_valid_three_payments():
         ],
     )
 
-    assert called_result.status == CheckStatus.success
-    assert called_result.errors == []
+    assert called_errors == []
 
 
 async def test_payment_percent_fails_when_amount_does_not_match_percent():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("50.00"), payment_value="60.00"),
@@ -158,14 +150,13 @@ async def test_payment_percent_fails_when_amount_does_not_match_percent():
         ],
     )
 
-    assert called_result.status == CheckStatus.failed
     assert any(
-        isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors
+        isinstance(err, PaymentAmountPercentDiscrepancyError) for err in called_errors
     )
 
 
 async def test_payment_percent_succeeds_when_percent_sum_difference_within_tolerance():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("49.99"), payment_value="49.99"),
@@ -173,12 +164,11 @@ async def test_payment_percent_succeeds_when_percent_sum_difference_within_toler
         ],
     )
 
-    assert called_result.status == CheckStatus.success
-    assert called_result.errors == []
+    assert called_errors == []
 
 
 async def test_payment_percent_succeeds_when_amount_difference_within_tolerance():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("50.00"), payment_value="50.01"),
@@ -186,12 +176,11 @@ async def test_payment_percent_succeeds_when_amount_difference_within_tolerance(
         ],
     )
 
-    assert called_result.status == CheckStatus.success
-    assert called_result.errors == []
+    assert called_errors == []
 
 
 async def test_payment_percent_fails_when_amount_difference_exceeds_tolerance():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("50.00"), payment_value="50.02"),
@@ -199,31 +188,28 @@ async def test_payment_percent_fails_when_amount_difference_exceeds_tolerance():
         ],
     )
 
-    assert called_result.status == CheckStatus.failed
     assert any(
-        isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors
+        isinstance(err, PaymentAmountPercentDiscrepancyError) for err in called_errors
     )
 
 
 async def test_payment_percent_succeeds_when_payment_list_is_empty():
-    called_result = await _run_check(total_amount="100.00", advances=[])
+    called_errors = await _run_check(total_amount="100.00", advances=[])
 
-    assert called_result.status == CheckStatus.success
-    assert called_result.errors == []
+    assert called_errors == []
 
 
 async def test_payment_percent_succeeds_for_single_100_percent_payment():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount="100.00",
         advances=[_make_advance(percent=Decimal("100.00"), payment_value="100.00")],
     )
 
-    assert called_result.status == CheckStatus.success
-    assert called_result.errors == []
+    assert called_errors == []
 
 
 async def test_payment_percent_can_return_multiple_errors():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount="100.00",
         advances=[
             _make_advance(percent=Decimal("30.00"), payment_value="60.00"),
@@ -231,19 +217,17 @@ async def test_payment_percent_can_return_multiple_errors():
         ],
     )
 
-    assert called_result.status == CheckStatus.failed
-    assert len(called_result.errors) > 1
+    assert len(called_errors) > 1
     assert any(
-        isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors
+        isinstance(err, PaymentAmountPercentDiscrepancyError) for err in called_errors
     )
     assert any(
-        isinstance(err, PaymentPercentSumDiscrepancyCheckResult)
-        for err in called_result.errors
+        isinstance(err, PaymentPercentSumDiscrepancyError) for err in called_errors
     )
 
 
 async def test_payment_percent_sum_checked_when_contract_total_amount_missing():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount=None,
         advances=[
             _make_advance(percent=Decimal("50.00"), payment_value="50.00"),
@@ -251,12 +235,11 @@ async def test_payment_percent_sum_checked_when_contract_total_amount_missing():
         ],
     )
 
-    assert called_result.status == CheckStatus.success
-    assert called_result.errors == []
+    assert called_errors == []
 
 
 async def test_payment_percent_sum_fails_without_total_when_not_100():
-    called_result = await _run_check(
+    called_errors = await _run_check(
         total_amount=None,
         advances=[
             _make_advance(percent=Decimal("30.00"), payment_value="30.00"),
@@ -264,11 +247,9 @@ async def test_payment_percent_sum_fails_without_total_when_not_100():
         ],
     )
 
-    assert called_result.status == CheckStatus.failed
     assert any(
-        isinstance(err, PaymentPercentSumDiscrepancyCheckResult)
-        for err in called_result.errors
+        isinstance(err, PaymentPercentSumDiscrepancyError) for err in called_errors
     )
     assert not any(
-        isinstance(err, PaymentAmountPercentDiscrepancy) for err in called_result.errors
+        isinstance(err, PaymentAmountPercentDiscrepancyError) for err in called_errors
     )
