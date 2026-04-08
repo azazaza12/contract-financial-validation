@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from app.domain.entities.validation_errors import NumberTranscriptionErrorCheckResult
+from app.domain.entities.errors import NumberTranscriptionError
 
 from app.domain.checks.check_number_transcription_rub import (
     CheckNumberTranscriptionRub,
@@ -35,9 +35,9 @@ def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmou
                 vat=Vat(amount=None, rate=None),
                 include_vat=False,
             ),
-            taxes=None,
+            taxes=[],
         ),
-        sources=[Source(document=document)],
+        sources=[Source(document_id=document.id)],
     )
 
 
@@ -91,16 +91,17 @@ async def test_check_14_maps_each_issue_to_validation_error():
 
     assert result.status == CheckStatus.failed
     assert len(result.errors) == 2
-    assert all(
-        isinstance(error, NumberTranscriptionErrorCheckResult)
-        for error in result.errors
-    )
-    assert result.errors[0].index == 1
-    assert result.errors[0].value == Decimal("100.00")
-    assert result.errors[0].transcription == "Сто один"
-    assert result.errors[0].expected_transcription == "Сто"
-    assert result.errors[1].index == 2
-    assert result.errors[1].value == Decimal("200.00")
+    assert all(isinstance(error, NumberTranscriptionError) for error in result.errors)
+    first = result.errors[0]
+    second = result.errors[1]
+    assert isinstance(first, NumberTranscriptionError)
+    assert isinstance(second, NumberTranscriptionError)
+    assert first.index == 1
+    assert first.value == Decimal("100.00")
+    assert first.transcription == "Сто один"
+    assert first.expected_transcription == "Сто"
+    assert second.index == 2
+    assert second.value == Decimal("200.00")
     service_mock.evaluate.assert_awaited_once()
 
 
@@ -128,9 +129,9 @@ async def test_check_14_passes_realistic_nested_amounts_to_service():
                 ),
                 include_vat=True,
             ),
-            taxes=None,
+            taxes=[],
         ),
-        sources=[Source(document=document)],
+        sources=[Source(document_id=document.id)],
     )
     advance_payments_field = AdvancePaymentsField(
         value=[
@@ -155,7 +156,7 @@ async def test_check_14_passes_realistic_nested_amounts_to_service():
                     ),
                     include_vat=True,
                 ),
-                payments=None,
+                payments=[],
             ),
             AdvancePayment(
                 percent=Decimal("2.31"),
@@ -173,10 +174,10 @@ async def test_check_14_passes_realistic_nested_amounts_to_service():
                     ),
                     include_vat=True,
                 ),
-                payments=None,
+                payments=[],
             ),
         ],
-        sources=[Source(document=document)],
+        sources=[Source(document_id=document.id)],
     )
 
     result = await check.execute(
