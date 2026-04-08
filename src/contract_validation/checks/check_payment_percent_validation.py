@@ -1,17 +1,21 @@
 import logging
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from app.domain.checks.base import BaseCheck
-from app.domain.entities.single_supplier import (
-    AdvancePayment,
-    AdvancePaymentsField,
-    TotalAmountField,
-)
-from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
 from app.domain.entities.validation_errors import (
     PaymentAmountPercentDiscrepancy,
     PaymentPercentSumDiscrepancyCheckResult,
 )
+
+
+if TYPE_CHECKING:
+    from app.domain.entities.single_supplier import (
+        AdvancePayment,
+        AdvancePaymentsField,
+        TotalAmountField,
+    )
+    from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
 
 
 logger = logging.getLogger(__name__)
@@ -36,7 +40,7 @@ def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
 
 
 class CheckPaymentPercentValidation(BaseCheck):
-    def __init__(self, tolerance: Decimal):
+    def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
     async def execute(
@@ -55,7 +59,7 @@ class CheckPaymentPercentValidation(BaseCheck):
             logger.info(
                 "Contract total amount is missing: amount-vs-percent "
                 "comparison skipped; percent sum check still runs "
-                "when all percents are specified"
+                "when all percents are specified",
             )
 
         if not payments:
@@ -84,7 +88,7 @@ class CheckPaymentPercentValidation(BaseCheck):
                     expected_amount=expected_amount,
                     percent=advance_payment.percent,
                     contract_total_amount=total_amount,
-                )
+                ),
             )
 
         all_percents_specified = all(p.percent is not None for p in payments)
@@ -92,7 +96,7 @@ class CheckPaymentPercentValidation(BaseCheck):
             percent_diff = abs(total_percent - Decimal("100.00"))
             if percent_diff > self.tolerance:
                 errors.append(
-                    PaymentPercentSumDiscrepancyCheckResult(total_percent=total_percent)
+                    PaymentPercentSumDiscrepancyCheckResult(total_percent=total_percent),
                 )
         if errors:
             logger.warning("Errors in payment distribution were identified")

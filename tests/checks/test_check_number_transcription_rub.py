@@ -42,7 +42,7 @@ def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmou
     )
 
 
-async def test_check_14_succeeds_when_no_transcription_issues():
+async def test_check_14_succeeds_when_no_transcription_issues() -> None:
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
     ctx = create_context(check_transcription_compliance_service=service_mock)
@@ -61,7 +61,7 @@ async def test_check_14_succeeds_when_no_transcription_issues():
     service_mock.evaluate.assert_awaited_once()
 
 
-async def test_check_14_maps_each_issue_to_validation_error():
+async def test_check_14_maps_each_issue_to_validation_error() -> None:
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(
         issues=[
@@ -77,7 +77,7 @@ async def test_check_14_maps_each_issue_to_validation_error():
                 transcription="Двести один",
                 expected_transcription="Двести",
             ),
-        ]
+        ],
     )
     ctx = create_context(check_transcription_compliance_service=service_mock)
     check = CheckNumberTranscriptionRub(ctx=ctx)
@@ -105,7 +105,7 @@ async def test_check_14_maps_each_issue_to_validation_error():
     service_mock.evaluate.assert_awaited_once()
 
 
-async def test_check_14_passes_realistic_nested_amounts_to_service():
+async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
     ctx = create_context(check_transcription_compliance_service=service_mock)

@@ -1,24 +1,28 @@
 import logging
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from app.domain.checks.base import BaseCheck
-from app.domain.entities.single_supplier import (
-    AdvancePaymentsField,
-    Payment,
-    TotalAmountField,
-)
-from app.domain.entities.validation import CheckExecutionResult
 from app.domain.entities.validation_errors import (
     AmountDiscrepancyCheckResult,
     BaseResultChecker,
 )
 
 
+if TYPE_CHECKING:
+    from app.domain.entities.single_supplier import (
+        AdvancePaymentsField,
+        Payment,
+        TotalAmountField,
+    )
+    from app.domain.entities.validation import CheckExecutionResult
+
+
 logger = logging.getLogger(__name__)
 
 
 class CheckTotalAmountsValidation(BaseCheck):
-    def __init__(self, tolerance: Decimal):
+    def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
     def all_equal(self, values: list[Decimal], errors: list[BaseResultChecker]) -> None:
@@ -33,7 +37,7 @@ class CheckTotalAmountsValidation(BaseCheck):
                         value=value,
                         reference_value=reference_value,
                         difference=difference,
-                    )
+                    ),
                 )
 
     def collect_sums_from_payments(self, payments: list[Payment]) -> Decimal | None:
@@ -51,7 +55,7 @@ class CheckTotalAmountsValidation(BaseCheck):
     def collect_total_sum(self, total_amount_field: TotalAmountField) -> list[Decimal]:
         target: list[Decimal] = []
         total_amount_sum = self.collect_sums_from_payments(
-            [total_amount_field.value.total]
+            [total_amount_field.value.total],
         )
         if total_amount_sum is not None:
             target.append(total_amount_sum)
@@ -59,7 +63,7 @@ class CheckTotalAmountsValidation(BaseCheck):
             return target
 
         taxes_total_amount_sum = self.collect_sums_from_payments(
-            total_amount_field.value.taxes
+            total_amount_field.value.taxes,
         )
         if taxes_total_amount_sum is None:
             return target
@@ -85,7 +89,7 @@ class CheckTotalAmountsValidation(BaseCheck):
                     has_any = True
             if advance_payment.payments is not None:
                 adv_amount_sum = self.collect_sums_from_payments(
-                    advance_payment.payments
+                    advance_payment.payments,
                 )
                 if adv_amount_sum is not None:
                     total_payments_sum += adv_amount_sum
@@ -102,7 +106,7 @@ class CheckTotalAmountsValidation(BaseCheck):
                     reference_value=total_amount,
                     value=adv_amount_sum,
                     difference=diff,
-                )
+                ),
             )
         if not has_any:
             return target
@@ -121,7 +125,7 @@ class CheckTotalAmountsValidation(BaseCheck):
         amounts_to_compare.extend(self.collect_total_sum(total_amount_field))
         if advance_payments_field is not None:
             amounts_to_compare.extend(
-                self.collect_advances_sum(advance_payments_field, errors)
+                self.collect_advances_sum(advance_payments_field, errors),
             )
         self.all_equal(amounts_to_compare, errors)
 
