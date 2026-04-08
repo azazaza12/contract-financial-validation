@@ -15,7 +15,6 @@ from app.domain.entities.single_supplier_fields import (
     SpecPosition,
     SpecPositionsField,
 )
-from app.domain.entities.validation import CheckStatus
 from app.domain.pipeline.task import CheckTask, TaskStatus
 from app.domain.service.checker import EvaluateResult
 from tests.domain.pipeline.conftest import DummyContract, create_context
@@ -30,19 +29,19 @@ async def test_check1_can_run_as_task_and_save_result():
         [
             DocumentObjectField(
                 value="Оборудование",
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
             SpecPositionsField(
                 value=[
                     SpecPosition(
                         name="Позиция 1",
-                        quantity=1.0,
+                        quantity=Decimal("1.00"),
                         unit_price=Decimal("100"),
                         total_price=Decimal("100"),
                         unit_of_measurement="шт",
                     )
                 ],
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
         ]
     )
@@ -62,7 +61,6 @@ async def test_check1_can_run_as_task_and_save_result():
         error=None,
     )
     contract_repo = MagicMock()
-    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(
         contract=contract,
         contract_repo=contract_repo,
@@ -72,14 +70,9 @@ async def test_check1_can_run_as_task_and_save_result():
 
     await CheckTask(check=check).run(ctx)
 
-    contract_repo.save_check_result.assert_awaited_once()
-    called_contract = contract_repo.save_check_result.call_args.kwargs["contract"]
-    called_result = contract_repo.save_check_result.call_args.kwargs["result"]
-
-    assert called_contract is contract
-    assert called_result.label == "CheckPositionsCompliance"
-    assert called_result.status == CheckStatus.success
-    assert called_result.errors == []
+    contract_repo.save_errors.assert_awaited_once_with(
+        contract, [], kind="check", source="CheckPositionsCompliance"
+    )
 
 
 async def test_check1_skips_when_required_field_is_missing():
@@ -90,13 +83,13 @@ async def test_check1_skips_when_required_field_is_missing():
                 value=[
                     SpecPosition(
                         name="Позиция 1",
-                        quantity=1.0,
+                        quantity=Decimal("1.00"),
                         unit_price=Decimal("100"),
                         total_price=Decimal("100"),
                         unit_of_measurement="шт",
                     )
                 ],
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
         ]
     )
@@ -110,7 +103,6 @@ async def test_check1_skips_when_required_field_is_missing():
 
     position_service = AsyncMock()
     contract_repo = MagicMock()
-    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(
         contract=contract,
         contract_repo=contract_repo,
@@ -120,12 +112,12 @@ async def test_check1_skips_when_required_field_is_missing():
 
     await CheckTask(check=check).run(ctx)
 
-    records = ctx.records_reg.records[ctx.pipeline.id]
+    records = await ctx.records_reg.get_all(ctx.pipeline.id)
     assert records[-1].status == TaskStatus.SKIPPED
     assert "missing required field for 'document_object_field'" in (
         records[-1].error_message or ""
     )
-    contract_repo.save_check_result.assert_not_awaited()
+    contract_repo.save_errors.assert_not_awaited()
 
 
 async def test_check1_skips_when_required_field_has_collision():
@@ -134,31 +126,31 @@ async def test_check1_skips_when_required_field_has_collision():
         [
             DocumentObjectField(
                 value="Оборудование",
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
             SpecPositionsField(
                 value=[
                     SpecPosition(
                         name="Позиция 1",
-                        quantity=1.0,
+                        quantity=Decimal("1.00"),
                         unit_price=Decimal("100"),
                         total_price=Decimal("100"),
                         unit_of_measurement="шт",
                     )
                 ],
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
             SpecPositionsField(
                 value=[
                     SpecPosition(
                         name="Позиция 2",
-                        quantity=2.0,
+                        quantity=Decimal("2.00"),
                         unit_price=Decimal("100"),
                         total_price=Decimal("200"),
                         unit_of_measurement="шт",
                     )
                 ],
-                sources=[Source(document=document)],
+                sources=[Source(document_id=document.id)],
             ),
         ]
     )
@@ -172,7 +164,6 @@ async def test_check1_skips_when_required_field_has_collision():
 
     position_service = AsyncMock()
     contract_repo = MagicMock()
-    contract_repo.save_check_result = AsyncMock()
     ctx = create_context(
         contract=contract,
         contract_repo=contract_repo,
@@ -182,7 +173,7 @@ async def test_check1_skips_when_required_field_has_collision():
 
     await CheckTask(check=check).run(ctx)
 
-    records = ctx.records_reg.records[ctx.pipeline.id]
+    records = await ctx.records_reg.get_all(ctx.pipeline.id)
     assert records[-1].status == TaskStatus.SKIPPED
     assert "collision for 'spec_positions_field'" in (records[-1].error_message or "")
-    contract_repo.save_check_result.assert_not_awaited()
+    contract_repo.save_errors.assert_not_awaited()
