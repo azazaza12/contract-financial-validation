@@ -1,13 +1,13 @@
 from decimal import Decimal
 
 import pytest
+
+from app.domain.checks.check_taxes_validation import CheckTaxesValidation
 from app.domain.entities.errors import (
     AmountNotPositiveError,
     VatAmountCalculationDiscrepancyError,
     VatAmountDiscrepancyError,
 )
-
-from app.domain.checks.check_taxes_validation import CheckTaxesValidation
 from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,

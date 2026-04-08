@@ -3,13 +3,13 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
-from app.domain.entities.errors import (
-    PaymentAmountPercentDiscrepancyError,
-    PaymentPercentSumDiscrepancyError,
-)
 
 from app.domain.checks.check_payment_percent_validation import (
     CheckPaymentPercentValidation,
+)
+from app.domain.entities.errors import (
+    PaymentAmountPercentDiscrepancyError,
+    PaymentPercentSumDiscrepancyError,
 )
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source

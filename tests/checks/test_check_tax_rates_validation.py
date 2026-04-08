@@ -1,12 +1,12 @@
 from decimal import Decimal
 
 import pytest
+
+from app.domain.checks.check_tax_rates_validation import CheckTaxRatesValidation
 from app.domain.entities.errors import (
     PaymentVatRateNotFoundError,
     PaymentVatRatesDifferError,
 )
-
-from app.domain.checks.check_tax_rates_validation import CheckTaxRatesValidation
 from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
