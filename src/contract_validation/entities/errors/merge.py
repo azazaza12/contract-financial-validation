@@ -10,7 +10,7 @@ class BaseMergeError(BaseContractError):
     _registry: ClassVar[dict[str, type["BaseMergeError"]]] = {}
 
     kind: ClassVar[str] = "merge"
-    field_name: str
+    field_name: str = ""
     path: str = ""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
