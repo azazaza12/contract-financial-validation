@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 import pytest
-from app.domain.entities.validation_errors import AmountDiscrepancyCheckResult
+from app.domain.entities.errors import AmountDiscrepancyError
 
 from app.domain.checks.check_amounts_validation import (
     CheckTotalAmountsValidation,
@@ -41,9 +41,7 @@ def _make_total_amount_field(
     total_amount: str | None,
     taxes_amounts: list[str | None] | None,
 ) -> TotalAmountField:
-    taxes = None
-    if taxes_amounts is not None:
-        taxes = [_make_payment(value) for value in taxes_amounts]
+    taxes = [_make_payment(value) for value in taxes_amounts or []]
     return TotalAmountField(
         value=TotalAmount(
             total=_make_payment(total_amount),
@@ -103,7 +101,7 @@ async def test_total_amounts_fails_when_total_and_taxes_differ():
     )
 
     assert result.status == CheckStatus.failed
-    assert any(isinstance(err, AmountDiscrepancyCheckResult) for err in result.errors)
+    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
 async def test_total_amounts_fails_when_advance_total_and_payments_differ():
@@ -120,7 +118,7 @@ async def test_total_amounts_fails_when_advance_total_and_payments_differ():
     )
 
     assert result.status == CheckStatus.failed
-    assert any(isinstance(err, AmountDiscrepancyCheckResult) for err in result.errors)
+    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
 async def test_total_amounts_skips_none_amounts_without_crash():
@@ -131,7 +129,7 @@ async def test_total_amounts_skips_none_amounts_without_crash():
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=None,
+                payments=[],
             )
         ],
     )
@@ -159,7 +157,7 @@ async def test_total_amounts_fails_when_tolerance_exceeded():
     )
 
     assert result.status == CheckStatus.failed
-    assert any(isinstance(err, AmountDiscrepancyCheckResult) for err in result.errors)
+    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
 async def test_total_amounts_succeeds_with_only_total_amount():
