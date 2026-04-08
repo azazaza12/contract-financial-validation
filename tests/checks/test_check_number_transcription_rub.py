@@ -3,11 +3,11 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-from app.domain.entities.errors import NumberTranscriptionError
 
 from app.domain.checks.check_number_transcription_rub import (
     CheckNumberTranscriptionRub,
 )
+from app.domain.entities.errors import NumberTranscriptionError
 from app.domain.entities.merge_types import Source
 from app.domain.entities.single_supplier import SingleSupplierDocument
 from app.domain.entities.single_supplier_fields import (

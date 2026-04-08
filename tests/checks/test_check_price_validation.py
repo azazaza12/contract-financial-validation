@@ -3,13 +3,13 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
+
+from app.domain.checks.check_price_validation import CheckPriceValidation
 from app.domain.entities.errors import (
     AmountDiscrepancyError,
     AmountNotPositiveError,
     PositionCostDiscrepancyError,
 )
-
-from app.domain.checks.check_price_validation import CheckPriceValidation
 from app.domain.entities.field import FieldCollector
 from app.domain.entities.merge_types import Source
 from app.domain.entities.single_supplier import SingleSupplierDocument
