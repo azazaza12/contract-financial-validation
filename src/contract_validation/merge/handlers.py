@@ -52,7 +52,7 @@ def is_scalar(value_type: type) -> bool:
 def merge_scalar_strict(
     candidates: list[ValueCandidate],
     path: str,
-    registry: "MergeRegistry",
+    registry: MergeRegistry,
     errors: list[MergeFieldMessage],
 ) -> ValueCandidate | None:
     if not all_equal(candidates):
@@ -60,7 +60,7 @@ def merge_scalar_strict(
             ValuesDiscrepancyMessage(
                 candidates=candidates,
                 path=path,
-            )
+            ),
         )
         return None
 
@@ -73,7 +73,7 @@ def merge_scalar_strict(
 def merge_scalar_pick_first(
     candidates: list[ValueCandidate],
     path: str,
-    registry: "MergeRegistry",
+    registry: MergeRegistry,
     errors: list[MergeFieldMessage],
 ) -> ValueCandidate | None:
     return ValueCandidate(
@@ -85,7 +85,7 @@ def merge_scalar_pick_first(
 def merge_list_strict(
     candidates: list[ValueCandidate],
     path: str,
-    registry: "MergeRegistry",
+    registry: MergeRegistry,
     errors: list[MergeFieldMessage],
 ) -> ValueCandidate | None:
     lengths = [len(c.value) for c in candidates]
@@ -95,7 +95,7 @@ def merge_list_strict(
             ValuesDiscrepancyMessage(
                 candidates=candidates,
                 path=path,
-            )
+            ),
         )
 
     max_length = max(lengths)
@@ -120,7 +120,7 @@ def merge_list_strict(
 def merge_list_flexible(
     candidates: list[ValueCandidate],
     path: str,
-    registry: "MergeRegistry",
+    registry: MergeRegistry,
     errors: list[MergeFieldMessage],
 ) -> ValueCandidate | None:
     max_length = max(len(c.value) for c in candidates)
@@ -146,7 +146,7 @@ def merge_list_flexible(
 def merge_list_concat(
     candidates: list[ValueCandidate],
     path: str,
-    registry: "MergeRegistry",
+    registry: MergeRegistry,
     errors: list[MergeFieldMessage],
 ) -> ValueCandidate | None:
     result = []
@@ -162,7 +162,7 @@ def merge_list_concat(
 def merge_dataclass_default(
     candidates: list[ValueCandidate],
     path: str,
-    registry: "MergeRegistry",
+    registry: MergeRegistry,
     errors: list[MergeFieldMessage],
 ) -> ValueCandidate | None:
     merged_kwargs = {}

@@ -10,7 +10,7 @@ from app.domain.entities.validation import (
 class BaseCheck(ABC):
     @abstractmethod
     async def execute(self, **kwargs) -> CheckExecutionResult:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def _result(self, errors: list[BaseResultChecker]) -> CheckExecutionResult:
         status = CheckStatus.failed if errors else CheckStatus.success

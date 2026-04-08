@@ -1,8 +1,7 @@
 import logging
 from dataclasses import is_dataclass
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
-from app.domain.entities.errors import MergeFieldMessage
 from app.domain.entities.merge_types import ValueCandidate
 from app.domain.exceptions import UnknownHandlerTypeError
 from app.domain.merge.handlers import (
@@ -13,15 +12,19 @@ from app.domain.merge.handlers import (
 )
 
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from app.domain.entities.errors import MergeFieldMessage
+
+
 logger = logging.getLogger(__name__)
 
 
-if TYPE_CHECKING:
-    pass
 
 
 class MergeRegistry:
-    def __init__(self, name: str = "default"):
+    def __init__(self, name: str = "default") -> None:
         self.name = name
         self.handlers: dict[type, Callable] = {}
 

@@ -1,9 +1,8 @@
 import logging
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from app.domain.checks.base import BaseCheck
-from app.domain.entities.single_supplier import SpecPositionsField, TotalAmountField
-from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
 from app.domain.entities.validation_errors import (
     AmountDiscrepancyCheckResult,
     AmountNotFoundCheckResult,
@@ -12,11 +11,16 @@ from app.domain.entities.validation_errors import (
 )
 
 
+if TYPE_CHECKING:
+    from app.domain.entities.single_supplier import SpecPositionsField, TotalAmountField
+    from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
+
+
 logger = logging.getLogger(__name__)
 
 
 class CheckPriceValidation(BaseCheck):
-    def __init__(self, tolerance: Decimal):
+    def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
     async def execute(
@@ -31,7 +35,7 @@ class CheckPriceValidation(BaseCheck):
         total_amount = (
             total_payment.amount.value if total_payment.amount is not None else None
         )
-        total_calculated = Decimal(0.0)
+        total_calculated = Decimal("0.0")
 
         for count, spec_position in enumerate(spec_positions, start=1):
             quantity_dec = Decimal(str(spec_position.quantity))
@@ -45,7 +49,7 @@ class CheckPriceValidation(BaseCheck):
                 errors.append(AmountNotPositiveCheckResult(value=position_total_amount))
             position_name = spec_position.name
             position_amount_difference = abs(
-                position_total_amount - position_total_amount_calculated
+                position_total_amount - position_total_amount_calculated,
             )
 
             if position_amount_difference > self.tolerance:
@@ -56,7 +60,7 @@ class CheckPriceValidation(BaseCheck):
                         cost=position_total_amount,
                         calculated_cost=position_total_amount_calculated,
                         difference_sum=position_amount_difference,
-                    )
+                    ),
                 )
 
         if total_amount is None:
@@ -71,7 +75,7 @@ class CheckPriceValidation(BaseCheck):
                         reference_value=total_amount,
                         value=total_calculated,
                         difference=difference,
-                    )
+                    ),
                 )
 
         if errors:
