@@ -1,9 +1,9 @@
 from decimal import Decimal
 
 import pytest
-from app.domain.entities.validation_errors import (
-    PaymentVatRateNotFoundCheckResult,
-    PaymentVatRatesDifferCheckResult,
+from app.domain.entities.errors import (
+    PaymentVatRateNotFoundError,
+    PaymentVatRatesDifferError,
 )
 
 from app.domain.checks.check_tax_rates_validation import CheckTaxRatesValidation
@@ -35,9 +35,7 @@ def _total_amount_field(
     total_rate: Decimal | None,
     tax_rates: list[Decimal | None] | None,
 ) -> TotalAmountField:
-    taxes = None
-    if tax_rates is not None:
-        taxes = [_payment(vat_rate=r) for r in tax_rates]
+    taxes = [_payment(vat_rate=r) for r in tax_rates or []]
     return TotalAmountField(
         value=TotalAmount(
             total=_payment(vat_rate=total_rate),
@@ -55,7 +53,7 @@ def _advance(
     return AdvancePayment(
         percent=None,
         total=_payment(vat_rate=total_rate) if total_rate is not None else None,
-        payments=payments,
+        payments=payments or [],
     )
 
 
@@ -91,7 +89,7 @@ async def test_no_advances_one_tax_line_both_rates_none_not_found():
     r = await _run(total_rate=None, tax_rates=[None], advances=None)
     assert r.status == CheckStatus.failed
     assert len(r.errors) == 1
-    assert isinstance(r.errors[0], PaymentVatRateNotFoundCheckResult)
+    assert isinstance(r.errors[0], PaymentVatRateNotFoundError)
 
 
 async def test_no_rate_in_total_or_taxes_but_advance_has_rate_success():
@@ -127,7 +125,7 @@ async def test_no_advances_one_tax_line_rates_differ_failed():
     )
     assert r.status == CheckStatus.failed
     err = r.errors[0]
-    assert isinstance(err, PaymentVatRatesDifferCheckResult)
+    assert isinstance(err, PaymentVatRatesDifferError)
     assert err.rate_one == Decimal("20")
     assert err.rate_two == Decimal("10")
 
@@ -140,7 +138,7 @@ async def test_no_advances_multiple_taxes_line_differs_from_total_failed():
     )
     assert r.status == CheckStatus.failed
     err = r.errors[0]
-    assert isinstance(err, PaymentVatRatesDifferCheckResult)
+    assert isinstance(err, PaymentVatRatesDifferError)
     assert err.rate_one == Decimal("20")
     assert err.rate_two == Decimal("10")
 
@@ -161,7 +159,7 @@ async def test_no_advances_multiple_taxes_no_total_rate_all_none_not_found():
         advances=None,
     )
     assert r.status == CheckStatus.failed
-    assert isinstance(r.errors[0], PaymentVatRateNotFoundCheckResult)
+    assert isinstance(r.errors[0], PaymentVatRateNotFoundError)
 
 
 async def test_no_advances_multiple_taxes_no_total_but_lines_have_rates_success():
@@ -221,7 +219,7 @@ async def test_advances_with_payments_line_differs_from_advance_total_failed():
     )
     assert r.status == CheckStatus.failed
     err = r.errors[0]
-    assert isinstance(err, PaymentVatRatesDifferCheckResult)
+    assert isinstance(err, PaymentVatRatesDifferError)
     assert err.rate_one == Decimal("20")
     assert err.rate_two == Decimal("10")
 
@@ -260,7 +258,7 @@ async def test_advances_with_payments_no_advance_total_all_rates_none_not_found(
         ],
     )
     assert r.status == CheckStatus.failed
-    assert isinstance(r.errors[0], PaymentVatRateNotFoundCheckResult)
+    assert isinstance(r.errors[0], PaymentVatRateNotFoundError)
 
 
 async def test_advances_with_taxes_and_flat_advances_success():
@@ -295,7 +293,7 @@ async def test_flat_advances_differ_from_contract_failed():
     )
     assert r.status == CheckStatus.failed
     err = r.errors[0]
-    assert isinstance(err, PaymentVatRatesDifferCheckResult)
+    assert isinstance(err, PaymentVatRatesDifferError)
     assert err.rate_one == Decimal("20")
     assert err.rate_two == Decimal("10")
 
@@ -305,7 +303,7 @@ async def test_flat_advances_skip_none_total_success():
         total_rate=Decimal("20"),
         tax_rates=None,
         advances=[
-            AdvancePayment(percent=None, total=None, payments=None),
+            AdvancePayment(percent=None, total=None, payments=[]),
             _advance(total_rate=Decimal("20")),
         ],
     )
