@@ -1,6 +1,11 @@
 from decimal import Decimal
 
 import pytest
+from app.domain.entities.validation_errors import (
+    AmountNotPositiveCheckResult,
+    VatAmountCalculationDiscrepancy,
+    VatAmountDiscrepancy,
+)
 
 from app.domain.checks.check_taxes_validation import CheckTaxesValidation
 from app.domain.entities.single_supplier_fields import (
@@ -13,11 +18,6 @@ from app.domain.entities.single_supplier_fields import (
     Vat,
 )
 from app.domain.entities.validation import CheckStatus
-from app.domain.entities.validation_errors import (
-    AmountNotPositiveCheckResult,
-    VatAmountCalculationDiscrepancy,
-    VatAmountDiscrepancy,
-)
 
 
 pytestmark = pytest.mark.asyncio

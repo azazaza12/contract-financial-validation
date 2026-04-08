@@ -1,6 +1,7 @@
 import logging
 
 from app.domain.checks.base import BaseCheck
+from app.domain.entities.errors import BaseCheckError, NumberTranscriptionError
 from app.domain.entities.single_supplier_fields import (
     AdvancePaymentsField,
     Amount,
@@ -8,7 +9,6 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
-from app.domain.entities.errors import BaseCheckError, NumberTranscriptionError
 from app.domain.service.checker import ITranscriptionComplianceService
 
 

@@ -3,6 +3,10 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+from app.domain.entities.validation_errors import (
+    PaymentAmountPercentDiscrepancy,
+    PaymentPercentSumDiscrepancyCheckResult,
+)
 
 from app.domain.checks.check_payment_percent_validation import (
     CheckPaymentPercentValidation,
@@ -20,10 +24,6 @@ from app.domain.entities.single_supplier_fields import (
     Vat,
 )
 from app.domain.entities.validation import CheckStatus
-from app.domain.entities.validation_errors import (
-    PaymentAmountPercentDiscrepancy,
-    PaymentPercentSumDiscrepancyCheckResult,
-)
 from app.domain.pipeline.task import CheckTask
 from tests.domain.pipeline.conftest import DummyContract, create_context
 

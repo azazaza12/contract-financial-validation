@@ -3,6 +3,11 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+from app.domain.entities.validation_errors import (
+    AmountDiscrepancyCheckResult,
+    AmountNotPositiveCheckResult,
+    PositionCostDiscrepancyCheckResult,
+)
 
 from app.domain.checks.check_price_validation import CheckPriceValidation
 from app.domain.entities.field import FieldCollector
@@ -18,11 +23,6 @@ from app.domain.entities.single_supplier_fields import (
     Vat,
 )
 from app.domain.entities.validation import CheckStatus
-from app.domain.entities.validation_errors import (
-    AmountDiscrepancyCheckResult,
-    AmountNotPositiveCheckResult,
-    PositionCostDiscrepancyCheckResult,
-)
 from app.domain.pipeline.task import CheckTask, TaskStatus
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
