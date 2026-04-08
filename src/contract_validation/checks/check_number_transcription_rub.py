@@ -64,6 +64,11 @@ class CheckNumberTranscriptionRub(BaseCheck):
         )
         for issue in result.issues:
             errors.append(
-                NumberTranscriptionError.model_validate(issue, from_attributes=True)
+                NumberTranscriptionError(
+                    index=issue.index,
+                    value=issue.value,
+                    transcription=issue.transcription,
+                    expected_transcription=issue.expected_transcription,
+                )
             )
         return self._result(errors)
