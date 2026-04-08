@@ -87,9 +87,7 @@ async def test_check_price_validation_can_run_as_task_and_save_result():
 
     await CheckTask(check=check).run(ctx)
 
-    contract_repo.save_errors.assert_awaited_once_with(
-        contract, [], kind="check", source="CheckPriceValidation"
-    )
+    contract_repo.save_errors.assert_awaited_once_with(contract, [], kind="check")
 
 
 async def test_check_price_validation_skips_when_required_field_is_missing():
