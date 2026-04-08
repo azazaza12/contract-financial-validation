@@ -1,10 +1,10 @@
 from decimal import Decimal
 
 import pytest
-from app.domain.entities.validation_errors import (
-    AmountNotPositiveCheckResult,
-    VatAmountCalculationDiscrepancy,
-    VatAmountDiscrepancy,
+from app.domain.entities.errors import (
+    AmountNotPositiveError,
+    VatAmountCalculationDiscrepancyError,
+    VatAmountDiscrepancyError,
 )
 
 from app.domain.checks.check_taxes_validation import CheckTaxesValidation
@@ -50,7 +50,10 @@ def _make_payment(
 def _make_total_amount_field(
     *, total: Payment, taxes: list[Payment] | None
 ) -> TotalAmountField:
-    return TotalAmountField(value=TotalAmount(total=total, taxes=taxes), sources=[])
+    return TotalAmountField(
+        value=TotalAmount(total=total, taxes=taxes or []),
+        sources=[],
+    )
 
 
 async def test_check_nds_succeeds_when_formula_and_sums_are_valid():
@@ -139,7 +142,8 @@ async def test_check_nds_fails_when_formula_is_incorrect():
 
     assert result.status == CheckStatus.failed
     assert any(
-        isinstance(error, VatAmountCalculationDiscrepancy) for error in result.errors
+        isinstance(error, VatAmountCalculationDiscrepancyError)
+        for error in result.errors
     )
 
 
@@ -166,7 +170,7 @@ async def test_check_nds_fails_when_total_and_taxes_vat_sums_differ():
     )
 
     assert result.status == CheckStatus.failed
-    assert any(isinstance(error, VatAmountDiscrepancy) for error in result.errors)
+    assert any(isinstance(error, VatAmountDiscrepancyError) for error in result.errors)
 
 
 async def test_check_nds_compares_sums_even_when_amount_is_missing():
@@ -212,7 +216,8 @@ async def test_check_nds_compares_sums_even_when_amount_is_missing():
 
     assert result.status == CheckStatus.success
     assert not any(
-        isinstance(error, VatAmountCalculationDiscrepancy) for error in result.errors
+        isinstance(error, VatAmountCalculationDiscrepancyError)
+        for error in result.errors
     )
 
 
@@ -266,7 +271,8 @@ async def test_check_nds_tolerance_allows_exactly_one_cent_difference():
 
     assert result.status == CheckStatus.success
     assert not any(
-        isinstance(error, VatAmountCalculationDiscrepancy) for error in result.errors
+        isinstance(error, VatAmountCalculationDiscrepancyError)
+        for error in result.errors
     )
 
 
@@ -294,7 +300,8 @@ async def test_check_nds_tolerance_fails_when_difference_is_above_one_cent():
 
     assert result.status == CheckStatus.failed
     assert any(
-        isinstance(error, VatAmountCalculationDiscrepancy) for error in result.errors
+        isinstance(error, VatAmountCalculationDiscrepancyError)
+        for error in result.errors
     )
 
 
@@ -313,9 +320,7 @@ async def test_check_nds_fails_when_amount_is_not_positive():
     )
 
     assert result.status == CheckStatus.failed
-    assert any(
-        isinstance(error, AmountNotPositiveCheckResult) for error in result.errors
-    )
+    assert any(isinstance(error, AmountNotPositiveError) for error in result.errors)
 
 
 async def test_check_nds_allows_zero_vat_amount():
@@ -369,7 +374,9 @@ async def test_check_nds_ignores_empty_taxes_list():
     )
 
     assert result.status == CheckStatus.success
-    assert not any(isinstance(error, VatAmountDiscrepancy) for error in result.errors)
+    assert not any(
+        isinstance(error, VatAmountDiscrepancyError) for error in result.errors
+    )
 
 
 async def test_check_nds_ignores_advances_without_totals_and_payments():
@@ -391,4 +398,6 @@ async def test_check_nds_ignores_advances_without_totals_and_payments():
     )
 
     assert result.status == CheckStatus.success
-    assert not any(isinstance(error, VatAmountDiscrepancy) for error in result.errors)
+    assert not any(
+        isinstance(error, VatAmountDiscrepancyError) for error in result.errors
+    )
