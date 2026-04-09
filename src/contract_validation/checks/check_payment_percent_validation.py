@@ -96,7 +96,9 @@ class CheckPaymentPercentValidation(BaseCheck):
             percent_diff = abs(total_percent - Decimal("100.00"))
             if percent_diff > self.tolerance:
                 errors.append(
-                    PaymentPercentSumDiscrepancyCheckResult(total_percent=total_percent),
+                    PaymentPercentSumDiscrepancyCheckResult(
+                        total_percent=total_percent
+                    ),
                 )
         if errors:
             logger.warning("Errors in payment distribution were identified")

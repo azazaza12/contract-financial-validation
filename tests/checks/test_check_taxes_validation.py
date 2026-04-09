@@ -48,7 +48,9 @@ def _make_payment(
 
 
 def _make_total_amount_field(
-    *, total: Payment, taxes: list[Payment] | None,
+    *,
+    total: Payment,
+    taxes: list[Payment] | None,
 ) -> TotalAmountField:
     return TotalAmountField(value=TotalAmount(total=total, taxes=taxes), sources=[])
 
@@ -216,7 +218,9 @@ async def test_check_nds_compares_sums_even_when_amount_is_missing() -> None:
     )
 
 
-async def test_check_nds_succeeds_when_vat_is_not_included_and_formula_is_correct() -> None:
+async def test_check_nds_succeeds_when_vat_is_not_included_and_formula_is_correct() -> (
+    None
+):
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="100.00",

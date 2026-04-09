@@ -35,7 +35,8 @@ class CheckPositionsCompliance(BaseCheck):
         spec_positions = spec_positions_field.value
         position_names = [position.name for position in spec_positions]
         result = await self.ctx.check_position_compliance_service.evaluate(
-            document_object, position_names,
+            document_object,
+            position_names,
         )
 
         if result.success:

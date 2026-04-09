@@ -72,7 +72,8 @@ class CheckNumberTranscriptionRub(BaseCheck):
         for issue in result.issues:
             errors.append(
                 NumberTranscriptionErrorCheckResult.model_validate(
-                    issue, from_attributes=True,
+                    issue,
+                    from_attributes=True,
                 ),
             )
         return self._result(errors)

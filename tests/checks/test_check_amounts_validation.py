@@ -184,7 +184,9 @@ async def test_total_amounts_succeeds_when_taxes_list_is_empty() -> None:
     assert result.errors == []
 
 
-async def test_total_amounts_succeeds_with_multiple_taxes_when_sum_matches_total() -> None:
+async def test_total_amounts_succeeds_with_multiple_taxes_when_sum_matches_total() -> (
+    None
+):
     result = await _run_check(
         total_amount="100.00",
         taxes_amounts=["60.00", "40.00"],
@@ -195,7 +197,9 @@ async def test_total_amounts_succeeds_with_multiple_taxes_when_sum_matches_total
     assert result.errors == []
 
 
-async def test_total_amounts_succeeds_with_multiple_advances_and_nested_payments() -> None:
+async def test_total_amounts_succeeds_with_multiple_advances_and_nested_payments() -> (
+    None
+):
     result = await _run_check(
         total_amount="300.00",
         taxes_amounts=["300.00"],

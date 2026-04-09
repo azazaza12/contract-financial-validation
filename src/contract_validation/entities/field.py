@@ -22,7 +22,8 @@ class BaseField[T]:
 
     @classmethod
     def solve_collision(
-        cls, fields: list[BaseField],
+        cls,
+        fields: list[BaseField],
     ) -> tuple[list[BaseField], list[MergeFieldMessage]]:
         if not fields:
             msg = f"{cls.__name__}: empty collision"

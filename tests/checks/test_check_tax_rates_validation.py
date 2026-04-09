@@ -164,7 +164,9 @@ async def test_no_advances_multiple_taxes_no_total_rate_all_none_not_found() -> 
     assert isinstance(r.errors[0], PaymentVatRateNotFoundCheckResult)
 
 
-async def test_no_advances_multiple_taxes_no_total_but_lines_have_rates_success() -> None:
+async def test_no_advances_multiple_taxes_no_total_but_lines_have_rates_success() -> (
+    None
+):
     r = await _run(
         total_rate=None,
         tax_rates=[Decimal(20), Decimal(10)],
@@ -244,7 +246,9 @@ async def test_advances_with_payments_no_advance_total_mixed_rates_success() -> 
     assert r.status == CheckStatus.success
 
 
-async def test_advances_with_payments_no_advance_total_all_rates_none_not_found() -> None:
+async def test_advances_with_payments_no_advance_total_all_rates_none_not_found() -> (
+    None
+):
     r = await _run(
         total_rate=None,
         tax_rates=None,

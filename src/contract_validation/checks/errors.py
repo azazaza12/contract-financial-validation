@@ -13,7 +13,9 @@ class MissingRequiredFieldError(CheckInputError):
 
 
 class MultiplyRequiredFieldError(CheckInputError):
-    def __init__(self, check_name: str, param_name: str, field_type: str, count: int) -> None:
+    def __init__(
+        self, check_name: str, param_name: str, field_type: str, count: int
+    ) -> None:
         super().__init__(
             f"{check_name}: collision for '{param_name}' ({field_type}), count={count}",
         )
