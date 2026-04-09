@@ -1,10 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
 
-
-if TYPE_CHECKING:
-    from app.domain.entities.validation_errors import BaseResultChecker
+from app.domain.entities.validation_errors import BaseResultChecker
 
 
 class CheckStatus(Enum):

@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 import pytest
-
 from app.domain.checks.check_amounts_validation import (
     CheckTotalAmountsValidation,
 )

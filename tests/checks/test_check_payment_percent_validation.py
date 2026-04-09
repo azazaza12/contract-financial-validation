@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.domain.checks.check_payment_percent_validation import (
     CheckPaymentPercentValidation,
 )
@@ -108,7 +107,7 @@ async def test_payment_percent_validates_amount_even_when_percents_missing() -> 
     )
 
 
-async def test_payment_percent_validates_percent_sum_when_all_percents_are_specified() -> (  # noqa: E501
+async def test_payment_percent_validates_percent_sum_when_all_percents_are_specified() -> (
     None
 ):
     called_result = await _run_check(
@@ -168,7 +167,7 @@ async def test_payment_percent_fails_when_amount_does_not_match_percent() -> Non
     )
 
 
-async def test_payment_percent_succeeds_when_percent_sum_difference_within_tolerance() -> (  # noqa: E501
+async def test_payment_percent_succeeds_when_percent_sum_difference_within_tolerance() -> (
     None
 ):
     called_result = await _run_check(
