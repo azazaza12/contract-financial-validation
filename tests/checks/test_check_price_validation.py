@@ -45,7 +45,8 @@ def _make_payment(value: str) -> Payment:
 
 
 def _make_total_amount_field(
-    value: str, document: SingleSupplierDocument,
+    value: str,
+    document: SingleSupplierDocument,
 ) -> TotalAmountField:
     return TotalAmountField(
         value=TotalAmount(total=_make_payment(value), taxes=None),
@@ -54,7 +55,8 @@ def _make_total_amount_field(
 
 
 def _make_contract(
-    document: SingleSupplierDocument, fields: FieldCollector,
+    document: SingleSupplierDocument,
+    fields: FieldCollector,
 ) -> DummyContract:
     return DummyContract(
         id=uuid4(),
@@ -135,7 +137,9 @@ async def test_check_price_validation_raises_when_required_field_is_missing() ->
     check_result_repo.save_for_contract.assert_not_called()
 
 
-async def test_check_price_validation_raises_when_required_field_has_collision() -> None:
+async def test_check_price_validation_raises_when_required_field_has_collision() -> (
+    None
+):
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [

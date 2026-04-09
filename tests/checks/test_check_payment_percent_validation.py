@@ -43,7 +43,9 @@ def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:
 
 
 def _make_advance(
-    *, percent: Decimal | None, payment_value: str | None,
+    *,
+    percent: Decimal | None,
+    payment_value: str | None,
 ) -> AdvancePayment:
     total = _make_payment(payment_value) if payment_value is not None else None
     return AdvancePayment(percent=percent, total=total, payments=None)
@@ -106,7 +108,9 @@ async def test_payment_percent_validates_amount_even_when_percents_missing() -> 
     )
 
 
-async def test_payment_percent_validates_percent_sum_when_all_percents_are_specified() -> None:
+async def test_payment_percent_validates_percent_sum_when_all_percents_are_specified() -> (  # noqa: E501
+    None
+):
     called_result = await _run_check(
         total_amount="100.00",
         advances=[
@@ -164,7 +168,9 @@ async def test_payment_percent_fails_when_amount_does_not_match_percent() -> Non
     )
 
 
-async def test_payment_percent_succeeds_when_percent_sum_difference_within_tolerance() -> None:
+async def test_payment_percent_succeeds_when_percent_sum_difference_within_tolerance() -> (  # noqa: E501
+    None
+):
     called_result = await _run_check(
         total_amount="100.00",
         advances=[
@@ -177,7 +183,9 @@ async def test_payment_percent_succeeds_when_percent_sum_difference_within_toler
     assert called_result.errors == []
 
 
-async def test_payment_percent_succeeds_when_amount_difference_within_tolerance() -> None:
+async def test_payment_percent_succeeds_when_amount_difference_within_tolerance() -> (
+    None
+):
     called_result = await _run_check(
         total_amount="100.00",
         advances=[
