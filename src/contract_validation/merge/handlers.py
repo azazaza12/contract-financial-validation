@@ -52,7 +52,7 @@ def is_scalar(value_type: type) -> bool:
 def merge_scalar_strict(
     candidates: list[ValueCandidate],
     path: str,
-    registry: MergeRegistry,
+    _registry: MergeRegistry,
     errors: list[MergeFieldMessage],
 ) -> ValueCandidate | None:
     if not all_equal(candidates):
@@ -72,9 +72,9 @@ def merge_scalar_strict(
 
 def merge_scalar_pick_first(
     candidates: list[ValueCandidate],
-    path: str,
-    registry: MergeRegistry,
-    errors: list[MergeFieldMessage],
+    _path: str,
+    _registry: MergeRegistry,
+    _errors: list[MergeFieldMessage],
 ) -> ValueCandidate | None:
     return ValueCandidate(
         value=candidates[0].value,
@@ -145,9 +145,9 @@ def merge_list_flexible(
 
 def merge_list_concat(
     candidates: list[ValueCandidate],
-    path: str,
-    registry: MergeRegistry,
-    errors: list[MergeFieldMessage],
+    _path: str,
+    _registry: MergeRegistry,
+    _errors: list[MergeFieldMessage],
 ) -> ValueCandidate | None:
     result = []
     for c in candidates:
