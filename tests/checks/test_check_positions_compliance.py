@@ -187,5 +187,5 @@ async def test_check1_raises_when_required_field_has_collision() -> None:
 
     assert err.value.check_name == "CheckPositionsCompliance"
     assert err.value.param_name == "spec_positions_field"
-    assert err.value.count == 2
+    assert err.value.count == 2  # noqa: PLR2004
     check_result_repo.save_for_contract.assert_not_called()
