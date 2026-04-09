@@ -99,7 +99,7 @@ class FieldCollector:
     def __bool__(self) -> bool:
         return bool(self._fields)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[BaseField]:
         return iter(self._fields)
 
     def __getitem__(self, index: int) -> BaseField:
