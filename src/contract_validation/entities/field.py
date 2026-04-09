@@ -83,13 +83,13 @@ class FieldCollector:
                 return False
         return True
 
-    def delete(self, fields) -> None:
+    def delete(self, fields: list[BaseField]) -> None:
         for field in fields:
             if field in self._fields:
                 self._fields.remove(field)
         self._type_map = None
 
-    def append(self, field) -> None:
+    def append(self, field: BaseField) -> None:
         self._fields.append(field)
         self._type_map = None
 
