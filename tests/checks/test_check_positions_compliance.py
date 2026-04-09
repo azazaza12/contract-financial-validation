@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.domain.checks.check_positions_compliance import (
     CheckPositionsCompliance,
 )

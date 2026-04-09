@@ -1,19 +1,15 @@
 import logging
-from typing import TYPE_CHECKING
 
 from app.domain.checks.base import BaseCheck
+from app.domain.entities.single_supplier import (
+    DocumentObjectField,
+    SpecPositionsField,
+)
+from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
 from app.domain.entities.validation_errors import (
     PositionsComplianceErrorCheckResult,
 )
-
-
-if TYPE_CHECKING:
-    from app.domain.entities.single_supplier import (
-        DocumentObjectField,
-        SpecPositionsField,
-    )
-    from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
-    from app.domain.pipeline.task import Context
+from app.domain.pipeline.task import Context
 
 
 logger = logging.getLogger(__name__)

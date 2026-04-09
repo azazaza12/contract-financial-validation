@@ -1,21 +1,17 @@
 import logging
 from decimal import Decimal
-from typing import TYPE_CHECKING
 
 from app.domain.checks.base import BaseCheck
+from app.domain.entities.single_supplier import (
+    AdvancePaymentsField,
+    Payment,
+    TotalAmountField,
+)
+from app.domain.entities.validation import CheckExecutionResult
 from app.domain.entities.validation_errors import (
     AmountDiscrepancyCheckResult,
     BaseResultChecker,
 )
-
-
-if TYPE_CHECKING:
-    from app.domain.entities.single_supplier import (
-        AdvancePaymentsField,
-        Payment,
-        TotalAmountField,
-    )
-    from app.domain.entities.validation import CheckExecutionResult
 
 
 logger = logging.getLogger(__name__)

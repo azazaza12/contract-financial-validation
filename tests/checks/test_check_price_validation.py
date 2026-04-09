@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.domain.checks.check_price_validation import CheckPriceValidation
 from app.domain.checks.errors import (
     MissingRequiredFieldError,

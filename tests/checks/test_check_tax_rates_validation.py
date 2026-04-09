@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 import pytest
-
 from app.domain.checks.check_tax_rates_validation import CheckTaxRatesValidation
 from app.domain.entities.single_supplier import (
     AdvancePayment,
