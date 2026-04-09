@@ -1,19 +1,13 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from app.domain.entities.errors.base import BaseContractError
 
 
 @dataclass
 class BaseCheckError(BaseContractError):
-    _registry: ClassVar[dict[str, type["BaseCheckError"]]] = {}
-
     kind: ClassVar[str] = "check"
-
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        super().__init_subclass__(**kwargs)
-        BaseCheckError._registry[cls.__name__] = cls
 
 
 @dataclass
