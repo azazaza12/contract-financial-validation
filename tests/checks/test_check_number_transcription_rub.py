@@ -91,7 +91,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
     )
 
     assert result.status == CheckStatus.failed
-    assert len(result.errors) == 2
+    assert len(result.errors) == 2  # noqa: PLR2004
     assert all(
         isinstance(error, NumberTranscriptionErrorCheckResult)
         for error in result.errors
@@ -100,7 +100,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
     assert result.errors[0].value == Decimal("100.00")
     assert result.errors[0].transcription == "Сто один"
     assert result.errors[0].expected_transcription == "Сто"
-    assert result.errors[1].index == 2
+    assert result.errors[1].index == 2  # noqa: PLR2004
     assert result.errors[1].value == Decimal("200.00")
     service_mock.evaluate.assert_awaited_once()
 
@@ -190,7 +190,7 @@ async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
     service_mock.evaluate.assert_awaited_once()
     passed_amounts = service_mock.evaluate.await_args.args[0]
 
-    assert len(passed_amounts) == 6
+    assert len(passed_amounts) == 6  # noqa: PLR2004
     actual_pairs = {(amount.value, amount.transcription) for amount in passed_amounts}
     expected_pairs = {
         (

@@ -166,7 +166,7 @@ async def test_check_price_validation_raises_when_required_field_has_collision()
 
     assert err.value.check_name == "CheckPriceValidation"
     assert err.value.param_name == "total_amount_field"
-    assert err.value.count == 2
+    assert err.value.count == 2  # noqa: PLR2004
     check_result_repo.save_for_contract.assert_not_called()
 
 
