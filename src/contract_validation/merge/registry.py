@@ -59,7 +59,7 @@ class MergeRegistry:
         handler = self._get_handler(value_type)
         if handler is None:
             error_msg = f"No handler for type {value_type} in registry '{self.name}'"
-            logger.info(f"Merge failed for path='{path}': {error_msg}")
+            logger.info("Merge failed for path='%s': %s", path, error_msg)
             raise UnknownHandlerTypeError(error_msg)
 
         result = handler(defined_candidates, path, self, errors)
@@ -67,7 +67,7 @@ class MergeRegistry:
         if result is not None:
             return ValueCandidate(value=result.value, sources=all_sources)
 
-        logger.info(f"Merge returned None for path='{path}'")
+        logger.info("Merge returned None for path='%s'", path)
         return result
 
     def _get_handler(self, value_type: type) -> Callable | None:
