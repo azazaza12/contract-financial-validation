@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, ClassVar
+from typing import Any
 
 from app.domain.entities.errors.base import BaseContractError
 from app.domain.entities.merge_types import ValueCandidate
@@ -7,7 +7,7 @@ from app.domain.entities.merge_types import ValueCandidate
 
 @dataclass
 class BaseMergeError(BaseContractError):
-    kind: ClassVar[str] = "merge"
+    kind = "merge"
     field_name: str = ""
     path: str = ""
 

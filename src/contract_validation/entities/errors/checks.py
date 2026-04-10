@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import ClassVar
 
 from app.domain.entities.errors.base import BaseContractError
 
 
 @dataclass
 class BaseCheckError(BaseContractError):
-    kind: ClassVar[str] = "check"
+    kind = "check"
 
 
 @dataclass
