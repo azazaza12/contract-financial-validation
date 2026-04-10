@@ -2,5 +2,5 @@ class UnknownHandlerTypeError(Exception):
     pass
 
 
-class PipelineIsNone(Exception):
+class PipelineIsNoneError(Exception):
     pass

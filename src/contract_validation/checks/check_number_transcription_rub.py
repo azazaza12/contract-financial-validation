@@ -7,7 +7,7 @@ from app.domain.entities.single_supplier import (
     Payment,
     TotalAmountField,
 )
-from app.domain.entities.validation import BaseResultChecker, CheckExecutionResult
+from app.domain.entities.validation import CheckExecutionResult
 from app.domain.entities.validation_errors import NumberTranscriptionErrorCheckResult
 from app.domain.pipeline.task import Context
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class CheckNumberTranscriptionRub(BaseCheck):
-    def __init__(self, ctx: Context):
+    def __init__(self, ctx: Context) -> None:
         super().__init__()
         self.ctx = ctx
 
@@ -58,17 +58,17 @@ class CheckNumberTranscriptionRub(BaseCheck):
         total_amount_field: TotalAmountField | None,
         advance_payments_field: AdvancePaymentsField | None,
     ) -> CheckExecutionResult:
-        errors: list[BaseResultChecker] = []
         extracted_amounts = self._extract_amounts_from_fields(
-            [f for f in (total_amount_field, advance_payments_field) if f is not None]
+            [f for f in (total_amount_field, advance_payments_field) if f is not None],
         )
         result = await self.ctx.check_transcription_compliance_service.evaluate(
-            extracted_amounts
+            extracted_amounts,
         )
-        for issue in result.issues:
-            errors.append(
-                NumberTranscriptionErrorCheckResult.model_validate(
-                    issue, from_attributes=True
-                )
+        errors = [
+            NumberTranscriptionErrorCheckResult.model_validate(
+                issue,
+                from_attributes=True,
             )
+            for issue in result.issues
+        ]
         return self._result(errors)

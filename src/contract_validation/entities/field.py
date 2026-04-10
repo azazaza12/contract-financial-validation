@@ -1,18 +1,20 @@
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, ClassVar, Iterator
+from typing import TYPE_CHECKING, ClassVar
 
-from app.domain.entities.errors import MergeFieldMessage
 from app.domain.entities.merge_types import Source, ValueCandidate
 from app.domain.merge.defaults import DEFAULT_REGISTRY
 
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from app.domain.entities.errors import MergeFieldMessage
     from app.domain.merge.registry import MergeRegistry
 
 
 @dataclass(kw_only=True, frozen=True)
 class BaseField[T]:
-    merge_registry: ClassVar["MergeRegistry | None"] = None
+    merge_registry: ClassVar[MergeRegistry | None] = None
 
     value: T
     sources: list[Source]
@@ -20,10 +22,12 @@ class BaseField[T]:
 
     @classmethod
     def solve_collision(
-        cls, fields: list["BaseField"]
-    ) -> tuple[list["BaseField"], list[MergeFieldMessage]]:
+        cls,
+        fields: list[BaseField],
+    ) -> tuple[list[BaseField], list[MergeFieldMessage]]:
         if not fields:
-            raise ValueError(f"{cls.__name__}: empty collision")
+            msg = f"{cls.__name__}: empty collision"
+            raise ValueError(msg)
 
         registry = (
             cls.merge_registry if cls.merge_registry is not None else DEFAULT_REGISTRY
@@ -51,7 +55,7 @@ class FieldCollector:
         self._fields: list[BaseField] = fields
         self._type_map: dict[type[BaseField], list[BaseField]] | None = None
 
-    def extend(self, collector: "FieldCollector"):
+    def extend(self, collector: FieldCollector) -> None:
         self._fields.extend(collector._fields)
         self._type_map = None
 
@@ -80,13 +84,13 @@ class FieldCollector:
                 return False
         return True
 
-    def delete(self, fields):
+    def delete(self, fields: list[BaseField]) -> None:
         for field in fields:
             if field in self._fields:
                 self._fields.remove(field)
         self._type_map = None
 
-    def append(self, field):
+    def append(self, field: BaseField) -> None:
         self._fields.append(field)
         self._type_map = None
 
@@ -96,7 +100,7 @@ class FieldCollector:
     def __bool__(self) -> bool:
         return bool(self._fields)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[BaseField]:
         return iter(self._fields)
 
     def __getitem__(self, index: int) -> BaseField:

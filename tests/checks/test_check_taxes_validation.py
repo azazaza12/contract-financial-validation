@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 import pytest
-
 from app.domain.checks.check_taxes_validation import CheckTaxesValidation
 from app.domain.entities.single_supplier import (
     AdvancePayment,
@@ -48,12 +47,14 @@ def _make_payment(
 
 
 def _make_total_amount_field(
-    *, total: Payment, taxes: list[Payment] | None
+    *,
+    total: Payment,
+    taxes: list[Payment] | None,
 ) -> TotalAmountField:
     return TotalAmountField(value=TotalAmount(total=total, taxes=taxes), sources=[])
 
 
-async def test_check_nds_succeeds_when_formula_and_sums_are_valid():
+async def test_check_nds_succeeds_when_formula_and_sums_are_valid() -> None:
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="120.00",
@@ -115,7 +116,7 @@ async def test_check_nds_succeeds_when_formula_and_sums_are_valid():
     assert result.errors == []
 
 
-async def test_check_nds_fails_when_formula_is_incorrect():
+async def test_check_nds_fails_when_formula_is_incorrect() -> None:
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="120.00",
@@ -143,7 +144,7 @@ async def test_check_nds_fails_when_formula_is_incorrect():
     )
 
 
-async def test_check_nds_fails_when_total_and_taxes_vat_sums_differ():
+async def test_check_nds_fails_when_total_and_taxes_vat_sums_differ() -> None:
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="120.00",
@@ -169,7 +170,7 @@ async def test_check_nds_fails_when_total_and_taxes_vat_sums_differ():
     assert any(isinstance(error, VatAmountDiscrepancy) for error in result.errors)
 
 
-async def test_check_nds_compares_sums_even_when_amount_is_missing():
+async def test_check_nds_compares_sums_even_when_amount_is_missing() -> None:
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="120.00",
@@ -202,7 +203,7 @@ async def test_check_nds_compares_sums_even_when_amount_is_missing():
                     include_vat=True,
                 ),
             ],
-        )
+        ),
     ]
 
     result = await check.execute(
@@ -216,7 +217,9 @@ async def test_check_nds_compares_sums_even_when_amount_is_missing():
     )
 
 
-async def test_check_nds_succeeds_when_vat_is_not_included_and_formula_is_correct():
+async def test_check_nds_succeeds_when_vat_is_not_included_and_formula_is_correct() -> (
+    None
+):
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="100.00",
@@ -230,7 +233,7 @@ async def test_check_nds_succeeds_when_vat_is_not_included_and_formula_is_correc
             vat_amount="20.00",
             vat_rate="20.00",
             include_vat=False,
-        )
+        ),
     ]
 
     result = await check.execute(
@@ -242,7 +245,7 @@ async def test_check_nds_succeeds_when_vat_is_not_included_and_formula_is_correc
     assert result.errors == []
 
 
-async def test_check_nds_tolerance_allows_exactly_one_cent_difference():
+async def test_check_nds_tolerance_allows_exactly_one_cent_difference() -> None:
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="120.00",
@@ -256,7 +259,7 @@ async def test_check_nds_tolerance_allows_exactly_one_cent_difference():
             vat_amount="20.01",
             vat_rate="20.00",
             include_vat=True,
-        )
+        ),
     ]
 
     result = await check.execute(
@@ -270,7 +273,7 @@ async def test_check_nds_tolerance_allows_exactly_one_cent_difference():
     )
 
 
-async def test_check_nds_tolerance_fails_when_difference_is_above_one_cent():
+async def test_check_nds_tolerance_fails_when_difference_is_above_one_cent() -> None:
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="120.00",
@@ -284,7 +287,7 @@ async def test_check_nds_tolerance_fails_when_difference_is_above_one_cent():
             vat_amount="20.02",
             vat_rate="20.00",
             include_vat=True,
-        )
+        ),
     ]
 
     result = await check.execute(
@@ -298,7 +301,7 @@ async def test_check_nds_tolerance_fails_when_difference_is_above_one_cent():
     )
 
 
-async def test_check_nds_fails_when_amount_is_not_positive():
+async def test_check_nds_fails_when_amount_is_not_positive() -> None:
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="0.00",
@@ -318,7 +321,7 @@ async def test_check_nds_fails_when_amount_is_not_positive():
     )
 
 
-async def test_check_nds_allows_zero_vat_amount():
+async def test_check_nds_allows_zero_vat_amount() -> None:
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount=None,
@@ -336,7 +339,7 @@ async def test_check_nds_allows_zero_vat_amount():
     assert result.errors == []
 
 
-async def test_check_nds_allows_zero_vat_rate():
+async def test_check_nds_allows_zero_vat_rate() -> None:
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="120.00",
@@ -354,7 +357,7 @@ async def test_check_nds_allows_zero_vat_rate():
     assert result.errors == []
 
 
-async def test_check_nds_ignores_empty_taxes_list():
+async def test_check_nds_ignores_empty_taxes_list() -> None:
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="120.00",
@@ -372,7 +375,7 @@ async def test_check_nds_ignores_empty_taxes_list():
     assert not any(isinstance(error, VatAmountDiscrepancy) for error in result.errors)
 
 
-async def test_check_nds_ignores_advances_without_totals_and_payments():
+async def test_check_nds_ignores_advances_without_totals_and_payments() -> None:
     check = CheckTaxesValidation(tolerance=DEFAULT_TOLERANCE)
     total_payment = _make_payment(
         amount="120.00",

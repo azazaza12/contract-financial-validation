@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
-
 from app.domain.checks.check_number_transcription_rub import (
     CheckNumberTranscriptionRub,
 )
@@ -21,6 +20,7 @@ from app.domain.entities.single_supplier import (
 from app.domain.entities.validation import CheckStatus
 from app.domain.entities.validation_errors import NumberTranscriptionErrorCheckResult
 from app.domain.service.checker import TranscriptionCheckIssue, TranscriptionCheckResult
+
 from tests.domain.pipeline.conftest import create_context
 
 
@@ -42,7 +42,7 @@ def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmou
     )
 
 
-async def test_check_14_succeeds_when_no_transcription_issues():
+async def test_check_14_succeeds_when_no_transcription_issues() -> None:
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
     ctx = create_context(check_transcription_compliance_service=service_mock)
@@ -61,7 +61,7 @@ async def test_check_14_succeeds_when_no_transcription_issues():
     service_mock.evaluate.assert_awaited_once()
 
 
-async def test_check_14_maps_each_issue_to_validation_error():
+async def test_check_14_maps_each_issue_to_validation_error() -> None:
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(
         issues=[
@@ -77,7 +77,7 @@ async def test_check_14_maps_each_issue_to_validation_error():
                 transcription="Двести один",
                 expected_transcription="Двести",
             ),
-        ]
+        ],
     )
     ctx = create_context(check_transcription_compliance_service=service_mock)
     check = CheckNumberTranscriptionRub(ctx=ctx)
@@ -91,7 +91,7 @@ async def test_check_14_maps_each_issue_to_validation_error():
     )
 
     assert result.status == CheckStatus.failed
-    assert len(result.errors) == 2
+    assert len(result.errors) == 2  # noqa: PLR2004
     assert all(
         isinstance(error, NumberTranscriptionErrorCheckResult)
         for error in result.errors
@@ -100,12 +100,12 @@ async def test_check_14_maps_each_issue_to_validation_error():
     assert result.errors[0].value == Decimal("100.00")
     assert result.errors[0].transcription == "Сто один"
     assert result.errors[0].expected_transcription == "Сто"
-    assert result.errors[1].index == 2
+    assert result.errors[1].index == 2  # noqa: PLR2004
     assert result.errors[1].value == Decimal("200.00")
     service_mock.evaluate.assert_awaited_once()
 
 
-async def test_check_14_passes_realistic_nested_amounts_to_service():
+async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
     ctx = create_context(check_transcription_compliance_service=service_mock)
@@ -190,7 +190,7 @@ async def test_check_14_passes_realistic_nested_amounts_to_service():
     service_mock.evaluate.assert_awaited_once()
     passed_amounts = service_mock.evaluate.await_args.args[0]
 
-    assert len(passed_amounts) == 6
+    assert len(passed_amounts) == 6  # noqa: PLR2004
     actual_pairs = {(amount.value, amount.transcription) for amount in passed_amounts}
     expected_pairs = {
         (
