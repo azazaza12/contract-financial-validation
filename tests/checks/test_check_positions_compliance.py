@@ -21,6 +21,7 @@ from app.domain.entities.single_supplier import (
 from app.domain.entities.validation import CheckStatus
 from app.domain.pipeline.task import CheckTask
 from app.domain.service.checker import EvaluateResult
+
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
