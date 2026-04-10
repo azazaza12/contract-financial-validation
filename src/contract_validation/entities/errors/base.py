@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 
 @dataclass(kw_only=True)
 class BaseContractError:
-    kind: ClassVar[str]
+    kind: ClassVar[Literal["check", "merge"]]
     source: str = ""
 
     @property
