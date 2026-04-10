@@ -106,7 +106,7 @@ class CheckTaxesValidation(BaseCheck):
             return
         vat_amounts.append(advances_vat_total)
 
-    def validate_payments_and_sum_vat(
+    def validate_payments_and_sum_vat(  # noqa: C901
         self,
         payments: list[Payment] | None,
         errors: list[BaseResultChecker],

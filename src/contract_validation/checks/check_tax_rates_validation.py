@@ -79,7 +79,7 @@ def _aggregate_rate_vs_contract(
 
 
 class CheckTaxRatesValidation(BaseCheck):
-    async def execute(
+    async def execute(  # noqa: C901
         self,
         total_amount_field: TotalAmountField,
         advance_payments_field: AdvancePaymentsField | None,
