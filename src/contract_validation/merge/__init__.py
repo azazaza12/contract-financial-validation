@@ -8,10 +8,10 @@ from app.domain.merge.registry import MergeRegistry
 
 
 __all__ = [
-    "ValueCandidate",
-    "Source",
-    "MergeRegistry",
-    "STRICT_REGISTRY",
-    "FLEXIBLE_REGISTRY",
     "CONCAT_REGISTRY",
+    "FLEXIBLE_REGISTRY",
+    "STRICT_REGISTRY",
+    "MergeRegistry",
+    "Source",
+    "ValueCandidate",
 ]

@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.domain.checks.check_positions_compliance import (
     CheckPositionsCompliance,
 )
@@ -22,13 +21,14 @@ from app.domain.entities.single_supplier import (
 from app.domain.entities.validation import CheckStatus
 from app.domain.pipeline.task import CheckTask
 from app.domain.service.checker import EvaluateResult
+
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
 pytestmark = pytest.mark.asyncio
 
 
-async def test_check1_can_run_as_task_and_save_result():
+async def test_check1_can_run_as_task_and_save_result() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -41,14 +41,14 @@ async def test_check1_can_run_as_task_and_save_result():
                     SpecPosition(
                         name="Позиция 1",
                         quantity=1.0,
-                        unit_price=Decimal("100"),
-                        total_price=Decimal("100"),
+                        unit_price=Decimal(100),
+                        total_price=Decimal(100),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document=document)],
             ),
-        ]
+        ],
     )
 
     contract = DummyContract(
@@ -86,7 +86,7 @@ async def test_check1_can_run_as_task_and_save_result():
     assert called_result.errors == []
 
 
-async def test_check1_raises_when_required_field_is_missing():
+async def test_check1_raises_when_required_field_is_missing() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -95,14 +95,14 @@ async def test_check1_raises_when_required_field_is_missing():
                     SpecPosition(
                         name="Позиция 1",
                         quantity=1.0,
-                        unit_price=Decimal("100"),
-                        total_price=Decimal("100"),
+                        unit_price=Decimal(100),
+                        total_price=Decimal(100),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document=document)],
             ),
-        ]
+        ],
     )
     contract = DummyContract(
         id=uuid4(),
@@ -130,7 +130,7 @@ async def test_check1_raises_when_required_field_is_missing():
     check_result_repo.save_for_contract.assert_not_called()
 
 
-async def test_check1_raises_when_required_field_has_collision():
+async def test_check1_raises_when_required_field_has_collision() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -143,10 +143,10 @@ async def test_check1_raises_when_required_field_has_collision():
                     SpecPosition(
                         name="Позиция 1",
                         quantity=1.0,
-                        unit_price=Decimal("100"),
-                        total_price=Decimal("100"),
+                        unit_price=Decimal(100),
+                        total_price=Decimal(100),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document=document)],
             ),
@@ -155,14 +155,14 @@ async def test_check1_raises_when_required_field_has_collision():
                     SpecPosition(
                         name="Позиция 2",
                         quantity=2.0,
-                        unit_price=Decimal("100"),
-                        total_price=Decimal("200"),
+                        unit_price=Decimal(100),
+                        total_price=Decimal(200),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document=document)],
             ),
-        ]
+        ],
     )
     contract = DummyContract(
         id=uuid4(),
@@ -187,5 +187,5 @@ async def test_check1_raises_when_required_field_has_collision():
 
     assert err.value.check_name == "CheckPositionsCompliance"
     assert err.value.param_name == "spec_positions_field"
-    assert err.value.count == 2
+    assert err.value.count == 2  # noqa: PLR2004
     check_result_repo.save_for_contract.assert_not_called()
