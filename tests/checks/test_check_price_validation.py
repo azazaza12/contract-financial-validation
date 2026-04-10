@@ -27,6 +27,7 @@ from app.domain.entities.validation_errors import (
     PositionCostDiscrepancyCheckResult,
 )
 from app.domain.pipeline.task import CheckTask
+
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
