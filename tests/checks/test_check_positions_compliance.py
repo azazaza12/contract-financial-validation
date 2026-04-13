@@ -36,8 +36,8 @@ async def test_check1_can_run_as_task_and_save_result() -> None:
                     SpecPosition(
                         name="Позиция 1",
                         quantity=Decimal("1.00"),
-                        unit_price=Decimal("100"),
-                        total_price=Decimal("100"),
+                        unit_price=Decimal(100),
+                        total_price=Decimal(100),
                         unit_of_measurement="шт",
                     ),
                 ],
@@ -82,8 +82,8 @@ async def test_check1_raises_when_required_field_is_missing() -> None:
                     SpecPosition(
                         name="Позиция 1",
                         quantity=Decimal("1.00"),
-                        unit_price=Decimal("100"),
-                        total_price=Decimal("100"),
+                        unit_price=Decimal(100),
+                        total_price=Decimal(100),
                         unit_of_measurement="шт",
                     ),
                 ],
@@ -131,8 +131,8 @@ async def test_check1_raises_when_required_field_has_collision() -> None:
                     SpecPosition(
                         name="Позиция 1",
                         quantity=Decimal("1.00"),
-                        unit_price=Decimal("100"),
-                        total_price=Decimal("100"),
+                        unit_price=Decimal(100),
+                        total_price=Decimal(100),
                         unit_of_measurement="шт",
                     ),
                 ],
@@ -143,8 +143,8 @@ async def test_check1_raises_when_required_field_has_collision() -> None:
                     SpecPosition(
                         name="Позиция 2",
                         quantity=Decimal("2.00"),
-                        unit_price=Decimal("100"),
-                        total_price=Decimal("200"),
+                        unit_price=Decimal(100),
+                        total_price=Decimal(200),
                         unit_of_measurement="шт",
                     ),
                 ],
