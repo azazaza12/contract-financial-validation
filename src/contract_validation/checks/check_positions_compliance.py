@@ -18,15 +18,16 @@ class CheckPositionsCompliance(BaseCheck):
         self,
         document_object_field: DocumentObjectField,
         spec_positions_field: SpecPositionsField,
-        position_compliance_service: IPositionsComplianceService,
+        check_position_compliance_service: IPositionsComplianceService,
     ) -> CheckExecutionResult:
 
         errors: list[BaseCheckError] = []
         document_object = document_object_field.value
         spec_positions = spec_positions_field.value
         position_names = [position.name for position in spec_positions]
-        result = await position_compliance_service.evaluate(
-            document_object, position_names
+        result = await check_position_compliance_service.evaluate(
+            document_object,
+            position_names,
         )
 
         if result.success:

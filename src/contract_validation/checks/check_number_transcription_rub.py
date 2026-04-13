@@ -55,20 +55,20 @@ class CheckNumberTranscriptionRub(BaseCheck):
         advance_payments_field: AdvancePaymentsField | None,
         check_transcription_compliance_service: ITranscriptionComplianceService,
     ) -> CheckExecutionResult:
-        errors: list[BaseCheckError] = []
         extracted_amounts = self._extract_amounts_from_fields(
-            [f for f in (total_amount_field, advance_payments_field) if f is not None]
+            [f for f in (total_amount_field, advance_payments_field) if f is not None],
         )
         result = await check_transcription_compliance_service.evaluate(
-            extracted_amounts
+            extracted_amounts,
         )
-        for issue in result.issues:
-            errors.append(
-                NumberTranscriptionError(
-                    index=issue.index,
-                    value=issue.value,
-                    transcription=issue.transcription,
-                    expected_transcription=issue.expected_transcription,
-                )
+
+        errors = [
+            NumberTranscriptionError(
+                index=issue.index,
+                value=issue.value,
+                transcription=issue.transcription,
+                expected_transcription=issue.expected_transcription,
             )
+            for issue in result.issues
+        ]
         return self._result(errors)

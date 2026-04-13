@@ -1,6 +1,6 @@
 import logging
 from dataclasses import is_dataclass
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 from app.domain.entities.errors import BaseMergeError
 from app.domain.entities.merge_types import ValueCandidate
@@ -13,15 +13,15 @@ from app.domain.merge.handlers import (
 )
 
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+
 logger = logging.getLogger(__name__)
 
 
-if TYPE_CHECKING:
-    pass
-
-
 class MergeRegistry:
-    def __init__(self, name: str = "default"):
+    def __init__(self, name: str = "default") -> None:
         self.name = name
         self.handlers: dict[type, Callable] = {}
 
@@ -58,15 +58,15 @@ class MergeRegistry:
         handler = self._get_handler(value_type)
         if handler is None:
             error_msg = f"No handler for type {value_type} in registry '{self.name}'"
-            logger.info(f"Merge failed for path='{path}': {error_msg}")
+            logger.info("Merge failed for path='%s': %s", path, error_msg)
             raise UnknownHandlerTypeError(error_msg)
 
-        result = handler(defined_candidates, path, self, errors)
+        result = handler(defined_candidates, path, errors, self)
 
         if result is not None:
             return ValueCandidate(value=result.value, sources=all_sources)
 
-        logger.info(f"Merge returned None for path='{path}'")
+        logger.info("Merge returned None for path='%s'", path)
         return result
 
     def _get_handler(self, value_type: type) -> Callable | None:

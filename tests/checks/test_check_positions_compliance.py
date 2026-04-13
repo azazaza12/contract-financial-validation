@@ -3,7 +3,6 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.domain.checks.check_positions_compliance import (
     CheckPositionsCompliance,
 )
@@ -17,13 +16,14 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.pipeline.task import CheckTask, TaskStatus
 from app.domain.service.checker import EvaluateResult
+
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
 pytestmark = pytest.mark.asyncio
 
 
-async def test_check1_can_run_as_task_and_save_result():
+async def test_check1_can_run_as_task_and_save_result() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -39,11 +39,11 @@ async def test_check1_can_run_as_task_and_save_result():
                         unit_price=Decimal("100"),
                         total_price=Decimal("100"),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
-        ]
+        ],
     )
 
     contract = DummyContract(
@@ -73,7 +73,7 @@ async def test_check1_can_run_as_task_and_save_result():
     contract_repo.save_errors.assert_awaited_once_with(contract, [], kind="check")
 
 
-async def test_check1_skips_when_required_field_is_missing():
+async def test_check1_raises_when_required_field_is_missing() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -85,11 +85,11 @@ async def test_check1_skips_when_required_field_is_missing():
                         unit_price=Decimal("100"),
                         total_price=Decimal("100"),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
-        ]
+        ],
     )
     contract = DummyContract(
         id=uuid4(),
@@ -118,7 +118,7 @@ async def test_check1_skips_when_required_field_is_missing():
     contract_repo.save_errors.assert_not_awaited()
 
 
-async def test_check1_skips_when_required_field_has_collision():
+async def test_check1_raises_when_required_field_has_collision() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -134,7 +134,7 @@ async def test_check1_skips_when_required_field_has_collision():
                         unit_price=Decimal("100"),
                         total_price=Decimal("100"),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
@@ -146,11 +146,11 @@ async def test_check1_skips_when_required_field_has_collision():
                         unit_price=Decimal("100"),
                         total_price=Decimal("200"),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
-        ]
+        ],
     )
     contract = DummyContract(
         id=uuid4(),

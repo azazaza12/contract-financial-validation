@@ -52,15 +52,15 @@ def is_scalar(value_type: type) -> bool:
 def merge_scalar_strict(
     candidates: list[ValueCandidate],
     path: str,
-    registry: "MergeRegistry",
     errors: list[BaseMergeError],
+    _registry: MergeRegistry,
 ) -> ValueCandidate | None:
     if not all_equal(candidates):
         errors.append(
             ValuesDiscrepancyError(
                 candidates=candidates,
                 path=path,
-            )
+            ),
         )
         return None
 
@@ -72,9 +72,9 @@ def merge_scalar_strict(
 
 def merge_scalar_pick_first(
     candidates: list[ValueCandidate],
-    path: str,
-    registry: "MergeRegistry",
-    errors: list[BaseMergeError],
+    _path: str,
+    _errors: list[BaseMergeError],
+    _registry: MergeRegistry,
 ) -> ValueCandidate | None:
     return ValueCandidate(
         value=candidates[0].value,
@@ -85,8 +85,8 @@ def merge_scalar_pick_first(
 def merge_list_strict(
     candidates: list[ValueCandidate],
     path: str,
-    registry: "MergeRegistry",
     errors: list[BaseMergeError],
+    registry: MergeRegistry,
 ) -> ValueCandidate | None:
     lengths = [len(c.value) for c in candidates]
 
@@ -95,7 +95,7 @@ def merge_list_strict(
             ValuesDiscrepancyError(
                 candidates=candidates,
                 path=path,
-            )
+            ),
         )
 
     max_length = max(lengths)
@@ -120,8 +120,8 @@ def merge_list_strict(
 def merge_list_flexible(
     candidates: list[ValueCandidate],
     path: str,
-    registry: "MergeRegistry",
     errors: list[BaseMergeError],
+    registry: MergeRegistry,
 ) -> ValueCandidate | None:
     max_length = max(len(c.value) for c in candidates)
     merged_list = []
@@ -145,9 +145,9 @@ def merge_list_flexible(
 
 def merge_list_concat(
     candidates: list[ValueCandidate],
-    path: str,
-    registry: "MergeRegistry",
-    errors: list[BaseMergeError],
+    _path: str,
+    _errors: list[BaseMergeError],
+    _registry: MergeRegistry,
 ) -> ValueCandidate | None:
     result = []
     for c in candidates:
@@ -162,8 +162,8 @@ def merge_list_concat(
 def merge_dataclass_default(
     candidates: list[ValueCandidate],
     path: str,
-    registry: "MergeRegistry",
     errors: list[BaseMergeError],
+    registry: MergeRegistry,
 ) -> ValueCandidate | None:
     merged_kwargs = {}
 
