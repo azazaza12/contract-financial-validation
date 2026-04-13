@@ -125,8 +125,8 @@ async def test_no_advances_one_tax_line_rates_differ_failed() -> None:
     assert r.status == CheckStatus.failed
     err = r.errors[0]
     assert isinstance(err, PaymentVatRatesDifferError)
-    assert err.rate_one == Decimal("20")
-    assert err.rate_two == Decimal("10")
+    assert err.rate_one == Decimal(20)
+    assert err.rate_two == Decimal(10)
 
 
 async def test_no_advances_multiple_taxes_line_differs_from_total_failed() -> None:
@@ -138,8 +138,8 @@ async def test_no_advances_multiple_taxes_line_differs_from_total_failed() -> No
     assert r.status == CheckStatus.failed
     err = r.errors[0]
     assert isinstance(err, PaymentVatRatesDifferError)
-    assert err.rate_one == Decimal("20")
-    assert err.rate_two == Decimal("10")
+    assert err.rate_one == Decimal(20)
+    assert err.rate_two == Decimal(10)
 
 
 async def test_no_advances_multiple_taxes_all_lines_match_total_success() -> None:
@@ -221,8 +221,8 @@ async def test_advances_with_payments_line_differs_from_advance_total_failed() -
     assert r.status == CheckStatus.failed
     err = r.errors[0]
     assert isinstance(err, PaymentVatRatesDifferError)
-    assert err.rate_one == Decimal("20")
-    assert err.rate_two == Decimal("10")
+    assert err.rate_one == Decimal(20)
+    assert err.rate_two == Decimal(10)
 
 
 async def test_advances_with_payments_no_advance_total_mixed_rates_success() -> None:
@@ -297,8 +297,8 @@ async def test_flat_advances_differ_from_contract_failed() -> None:
     assert r.status == CheckStatus.failed
     err = r.errors[0]
     assert isinstance(err, PaymentVatRatesDifferError)
-    assert err.rate_one == Decimal("20")
-    assert err.rate_two == Decimal("10")
+    assert err.rate_one == Decimal(20)
+    assert err.rate_two == Decimal(10)
 
 
 async def test_flat_advances_skip_none_total_success() -> None:
@@ -307,7 +307,7 @@ async def test_flat_advances_skip_none_total_success() -> None:
         tax_rates=None,
         advances=[
             AdvancePayment(percent=None, total=None, payments=[]),
-            _advance(total_rate=Decimal("20")),
+            _advance(total_rate=Decimal(20)),
         ],
     )
     assert r.status == CheckStatus.success
