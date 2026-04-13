@@ -89,7 +89,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
     )
 
     assert result.status == CheckStatus.failed
-    assert len(result.errors) == 2
+    assert len(result.errors) == 2  # noqa: PLR2004
     assert all(isinstance(error, NumberTranscriptionError) for error in result.errors)
     first = result.errors[0]
     second = result.errors[1]
@@ -99,7 +99,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
     assert first.value == Decimal("100.00")
     assert first.transcription == "Сто один"
     assert first.expected_transcription == "Сто"
-    assert second.index == 2
+    assert second.index == 2  # noqa: PLR2004
     assert second.value == Decimal("200.00")
     service_mock.evaluate.assert_awaited_once()
 
