@@ -3,7 +3,7 @@ class CheckInputError(Exception):
 
 
 class MissingRequiredFieldError(CheckInputError):
-    def __init__(self, label: str, param_name: str, field_type: str):
+    def __init__(self, label: str, param_name: str, field_type: str) -> None:
         super().__init__(
             f"{label}: missing required field for '{param_name}' {field_type}"
         )
@@ -13,7 +13,9 @@ class MissingRequiredFieldError(CheckInputError):
 
 
 class MultiplyRequiredFieldError(CheckInputError):
-    def __init__(self, label: str, param_name: str, field_type: str, count: int):
+    def __init__(
+        self, label: str, param_name: str, field_type: str, count: int
+    ) -> None:
         super().__init__(
             f"{label}: collision for '{param_name}' ({field_type}), count={count}"
         )
