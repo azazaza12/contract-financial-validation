@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
-
 from app.domain.checks.check_price_validation import CheckPriceValidation
 from app.domain.entities.errors import (
     AmountDiscrepancyError,
@@ -23,6 +22,7 @@ from app.domain.entities.single_supplier_fields import (
     Vat,
 )
 from app.domain.pipeline.task import CheckTask, TaskStatus
+
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
@@ -40,7 +40,8 @@ def _make_payment(value: str) -> Payment:
 
 
 def _make_total_amount_field(
-    value: str, document: SingleSupplierDocument
+    value: str,
+    document: SingleSupplierDocument,
 ) -> TotalAmountField:
     return TotalAmountField(
         value=TotalAmount(total=_make_payment(value), taxes=[]),
@@ -49,7 +50,8 @@ def _make_total_amount_field(
 
 
 def _make_contract(
-    document: SingleSupplierDocument, fields: FieldCollector
+    document: SingleSupplierDocument,
+    fields: FieldCollector,
 ) -> DummyContract:
     return DummyContract(
         id=uuid4(),
@@ -60,7 +62,7 @@ def _make_contract(
     )
 
 
-async def test_check_price_validation_can_run_as_task_and_save_result():
+async def test_check_price_validation_can_run_as_task_and_save_result() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -72,12 +74,12 @@ async def test_check_price_validation_can_run_as_task_and_save_result():
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("100.00"),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("100.00", document),
-        ]
+        ],
     )
 
     contract = _make_contract(document, fields)
@@ -90,7 +92,7 @@ async def test_check_price_validation_can_run_as_task_and_save_result():
     contract_repo.save_errors.assert_awaited_once_with(contract, [], kind="check")
 
 
-async def test_check_price_validation_skips_when_required_field_is_missing():
+async def test_check_price_validation_raises_when_required_field_is_missing() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -102,11 +104,11 @@ async def test_check_price_validation_skips_when_required_field_is_missing():
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("100.00"),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
-        ]
+        ],
     )
 
     contract = _make_contract(document, fields)
@@ -124,7 +126,9 @@ async def test_check_price_validation_skips_when_required_field_is_missing():
     contract_repo.save_errors.assert_not_awaited()
 
 
-async def test_check_price_validation_skips_when_required_field_has_collision():
+async def test_check_price_validation_raises_when_required_field_has_collision() -> (
+    None
+):
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -136,13 +140,13 @@ async def test_check_price_validation_skips_when_required_field_has_collision():
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("100.00"),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("100.00", document),
             _make_total_amount_field("200.00", document),
-        ]
+        ],
     )
 
     contract = _make_contract(document, fields)
@@ -158,7 +162,7 @@ async def test_check_price_validation_skips_when_required_field_has_collision():
     contract_repo.save_errors.assert_not_awaited()
 
 
-async def test_check_price_validation_fails_when_position_total_mismatch():
+async def test_check_price_validation_fails_when_position_total_mismatch() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -170,12 +174,12 @@ async def test_check_price_validation_fails_when_position_total_mismatch():
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("600.00"),  # должно быть 500.00
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("600.00", document),
-        ]
+        ],
     )
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
@@ -188,7 +192,7 @@ async def test_check_price_validation_fails_when_position_total_mismatch():
     assert any(isinstance(err, PositionCostDiscrepancyError) for err in called_errors)
 
 
-async def test_check_price_validation_fails_when_total_amount_mismatch():
+async def test_check_price_validation_fails_when_total_amount_mismatch() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -200,12 +204,12 @@ async def test_check_price_validation_fails_when_total_amount_mismatch():
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("100.00"),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("150.00", document),  # рассчитано 100.00
-        ]
+        ],
     )
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
@@ -218,7 +222,7 @@ async def test_check_price_validation_fails_when_total_amount_mismatch():
     assert any(isinstance(err, AmountDiscrepancyError) for err in called_errors)
 
 
-async def test_check_price_validation_fails_when_values_not_positive():
+async def test_check_price_validation_fails_when_values_not_positive() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -230,12 +234,12 @@ async def test_check_price_validation_fails_when_values_not_positive():
                         unit_price=Decimal("0.00"),
                         total_price=Decimal("0.00"),
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("0.00", document),
-        ]
+        ],
     )
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)
@@ -248,7 +252,7 @@ async def test_check_price_validation_fails_when_values_not_positive():
     assert any(isinstance(err, AmountNotPositiveError) for err in called_errors)
 
 
-async def test_check_price_validation_succeeds_when_within_tolerance():
+async def test_check_price_validation_succeeds_when_within_tolerance() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -260,12 +264,12 @@ async def test_check_price_validation_succeeds_when_within_tolerance():
                         unit_price=Decimal("100.00"),
                         total_price=Decimal("100.01"),  # ровно tolerance
                         unit_of_measurement="шт",
-                    )
+                    ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("100.01", document),
-        ]
+        ],
     )
     contract = _make_contract(document, fields)
     check = CheckPriceValidation(tolerance=DEFAULT_TOLERANCE)

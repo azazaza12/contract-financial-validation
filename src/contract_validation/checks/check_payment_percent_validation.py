@@ -37,7 +37,7 @@ def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
 
 
 class CheckPaymentPercentValidation(BaseCheck):
-    def __init__(self, tolerance: Decimal):
+    def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
     async def execute(
@@ -56,7 +56,7 @@ class CheckPaymentPercentValidation(BaseCheck):
             logger.info(
                 "Contract total amount is missing: amount-vs-percent "
                 "comparison skipped; percent sum check still runs "
-                "when all percents are specified"
+                "when all percents are specified",
             )
 
         if not payments:
@@ -85,7 +85,7 @@ class CheckPaymentPercentValidation(BaseCheck):
                     expected_amount=expected_amount,
                     percent=advance_payment.percent,
                     contract_total_amount=total_amount,
-                )
+                ),
             )
 
         all_percents_specified = all(p.percent is not None for p in payments)

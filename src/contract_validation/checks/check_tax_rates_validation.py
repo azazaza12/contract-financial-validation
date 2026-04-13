@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import (
@@ -16,6 +14,10 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
+
+
+if TYPE_CHECKING:
+    from decimal import Decimal
 
 
 def _payment_lines_mismatch_vs_reference(
@@ -75,7 +77,7 @@ def _aggregate_rate_vs_contract(
 
 
 class CheckTaxRatesValidation(BaseCheck):
-    async def execute(
+    async def execute(  # noqa: C901
         self,
         total_amount_field: TotalAmountField,
         advance_payments_field: AdvancePaymentsField | None,
@@ -106,7 +108,8 @@ class CheckTaxRatesValidation(BaseCheck):
         for advance_payment in advance_payments_field.value:
             if not advance_payment.payments:
                 mismatch = _aggregate_rate_vs_contract(
-                    contract_rate, advance_payment.total
+                    contract_rate,
+                    advance_payment.total,
                 )
                 if mismatch is not None:
                     errors.append(mismatch)
