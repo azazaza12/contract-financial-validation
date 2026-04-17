@@ -19,6 +19,12 @@ from .single_supplier_fields import (
     TotalAmountField,
     Vat,
 )
+from .excel.document import ExcelNmckDocument
+from .excel.nmck_fields import (
+    ExcelGoodsNmckAvgField,
+    ExcelWorksServicesNmckAvgField,
+    ExcelWorksServicesNmckLimitField,
+)
 from .unknown import UnknownDocument
 
 
@@ -30,6 +36,10 @@ __all__ = [
     "BaseDocument",
     "BaseField",
     "DocumentObjectField",
+    "ExcelGoodsNmckAvgField",
+    "ExcelNmckDocument",
+    "ExcelWorksServicesNmckAvgField",
+    "ExcelWorksServicesNmckLimitField",
     "FieldCollector",
     "Payment",
     "SingleSupplierContract",
