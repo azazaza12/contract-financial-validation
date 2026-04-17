@@ -20,7 +20,7 @@ from .single_supplier_fields import (
     Vat,
 )
 from .excel.document import ExcelNmckDocument
-from .excel.nmck_fields import (
+from .excel.fields import (
     ExcelGoodsNmckAvgField,
     ExcelWorksServicesNmckAvgField,
     ExcelWorksServicesNmckLimitField,
