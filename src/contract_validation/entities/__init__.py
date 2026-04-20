@@ -1,5 +1,11 @@
 from .contract import BaseContract
 from .document import BaseDocument
+from .excel.document import ExcelInitialMaxContractPriceDocument
+from .excel.fields import (
+    ExcelGoodsInitialMaxContractPriceAvgField,
+    ExcelWorksServicesInitialMaxContractPriceAvgField,
+    ExcelWorksServicesInitialMaxContractPriceLimitField,
+)
 from .field import BaseField, FieldCollector
 from .merge_types import Source, ValueCandidate
 from .single_supplier import (
@@ -18,12 +24,6 @@ from .single_supplier_fields import (
     TotalAmount,
     TotalAmountField,
     Vat,
-)
-from .excel.document import ExcelInitialMaxContractPriceDocument
-from .excel.fields import (
-    ExcelGoodsInitialMaxContractPriceAvgField,
-    ExcelWorksServicesInitialMaxContractPriceAvgField,
-    ExcelWorksServicesInitialMaxContractPriceLimitField,
 )
 from .unknown import UnknownDocument
 
