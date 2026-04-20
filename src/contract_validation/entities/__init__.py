@@ -19,11 +19,11 @@ from .single_supplier_fields import (
     TotalAmountField,
     Vat,
 )
-from .excel.document import ExcelNmckDocument
+from .excel.document import ExcelInitialMaxContractPriceDocument
 from .excel.fields import (
-    ExcelGoodsNmckAvgField,
-    ExcelWorksServicesNmckAvgField,
-    ExcelWorksServicesNmckLimitField,
+    ExcelGoodsInitialMaxContractPriceAvgField,
+    ExcelWorksServicesInitialMaxContractPriceAvgField,
+    ExcelWorksServicesInitialMaxContractPriceLimitField,
 )
 from .unknown import UnknownDocument
 
@@ -36,10 +36,10 @@ __all__ = [
     "BaseDocument",
     "BaseField",
     "DocumentObjectField",
-    "ExcelGoodsNmckAvgField",
-    "ExcelNmckDocument",
-    "ExcelWorksServicesNmckAvgField",
-    "ExcelWorksServicesNmckLimitField",
+    "ExcelGoodsInitialMaxContractPriceAvgField",
+    "ExcelInitialMaxContractPriceDocument",
+    "ExcelWorksServicesInitialMaxContractPriceAvgField",
+    "ExcelWorksServicesInitialMaxContractPriceLimitField",
     "FieldCollector",
     "Payment",
     "SingleSupplierContract",
