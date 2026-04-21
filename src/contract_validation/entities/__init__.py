@@ -3,6 +3,7 @@ from .document import BaseDocument
 from .excel.document import ExcelInitialMaxContractPriceDocument
 from .excel.fields import (
     ExcelGoodsInitialMaxContractPriceAvgField,
+    ExcelGoodsOrganizationsAmountsField,
     ExcelWorksServicesInitialMaxContractPriceAvgField,
     ExcelWorksServicesInitialMaxContractPriceLimitField,
 )
@@ -37,6 +38,7 @@ __all__ = [
     "BaseField",
     "DocumentObjectField",
     "ExcelGoodsInitialMaxContractPriceAvgField",
+    "ExcelGoodsOrganizationsAmountsField",
     "ExcelInitialMaxContractPriceDocument",
     "ExcelWorksServicesInitialMaxContractPriceAvgField",
     "ExcelWorksServicesInitialMaxContractPriceLimitField",
