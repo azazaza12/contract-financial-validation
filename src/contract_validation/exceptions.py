@@ -14,5 +14,5 @@ class ExcelAnchorAmountNotFoundError(ExcelExtractionError):
     pass
 
 
-class ExcelInitialMaxContractPriceNotFoundError(ExcelExtractionError):
+class ExcelIMCPNotFoundError(ExcelExtractionError):
     pass
