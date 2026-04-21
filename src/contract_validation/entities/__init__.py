@@ -1,12 +1,12 @@
 from .contract import BaseContract
 from .document import BaseDocument
-from .excel.document import ExcelInitialMaxContractPriceDocument
+from .excel.document import ExcelIMCPDocument
 from .excel.fields import (
-    ExcelGoodsInitialMaxContractPriceAvgField,
+    ExcelGoodsIMCPAvgField,
     ExcelGoodsOrganizationsAmountsField,
+    ExcelWorksIMCPAvgField,
+    ExcelWorksIMCPLimitField,
     ExcelWorksOrganizationsAmountsField,
-    ExcelWorksServicesInitialMaxContractPriceAvgField,
-    ExcelWorksServicesInitialMaxContractPriceLimitField,
 )
 from .field import BaseField, FieldCollector
 from .merge_types import Source, ValueCandidate
@@ -38,12 +38,12 @@ __all__ = [
     "BaseDocument",
     "BaseField",
     "DocumentObjectField",
-    "ExcelGoodsInitialMaxContractPriceAvgField",
+    "ExcelGoodsIMCPAvgField",
     "ExcelGoodsOrganizationsAmountsField",
-    "ExcelInitialMaxContractPriceDocument",
+    "ExcelIMCPDocument",
+    "ExcelWorksIMCPAvgField",
+    "ExcelWorksIMCPLimitField",
     "ExcelWorksOrganizationsAmountsField",
-    "ExcelWorksServicesInitialMaxContractPriceAvgField",
-    "ExcelWorksServicesInitialMaxContractPriceLimitField",
     "FieldCollector",
     "Payment",
     "SingleSupplierContract",
