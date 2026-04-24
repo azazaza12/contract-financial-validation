@@ -12,7 +12,7 @@ class DocumentObjectField(BaseField[str]):
 
 @dataclass(kw_only=True, frozen=True)
 class Amount:
-    value: Decimal
+    value: Decimal | None
     transcription: str | None
 
 
@@ -26,7 +26,7 @@ class Vat:
 class Payment:
     amount: Amount | None
     vat: Vat
-    include_vat: bool
+    include_vat: bool | None
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -54,11 +54,11 @@ class AdvancePaymentsField(BaseField[list[AdvancePayment]]):
 
 @dataclass(kw_only=True, frozen=True)
 class SpecPosition:
-    name: str
-    quantity: Decimal
-    unit_price: Decimal
-    total_price: Decimal
-    unit_of_measurement: str
+    name: str | None
+    quantity: Decimal | None
+    unit_price: Decimal | None
+    total_price: Decimal | None
+    unit_of_measurement: str | None
 
 
 @dataclass(kw_only=True, frozen=True)
