@@ -1,5 +1,13 @@
 from .contract import BaseContract
 from .document import BaseDocument
+from .excel.document import ExcelIMCPDocument
+from .excel.fields import (
+    ExcelGoodsIMCPAvgField,
+    ExcelGoodsOrganizationsAmountsField,
+    ExcelWorksIMCPAvgField,
+    ExcelWorksIMCPLimitField,
+    ExcelWorksOrganizationsAmountsField,
+)
 from .field import BaseField, FieldCollector
 from .merge_types import Source, ValueCandidate
 from .single_supplier import (
@@ -30,6 +38,12 @@ __all__ = [
     "BaseDocument",
     "BaseField",
     "DocumentObjectField",
+    "ExcelGoodsIMCPAvgField",
+    "ExcelGoodsOrganizationsAmountsField",
+    "ExcelIMCPDocument",
+    "ExcelWorksIMCPAvgField",
+    "ExcelWorksIMCPLimitField",
+    "ExcelWorksOrganizationsAmountsField",
     "FieldCollector",
     "Payment",
     "SingleSupplierContract",
