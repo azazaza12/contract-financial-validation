@@ -1,7 +1,7 @@
 from .contract import BaseContract
 from .document import BaseDocument
-from .excel.document import ExcelIMCPDocument
-from .excel.fields import (
+from .imcp.document import ExcelIMCPDocument
+from .imcp.fields import (
     ExcelGoodsIMCPAvgField,
     ExcelGoodsOrganizationsAmountsField,
     ExcelWorksIMCPAvgField,
