@@ -16,3 +16,6 @@ class AnchorAmountNotFoundError(IMCPExtractionError):
 
 class IMCPNotFoundError(IMCPExtractionError):
     pass
+
+class UnsupportedSheetResultError(IMCPExtractionError):
+    pass
