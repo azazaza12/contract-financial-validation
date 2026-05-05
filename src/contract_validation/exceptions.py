@@ -6,13 +6,17 @@ class PipelineIsNoneError(Exception):
     pass
 
 
-class ExcelExtractionError(Exception):
+class IMCPExtractionError(Exception):
     pass
 
 
-class ExcelAnchorAmountNotFoundError(ExcelExtractionError):
+class AnchorAmountNotFoundError(IMCPExtractionError):
     pass
 
 
-class ExcelIMCPNotFoundError(ExcelExtractionError):
+class IMCPNotFoundError(IMCPExtractionError):
+    pass
+
+
+class UnsupportedSheetResultError(IMCPExtractionError):
     pass
