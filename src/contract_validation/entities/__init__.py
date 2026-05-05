@@ -1,14 +1,14 @@
 from .contract import BaseContract
 from .document import BaseDocument
-from .excel.document import ExcelIMCPDocument
-from .excel.fields import (
+from .field import BaseField, FieldCollector
+from .imcp.document import ExcelIMCPDocument
+from .imcp.fields import (
     ExcelGoodsIMCPAvgField,
     ExcelGoodsOrganizationsAmountsField,
     ExcelWorksIMCPAvgField,
     ExcelWorksIMCPLimitField,
     ExcelWorksOrganizationsAmountsField,
 )
-from .field import BaseField, FieldCollector
 from .merge_types import Source, ValueCandidate
 from .single_supplier import (
     SingleSupplierContract,
