@@ -3,10 +3,10 @@ from .document import BaseDocument
 from .field import BaseField, FieldCollector
 from .imcp.document import ExcelIMCPDocument
 from .imcp.fields import (
-    IMCPAvgField,
     ExcelGoodsOrganizationsAmountsField,
-    IMCPLimitField,
     ExcelWorksOrganizationsAmountsField,
+    IMCPAvgField,
+    IMCPLimitField,
 )
 from .merge_types import Source, ValueCandidate
 from .single_supplier import (
@@ -37,13 +37,13 @@ __all__ = [
     "BaseDocument",
     "BaseField",
     "DocumentObjectField",
-    "IMCPAvgField",
     "ExcelGoodsOrganizationsAmountsField",
     "ExcelIMCPDocument",
     "ExcelWorksIMCPAvgField",
-    "IMCPLimitField",
     "ExcelWorksOrganizationsAmountsField",
     "FieldCollector",
+    "IMCPAvgField",
+    "IMCPLimitField",
     "Payment",
     "SingleSupplierContract",
     "SingleSupplierDocument",
