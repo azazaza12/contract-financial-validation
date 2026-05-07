@@ -1,5 +1,5 @@
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Hashable
 
 from app.domain.entities.merge_types import Source, ValueCandidate
 from app.domain.merge.defaults import DEFAULT_REGISTRY
@@ -47,6 +47,9 @@ class BaseField[T]:
             return incorrect_fields, errors
 
         return [cls(value=merged.value, sources=merged.sources)], errors
+
+    def collision_key(self) -> Hashable | None:
+        return None
 
 
 class FieldCollector:
