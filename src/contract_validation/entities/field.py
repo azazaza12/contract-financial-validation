@@ -1,5 +1,6 @@
+from collections.abc import Hashable
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, ClassVar, Hashable
+from typing import TYPE_CHECKING, ClassVar
 
 from app.domain.entities.merge_types import Source, ValueCandidate
 from app.domain.merge.defaults import DEFAULT_REGISTRY
