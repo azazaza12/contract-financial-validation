@@ -1,5 +1,4 @@
 from app.domain.entities.errors.base import BaseContractError
-from app.domain.entities.errors.match_result import BenchmarkMatchResult
 from app.domain.entities.errors.benchmark_matcher import match_benchmark_errors
 from app.domain.entities.errors.checks import (
     AmountDiscrepancyError,
@@ -18,6 +17,7 @@ from app.domain.entities.errors.checks import (
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
 )
+from app.domain.entities.errors.match_result import BenchmarkMatchResult
 from app.domain.entities.errors.merge import (
     BaseMergeError,
     ValueNotDefinedError,
@@ -33,7 +33,6 @@ __all__ = [
     "BaseContractError",
     "BaseMergeError",
     "BenchmarkMatchResult",
-    "match_benchmark_errors",
     "NumberTranscriptionError",
     "PaymentAmountPercentDiscrepancyError",
     "PaymentPercentSumDiscrepancyError",
@@ -47,4 +46,5 @@ __all__ = [
     "VatAmountDiscrepancyError",
     "VatAmountNotPositiveError",
     "VatRateNotPositiveError",
+    "match_benchmark_errors",
 ]
