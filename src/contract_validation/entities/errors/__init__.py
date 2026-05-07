@@ -1,4 +1,6 @@
 from app.domain.entities.errors.base import BaseContractError
+from app.domain.entities.errors.match_result import BenchmarkMatchResult
+from app.domain.entities.errors.benchmark_matcher import match_benchmark_errors
 from app.domain.entities.errors.checks import (
     AmountDiscrepancyError,
     AmountNotFoundError,
@@ -30,6 +32,8 @@ __all__ = [
     "BaseCheckError",
     "BaseContractError",
     "BaseMergeError",
+    "BenchmarkMatchResult",
+    "match_benchmark_errors",
     "NumberTranscriptionError",
     "PaymentAmountPercentDiscrepancyError",
     "PaymentPercentSumDiscrepancyError",

@@ -1,10 +1,6 @@
-from .benchmark_match import (
-    BenchmarkErrorFingerprint,
-    BenchmarkMatchResult,
-    BenchmarkTuple,
-)
 from .contract import BaseContract
 from .document import BaseDocument
+from .errors.match_result import BenchmarkMatchResult
 from .field import BaseField, FieldCollector
 from .imcp.document import ExcelIMCPDocument
 from .imcp.fields import (
@@ -42,9 +38,7 @@ __all__ = [
     "BaseContract",
     "BaseDocument",
     "BaseField",
-    "BenchmarkErrorFingerprint",
     "BenchmarkMatchResult",
-    "BenchmarkTuple",
     "DocumentObjectField",
     "ExcelGoodsIMCPAvgField",
     "ExcelGoodsOrganizationsAmountsField",
