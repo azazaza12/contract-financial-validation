@@ -1,3 +1,8 @@
+from .benchmark_match import (
+    BenchmarkErrorFingerprint,
+    BenchmarkMatchResult,
+    BenchmarkTuple,
+)
 from .contract import BaseContract
 from .document import BaseDocument
 from .field import BaseField, FieldCollector
@@ -34,6 +39,9 @@ __all__ = [
     "AdvancePayment",
     "AdvancePaymentsField",
     "Amount",
+    "BenchmarkErrorFingerprint",
+    "BenchmarkMatchResult",
+    "BenchmarkTuple",
     "BaseContract",
     "BaseDocument",
     "BaseField",
