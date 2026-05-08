@@ -1,6 +1,7 @@
+from app.domain.benchmark.match_result import BenchmarkMatchResult
+
 from .contract import BaseContract
 from .document import BaseDocument
-from app.domain.benchmark.match_result import BenchmarkMatchResult
 from .field import BaseField, FieldCollector
 from .imcp.document import ExcelIMCPDocument
 from .imcp.fields import (
