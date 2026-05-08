@@ -1,5 +1,6 @@
+from app.domain.benchmark.match_result import BenchmarkMatchResult
+from app.domain.benchmark.matcher import BenchmarkErrorsMatcher
 from app.domain.entities.errors.base import BaseContractError
-from app.domain.entities.errors.benchmark_matcher import BenchmarkErrorsMatcher
 from app.domain.entities.errors.checks import (
     AmountDiscrepancyError,
     AmountNotFoundError,
@@ -17,7 +18,6 @@ from app.domain.entities.errors.checks import (
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
 )
-from app.domain.entities.errors.match_result import BenchmarkMatchResult
 from app.domain.entities.errors.merge import (
     BaseMergeError,
     ValueNotDefinedError,
