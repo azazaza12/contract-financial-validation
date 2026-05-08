@@ -89,7 +89,7 @@ class FieldCollector:
                     by_key.setdefault(key, []).append(field)
             if len(without_key) > 1:
                 yield field_type, without_key
-            
+
             for grouped_fields in by_key.values():
                 if len(grouped_fields) > 1:
                     yield field_type, grouped_fields
