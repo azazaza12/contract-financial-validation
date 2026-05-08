@@ -1,5 +1,3 @@
-import logging
-
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import NumberTranscriptionError
 from app.domain.entities.single_supplier_fields import (
@@ -11,8 +9,6 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 from app.domain.service.checker import ITranscriptionComplianceService
 
-
-logger = logging.getLogger(__name__)
 
 
 class CheckNumberTranscriptionRub(BaseCheck):

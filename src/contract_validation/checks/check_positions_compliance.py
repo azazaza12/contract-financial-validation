@@ -1,4 +1,4 @@
-import logging
+import structlog
 
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import BaseCheckError, PositionsComplianceError
@@ -10,7 +10,7 @@ from app.domain.entities.validation import CheckExecutionResult
 from app.domain.service.checker import IPositionsComplianceService
 
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class CheckPositionsCompliance(BaseCheck):
@@ -31,17 +31,13 @@ class CheckPositionsCompliance(BaseCheck):
         )
 
         if result.success:
-            logger.info(
-                "Document object - [%s]\nAll items correspond "
-                "to the subject of the purchase",
-                document_object,
-            )
+            logger.info("positions_compliant", document_object=document_object)
             return self._result(errors)
 
         logger.info(
-            "Document object - [%s]\nInappropriate items found:\n [%s]",
-            document_object,
-            result.text,
+            "positions_non_compliant",
+            document_object=document_object,
+            details=result.text,
         )
         errors.append(PositionsComplianceError(message=result.text or ""))
         return self._result(errors)
