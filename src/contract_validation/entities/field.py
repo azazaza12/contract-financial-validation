@@ -49,6 +49,7 @@ class BaseField[T]:
 
         return [cls(value=merged.value, sources=merged.sources)], errors
 
+    @property
     def collision_key(self) -> Hashable | None:
         return None
 
@@ -82,7 +83,7 @@ class FieldCollector:
             by_key: dict[Hashable, list[BaseField]] = {}
 
             for field in fields:
-                key = field.collision_key()
+                key = field.collision_key
                 if key is None:
                     without_key.append(field)
                 else:
