@@ -1,5 +1,3 @@
-import structlog
-
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import BaseCheckError, PositionsComplianceError
 from app.domain.entities.single_supplier_fields import (
@@ -8,9 +6,6 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 from app.domain.service.checker import IPositionsComplianceService
-
-
-logger = structlog.get_logger()
 
 
 class CheckPositionsCompliance(BaseCheck):
@@ -31,13 +26,7 @@ class CheckPositionsCompliance(BaseCheck):
         )
 
         if result.success:
-            logger.info("positions_compliant", document_object=document_object)
             return self._result(errors)
 
-        logger.info(
-            "positions_non_compliant",
-            document_object=document_object,
-            details=result.text,
-        )
         errors.append(PositionsComplianceError(message=result.text or ""))
         return self._result(errors)

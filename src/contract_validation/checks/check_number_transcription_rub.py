@@ -10,7 +10,6 @@ from app.domain.entities.validation import CheckExecutionResult
 from app.domain.service.checker import ITranscriptionComplianceService
 
 
-
 class CheckNumberTranscriptionRub(BaseCheck):
     @staticmethod
     def _amounts_from_payment(payment: Payment) -> list[Amount]:

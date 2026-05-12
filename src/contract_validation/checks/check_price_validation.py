@@ -1,4 +1,3 @@
-import structlog
 from decimal import Decimal
 
 from app.domain.checks.base import BaseCheck
@@ -14,9 +13,6 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
-
-
-logger = structlog.get_logger()
 
 
 class CheckPriceValidation(BaseCheck):
@@ -78,8 +74,4 @@ class CheckPriceValidation(BaseCheck):
                     ),
                 )
 
-        if errors:
-            logger.info("check_found_errors", check=self.__class__.__name__, count=len(errors))
-        else:
-            logger.info("check_passed", check=self.__class__.__name__)
         return self._result(errors)
