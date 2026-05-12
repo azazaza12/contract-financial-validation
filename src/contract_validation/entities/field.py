@@ -1,3 +1,4 @@
+from collections.abc import Hashable
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, ClassVar
 
@@ -47,6 +48,9 @@ class BaseField[T]:
             return incorrect_fields, errors
 
         return [cls(value=merged.value, sources=merged.sources)], errors
+
+    def collision_key(self) -> Hashable | None:
+        return None
 
 
 class FieldCollector:
