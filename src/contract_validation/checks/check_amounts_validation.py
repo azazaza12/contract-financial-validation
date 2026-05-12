@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import (
     AmountDiscrepancyError,
     BaseCheckError,
@@ -10,7 +11,6 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
-from app.domain.checks.base import BaseCheck
 
 
 class CheckTotalAmountsValidation(BaseCheck):
