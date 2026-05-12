@@ -1,4 +1,5 @@
 from .base import BaseCheck
+from .deps import OptionalDep, Requires
 from .errors import (
     CheckInputError,
     InvalidCheckSignatureError,
@@ -13,4 +14,6 @@ __all__ = [
     "InvalidCheckSignatureError",
     "MissingRequiredFieldError",
     "MultiplyRequiredFieldError",
+    "OptionalDep",
+    "Requires",
 ]
