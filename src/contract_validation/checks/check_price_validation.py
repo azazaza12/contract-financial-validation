@@ -14,24 +14,26 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
+from .deps import Requires, OptionalDep
 
 
 logger = logging.getLogger(__name__)
 
 
 class CheckPriceValidation(BaseCheck):
+    spec_positions_field = Requires(SpecPositionsField)
+    total_amount_field = Requires(TotalAmountField)
+
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
     async def execute(
-        self,
-        spec_positions_field: SpecPositionsField,
-        total_amount_field: TotalAmountField,
+        self
     ) -> CheckExecutionResult:
         errors: list[BaseCheckError] = []
 
-        spec_positions = spec_positions_field.value
-        total_payment = total_amount_field.value.total
+        spec_positions = self.spec_positions_field.value
+        total_payment = self.total_amount_field.value.total
         total_amount = (
             total_payment.amount.value if total_payment.amount is not None else None
         )
