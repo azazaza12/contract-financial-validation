@@ -14,6 +14,8 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
+from .deps import Requires
+
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +39,18 @@ def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
 
 
 class CheckPaymentPercentValidation(BaseCheck):
+    advance_payments_field = Requires(AdvancePaymentsField)
+    total_amount_field = Requires(TotalAmountField)
+
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
     async def execute(
         self,
-        advance_payments_field: AdvancePaymentsField,
-        total_amount_field: TotalAmountField,
     ) -> CheckExecutionResult:
         errors: list[BaseCheckError] = []
-        payments = advance_payments_field.value
-        total_payment = total_amount_field.value.total
+        payments = self.advance_payments_field.value
+        total_payment = self.total_amount_field.value.total
         total_amount = (
             total_payment.amount.value if total_payment.amount is not None else None
         )

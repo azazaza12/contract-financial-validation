@@ -15,6 +15,8 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
+from .deps import OptionalDep, Requires
+
 
 if TYPE_CHECKING:
     from decimal import Decimal
@@ -77,18 +79,19 @@ def _aggregate_rate_vs_contract(
 
 
 class CheckTaxRatesValidation(BaseCheck):
+    total_amount_field = Requires(TotalAmountField)
+    advance_payments_field = OptionalDep(AdvancePaymentsField)
+
     async def execute(  # noqa: C901
         self,
-        total_amount_field: TotalAmountField,
-        advance_payments_field: AdvancePaymentsField | None,
     ) -> CheckExecutionResult:
         errors: list[BaseCheckError] = []
-        ta = total_amount_field.value
+        ta = self.total_amount_field.value
         taxes = ta.taxes
 
         if not (
             _total_amount_has_any_vat_rate(ta)
-            or _advances_field_has_any_vat_rate(advance_payments_field)
+            or _advances_field_has_any_vat_rate(self.advance_payments_field)
         ):
             errors.append(PaymentVatRateNotFoundError())
             return self._result(errors)
@@ -101,11 +104,14 @@ class CheckTaxRatesValidation(BaseCheck):
                     errors.append(mismatch)
                     return self._result(errors)
 
-        if advance_payments_field is None or len(advance_payments_field.value) == 0:
+        if (
+            self.advance_payments_field is None
+            or len(self.advance_payments_field.value) == 0
+        ):
             return self._result(errors)
 
         contract_rate = ta.total.vat.rate
-        for advance_payment in advance_payments_field.value:
+        for advance_payment in self.advance_payments_field.value:
             if not advance_payment.payments:
                 mismatch = _aggregate_rate_vs_contract(
                     contract_rate,

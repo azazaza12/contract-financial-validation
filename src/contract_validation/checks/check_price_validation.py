@@ -14,7 +14,8 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
-from .deps import Requires, OptionalDep
+
+from .deps import Requires
 
 
 logger = logging.getLogger(__name__)
@@ -27,9 +28,7 @@ class CheckPriceValidation(BaseCheck):
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
-    async def execute(
-        self
-    ) -> CheckExecutionResult:
+    async def execute(self) -> CheckExecutionResult:
         errors: list[BaseCheckError] = []
 
         spec_positions = self.spec_positions_field.value

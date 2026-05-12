@@ -11,11 +11,16 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 from app.domain.service.checker import ITranscriptionComplianceService
 
+from .deps import OptionalDep
+
 
 logger = logging.getLogger(__name__)
 
 
 class CheckNumberTranscriptionRub(BaseCheck):
+    total_amount_field = OptionalDep(TotalAmountField)
+    advance_payments_field = OptionalDep(AdvancePaymentsField)
+
     @staticmethod
     def _amounts_from_payment(payment: Payment) -> list[Amount]:
         out: list[Amount] = []
@@ -50,13 +55,14 @@ class CheckNumberTranscriptionRub(BaseCheck):
         return amounts
 
     async def execute(
-        self,
-        total_amount_field: TotalAmountField | None,
-        advance_payments_field: AdvancePaymentsField | None,
-        check_transcription_compliance_service: ITranscriptionComplianceService,
+        self, check_transcription_compliance_service: ITranscriptionComplianceService
     ) -> CheckExecutionResult:
         extracted_amounts = self._extract_amounts_from_fields(
-            [f for f in (total_amount_field, advance_payments_field) if f is not None],
+            [
+                f
+                for f in (self.total_amount_field, self.advance_payments_field)
+                if f is not None
+            ],
         )
         result = await check_transcription_compliance_service.evaluate(
             extracted_amounts,

@@ -9,21 +9,24 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 from app.domain.service.checker import IPositionsComplianceService
 
+from .deps import Requires
+
 
 logger = logging.getLogger(__name__)
 
 
 class CheckPositionsCompliance(BaseCheck):
+    document_object_field = Requires(DocumentObjectField)
+    spec_positions_field = Requires(SpecPositionsField)
+
     async def execute(
         self,
-        document_object_field: DocumentObjectField,
-        spec_positions_field: SpecPositionsField,
         check_position_compliance_service: IPositionsComplianceService,
     ) -> CheckExecutionResult:
 
         errors: list[BaseCheckError] = []
-        document_object = document_object_field.value
-        spec_positions = spec_positions_field.value
+        document_object = self.document_object_field.value
+        spec_positions = self.spec_positions_field.value
         position_names = [position.name for position in spec_positions]
         result = await check_position_compliance_service.evaluate(
             document_object,
