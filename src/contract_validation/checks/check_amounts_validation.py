@@ -13,11 +13,16 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
+from .deps import OptionalDep, Requires
+
 
 logger = logging.getLogger(__name__)
 
 
 class CheckTotalAmountsValidation(BaseCheck):
+    total_amount_field = Requires(TotalAmountField)
+    advance_payments_field = OptionalDep(AdvancePaymentsField)
+
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
@@ -110,18 +115,14 @@ class CheckTotalAmountsValidation(BaseCheck):
         target.append(total_payments_sum)
         return target
 
-    async def execute(
-        self,
-        total_amount_field: TotalAmountField,
-        advance_payments_field: AdvancePaymentsField | None,
-    ) -> CheckExecutionResult:
+    async def execute(self) -> CheckExecutionResult:
 
         errors: list[BaseCheckError] = []
         amounts_to_compare: list[Decimal] = []
-        amounts_to_compare.extend(self.collect_total_sum(total_amount_field))
-        if advance_payments_field is not None:
+        amounts_to_compare.extend(self.collect_total_sum(self.total_amount_field))
+        if self.advance_payments_field is not None:
             amounts_to_compare.extend(
-                self.collect_advances_sum(advance_payments_field, errors),
+                self.collect_advances_sum(self.advance_payments_field, errors),
             )
         self.all_equal(amounts_to_compare, errors)
 

@@ -17,11 +17,16 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
+from .deps import OptionalDep, Requires
+
 
 logger = logging.getLogger(__name__)
 
 
 class CheckTaxesValidation(BaseCheck):
+    total_amount_field = Requires(TotalAmountField)
+    advance_payments_field = OptionalDep(AdvancePaymentsField)
+
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
@@ -149,20 +154,18 @@ class CheckTaxesValidation(BaseCheck):
 
     async def execute(
         self,
-        total_amount_field: TotalAmountField,
-        advance_payments_field: AdvancePaymentsField | None,
     ) -> CheckExecutionResult:
         errors: list[BaseCheckError] = []
         vat_amounts_to_compare: list[Decimal] = []
 
         self.append_vat_from_total_amount(
-            total_amount_field,
+            self.total_amount_field,
             vat_amounts_to_compare,
             errors,
         )
-        if advance_payments_field is not None:
+        if self.advance_payments_field is not None:
             self.append_vat_from_advances(
-                advance_payments_field,
+                self.advance_payments_field,
                 vat_amounts_to_compare,
                 errors,
             )
