@@ -17,7 +17,6 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 
 
-
 class CheckTaxesValidation(BaseCheck):
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance

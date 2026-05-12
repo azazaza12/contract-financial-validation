@@ -1,4 +1,3 @@
-import structlog
 from decimal import Decimal
 
 from app.domain.checks.base import BaseCheck
@@ -13,9 +12,6 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
-
-
-logger = structlog.get_logger()
 
 
 def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
@@ -52,11 +48,7 @@ class CheckPaymentPercentValidation(BaseCheck):
             total_payment.amount.value if total_payment.amount is not None else None
         )
 
-        if total_amount is None:
-            logger.info("total_amount_missing_skipping_amount_vs_percent")
-
         if not payments:
-            logger.info("no_payments_skipping_check")
             return self._result(errors)
 
         total_percent = Decimal("0.00")
@@ -92,8 +84,6 @@ class CheckPaymentPercentValidation(BaseCheck):
                     PaymentPercentSumDiscrepancyError(total_percent=total_percent)
                 )
         if errors:
-            logger.warning("payment_distribution_errors_found")
             return self._result(errors)
 
-        logger.info("check_passed")
         return self._result(errors)
