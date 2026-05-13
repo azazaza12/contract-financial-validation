@@ -49,6 +49,7 @@ class BaseField[T]:
 
         return [cls(value=merged.value, sources=merged.sources)], errors
 
+    @property
     def collision_key(self) -> Hashable | None:
         return None
 
@@ -78,8 +79,21 @@ class FieldCollector:
 
     def get_next_collision(self) -> Iterator[tuple[type[BaseField], list[BaseField]]]:
         for field_type, fields in self.get_type_map().items():
-            if len(fields) > 1:
-                yield field_type, fields
+            without_key: list[BaseField] = []
+            by_key: dict[Hashable, list[BaseField]] = {}
+
+            for field in fields:
+                key = field.collision_key
+                if key is None:
+                    without_key.append(field)
+                else:
+                    by_key.setdefault(key, []).append(field)
+            if len(without_key) > 1:
+                yield field_type, without_key
+
+            for grouped_fields in by_key.values():
+                if len(grouped_fields) > 1:
+                    yield field_type, grouped_fields
 
     def is_correct(self) -> bool:
         for fields in self.get_type_map().values():
