@@ -1,5 +1,3 @@
-import logging
-
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import BaseCheckError, PositionsComplianceError
 from app.domain.entities.single_supplier_fields import (
@@ -10,9 +8,6 @@ from app.domain.entities.validation import CheckExecutionResult
 from app.domain.service.checker import IPositionsComplianceService
 
 from .deps import Requires
-
-
-logger = logging.getLogger(__name__)
 
 
 class CheckPositionsCompliance(BaseCheck):
@@ -34,17 +29,7 @@ class CheckPositionsCompliance(BaseCheck):
         )
 
         if result.success:
-            logger.info(
-                "Document object - [%s]\nAll items correspond "
-                "to the subject of the purchase",
-                document_object,
-            )
             return self._result(errors)
 
-        logger.info(
-            "Document object - [%s]\nInappropriate items found:\n [%s]",
-            document_object,
-            result.text,
-        )
         errors.append(PositionsComplianceError(message=result.text or ""))
         return self._result(errors)

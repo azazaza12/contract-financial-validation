@@ -2,17 +2,17 @@ class UnknownHandlerTypeError(Exception):
     pass
 
 
-class PipelineIsNoneError(Exception):
+class IMCPExtractionError(Exception):
     pass
 
 
-class ExcelExtractionError(Exception):
+class AnchorAmountNotFoundError(IMCPExtractionError):
     pass
 
 
-class ExcelAnchorAmountNotFoundError(ExcelExtractionError):
+class IMCPNotFoundError(IMCPExtractionError):
     pass
 
 
-class ExcelIMCPNotFoundError(ExcelExtractionError):
+class UnsupportedSheetResultError(IMCPExtractionError):
     pass

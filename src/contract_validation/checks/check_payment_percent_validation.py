@@ -1,4 +1,3 @@
-import logging
 from decimal import Decimal
 
 from app.domain.checks.base import BaseCheck
@@ -15,9 +14,6 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 
 from .deps import Requires
-
-
-logger = logging.getLogger(__name__)
 
 
 def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
@@ -55,15 +51,7 @@ class CheckPaymentPercentValidation(BaseCheck):
             total_payment.amount.value if total_payment.amount is not None else None
         )
 
-        if total_amount is None:
-            logger.info(
-                "Contract total amount is missing: amount-vs-percent "
-                "comparison skipped; percent sum check still runs "
-                "when all percents are specified",
-            )
-
         if not payments:
-            logger.info("There are no payments, no interest check required")
             return self._result(errors)
 
         total_percent = Decimal("0.00")
@@ -99,8 +87,6 @@ class CheckPaymentPercentValidation(BaseCheck):
                     PaymentPercentSumDiscrepancyError(total_percent=total_percent)
                 )
         if errors:
-            logger.warning("Errors in payment distribution were identified")
             return self._result(errors)
 
-        logger.info("Test passed successfully")
         return self._result(errors)
