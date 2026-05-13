@@ -1,6 +1,7 @@
-import logging
 from dataclasses import is_dataclass
 from typing import TYPE_CHECKING
+
+import structlog
 
 from app.domain.entities.errors import BaseMergeError
 from app.domain.entities.merge_types import ValueCandidate
@@ -17,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 class MergeRegistry:
@@ -58,7 +59,7 @@ class MergeRegistry:
         handler = self._get_handler(value_type)
         if handler is None:
             error_msg = f"No handler for type {value_type} in registry '{self.name}'"
-            logger.info("Merge failed for path='%s': %s", path, error_msg)
+            logger.warning("merge_failed", path=path, error=error_msg)
             raise UnknownHandlerTypeError(error_msg)
 
         result = handler(defined_candidates, path, errors, self)
@@ -66,7 +67,7 @@ class MergeRegistry:
         if result is not None:
             return ValueCandidate(value=result.value, sources=all_sources)
 
-        logger.info("Merge returned None for path='%s'", path)
+        logger.info("merge_returned_none", path=path)
         return result
 
     def _get_handler(self, value_type: type) -> Callable | None:

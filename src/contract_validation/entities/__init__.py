@@ -1,3 +1,5 @@
+from app.domain.benchmark.match_result import BenchmarkMatchResult
+
 from .contract import BaseContract
 from .document import BaseDocument
 from .field import BaseField, FieldCollector
@@ -39,6 +41,7 @@ __all__ = [
     "BaseContract",
     "BaseDocument",
     "BaseField",
+    "BenchmarkMatchResult",
     "DocumentObjectField",
     "ExcelIMCPDocument",
     "FieldCollector",
