@@ -14,11 +14,6 @@ from .imcp.fields import (
     OrganizationTotalAmountField,
 )
 from .merge_types import Source, ValueCandidate
-from .single_supplier import (
-    SingleSupplierContract,
-    SingleSupplierDocument,
-    SingleSupplierExtractionTask,
-)
 from .single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
@@ -53,9 +48,6 @@ __all__ = [
     "OrganizationTotalAmount",
     "OrganizationTotalAmountField",
     "Payment",
-    "SingleSupplierContract",
-    "SingleSupplierDocument",
-    "SingleSupplierExtractionTask",
     "Source",
     "SpecPosition",
     "SpecPositionsField",
