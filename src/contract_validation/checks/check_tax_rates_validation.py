@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import (
@@ -85,6 +85,11 @@ class CheckTaxRatesValidation(BaseCheck):
     async def execute(  # noqa: C901
         self,
     ) -> CheckExecutionResult:
+        self.total_amount_field = cast(TotalAmountField, self.total_amount_field)
+        self.advance_payments_field = cast(
+            AdvancePaymentsField | None,
+            self.advance_payments_field,
+        )
         errors: list[BaseCheckError] = []
         ta = self.total_amount_field.value
         taxes = ta.taxes

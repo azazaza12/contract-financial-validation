@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import cast
 
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import (
@@ -112,7 +113,11 @@ class CheckTotalAmountsValidation(BaseCheck):
         return target
 
     async def execute(self) -> CheckExecutionResult:
-
+        self.total_amount_field = cast(TotalAmountField, self.total_amount_field)
+        self.advance_payments_field = cast(
+            AdvancePaymentsField | None,
+            self.advance_payments_field,
+        )
         errors: list[BaseCheckError] = []
         amounts_to_compare: list[Decimal] = []
         amounts_to_compare.extend(self.collect_total_sum(self.total_amount_field))
