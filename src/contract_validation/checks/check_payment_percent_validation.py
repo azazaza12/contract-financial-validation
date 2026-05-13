@@ -46,10 +46,10 @@ class CheckPaymentPercentValidation(BaseCheck):
         self,
     ) -> CheckExecutionResult:
         self.advance_payments_field = cast(
-            AdvancePaymentsField,
+            "AdvancePaymentsField",
             self.advance_payments_field,
         )
-        self.total_amount_field = cast(TotalAmountField, self.total_amount_field)
+        self.total_amount_field = cast("TotalAmountField", self.total_amount_field)
         errors: list[BaseCheckError] = []
         payments = self.advance_payments_field.value
         total_payment = self.total_amount_field.value.total
