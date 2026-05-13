@@ -10,11 +10,6 @@ from .excel.fields import (
 )
 from .field import BaseField, FieldCollector
 from .merge_types import Source, ValueCandidate
-from .single_supplier import (
-    SingleSupplierContract,
-    SingleSupplierDocument,
-    SingleSupplierExtractionTask,
-)
 from .single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
@@ -46,9 +41,6 @@ __all__ = [
     "ExcelWorksOrganizationsAmountsField",
     "FieldCollector",
     "Payment",
-    "SingleSupplierContract",
-    "SingleSupplierDocument",
-    "SingleSupplierExtractionTask",
     "Source",
     "SpecPosition",
     "SpecPositionsField",
