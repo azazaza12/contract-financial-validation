@@ -57,17 +57,16 @@ async def _run_check(
     advances: list[AdvancePayment] | None,
 ):
     check = CheckTotalAmountsValidation(tolerance=DEFAULT_TOLERANCE)
-    return await check.execute(
-        total_amount_field=_make_total_amount_field(
-            total_amount=total_amount,
-            taxes_amounts=taxes_amounts,
-        ),
-        advance_payments_field=(
-            AdvancePaymentsField(value=advances, sources=[])
-            if advances is not None
-            else None
-        ),
+    check.total_amount_field = _make_total_amount_field(
+        total_amount=total_amount,
+        taxes_amounts=taxes_amounts,
     )
+    check.advance_payments_field = (
+        AdvancePaymentsField(value=advances, sources=[])
+        if advances is not None
+        else None
+    )
+    return await check.execute()
 
 
 async def test_total_amounts_succeeds_when_total_taxes_and_advances_match() -> None:
