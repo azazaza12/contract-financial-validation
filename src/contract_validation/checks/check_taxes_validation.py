@@ -1,4 +1,3 @@
-import logging
 from decimal import Decimal
 
 from app.domain.checks.base import BaseCheck
@@ -18,9 +17,6 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 
 from .deps import OptionalDep, Requires
-
-
-logger = logging.getLogger(__name__)
 
 
 class CheckTaxesValidation(BaseCheck):

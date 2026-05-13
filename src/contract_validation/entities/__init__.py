@@ -1,14 +1,18 @@
+from app.domain.benchmark.match_result import BenchmarkMatchResult
+
 from .contract import BaseContract
 from .document import BaseDocument
-from .excel.document import ExcelIMCPDocument
-from .excel.fields import (
-    ExcelGoodsIMCPAvgField,
-    ExcelGoodsOrganizationsAmountsField,
-    ExcelWorksIMCPAvgField,
-    ExcelWorksIMCPLimitField,
-    ExcelWorksOrganizationsAmountsField,
-)
 from .field import BaseField, FieldCollector
+from .imcp.document import ExcelIMCPDocument
+from .imcp.fields import (
+    IMCPAvgField,
+    IMCPLimitField,
+    Item,
+    OrganizationSpecification,
+    OrganizationSpecificationField,
+    OrganizationTotalAmount,
+    OrganizationTotalAmountField,
+)
 from .merge_types import Source, ValueCandidate
 from .single_supplier_fields import (
     AdvancePayment,
@@ -32,14 +36,17 @@ __all__ = [
     "BaseContract",
     "BaseDocument",
     "BaseField",
+    "BenchmarkMatchResult",
     "DocumentObjectField",
-    "ExcelGoodsIMCPAvgField",
-    "ExcelGoodsOrganizationsAmountsField",
     "ExcelIMCPDocument",
-    "ExcelWorksIMCPAvgField",
-    "ExcelWorksIMCPLimitField",
-    "ExcelWorksOrganizationsAmountsField",
     "FieldCollector",
+    "IMCPAvgField",
+    "IMCPLimitField",
+    "Item",
+    "OrganizationSpecification",
+    "OrganizationSpecificationField",
+    "OrganizationTotalAmount",
+    "OrganizationTotalAmountField",
     "Payment",
     "Source",
     "SpecPosition",
