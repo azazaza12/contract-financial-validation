@@ -21,11 +21,11 @@ class CheckPositionsCompliance(BaseCheck):
         check_position_compliance_service: IPositionsComplianceService,
     ) -> CheckExecutionResult:
         self.document_object_field = cast(
-            DocumentObjectField,
+            "DocumentObjectField",
             self.document_object_field,
         )
         self.spec_positions_field = cast(
-            SpecPositionsField,
+            "SpecPositionsField",
             self.spec_positions_field,
         )
         errors: list[BaseCheckError] = []

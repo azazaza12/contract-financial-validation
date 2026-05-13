@@ -85,9 +85,9 @@ class CheckTaxRatesValidation(BaseCheck):
     async def execute(  # noqa: C901
         self,
     ) -> CheckExecutionResult:
-        self.total_amount_field = cast(TotalAmountField, self.total_amount_field)
+        self.total_amount_field = cast("TotalAmountField", self.total_amount_field)
         self.advance_payments_field = cast(
-            AdvancePaymentsField | None,
+            "AdvancePaymentsField | None",
             self.advance_payments_field,
         )
         errors: list[BaseCheckError] = []

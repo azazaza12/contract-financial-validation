@@ -54,9 +54,12 @@ class CheckNumberTranscriptionRub(BaseCheck):
     async def execute(
         self, check_transcription_compliance_service: ITranscriptionComplianceService
     ) -> CheckExecutionResult:
-        self.total_amount_field = cast(TotalAmountField | None, self.total_amount_field)
+        self.total_amount_field = cast(
+            "TotalAmountField | None",
+            self.total_amount_field,
+        )
         self.advance_payments_field = cast(
-            AdvancePaymentsField | None,
+            "AdvancePaymentsField | None",
             self.advance_payments_field,
         )
         extracted_amounts = self._extract_amounts_from_fields(
