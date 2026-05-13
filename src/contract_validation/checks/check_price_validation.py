@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import cast
 
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import (
@@ -25,6 +26,8 @@ class CheckPriceValidation(BaseCheck):
         self.tolerance = tolerance
 
     async def execute(self) -> CheckExecutionResult:
+        self.spec_positions_field = cast(SpecPositionsField, self.spec_positions_field)
+        self.total_amount_field = cast(TotalAmountField, self.total_amount_field)
         errors: list[BaseCheckError] = []
 
         spec_positions = self.spec_positions_field.value

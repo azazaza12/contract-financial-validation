@@ -1,3 +1,5 @@
+from typing import cast
+
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import BaseCheckError, PositionsComplianceError
 from app.domain.entities.single_supplier_fields import (
@@ -18,7 +20,14 @@ class CheckPositionsCompliance(BaseCheck):
         self,
         check_position_compliance_service: IPositionsComplianceService,
     ) -> CheckExecutionResult:
-
+        self.document_object_field = cast(
+            DocumentObjectField,
+            self.document_object_field,
+        )
+        self.spec_positions_field = cast(
+            SpecPositionsField,
+            self.spec_positions_field,
+        )
         errors: list[BaseCheckError] = []
         document_object = self.document_object_field.value
         spec_positions = self.spec_positions_field.value

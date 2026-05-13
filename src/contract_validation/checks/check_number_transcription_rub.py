@@ -1,3 +1,5 @@
+from typing import cast
+
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import NumberTranscriptionError
 from app.domain.entities.single_supplier_fields import (
@@ -52,6 +54,11 @@ class CheckNumberTranscriptionRub(BaseCheck):
     async def execute(
         self, check_transcription_compliance_service: ITranscriptionComplianceService
     ) -> CheckExecutionResult:
+        self.total_amount_field = cast(TotalAmountField | None, self.total_amount_field)
+        self.advance_payments_field = cast(
+            AdvancePaymentsField | None,
+            self.advance_payments_field,
+        )
         extracted_amounts = self._extract_amounts_from_fields(
             [
                 f
