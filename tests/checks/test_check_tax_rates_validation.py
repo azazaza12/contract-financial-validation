@@ -63,13 +63,16 @@ async def _run(
     advances: list[AdvancePayment] | None,
 ):
     check = CheckTaxRatesValidation()
-    ta = _total_amount_field(total_rate=total_rate, tax_rates=tax_rates)
-    adv_field = (
+    check.total_amount_field = _total_amount_field(
+        total_rate=total_rate,
+        tax_rates=tax_rates,
+    )
+    check.advance_payments_field = (
         AdvancePaymentsField(value=advances, sources=[])
         if advances is not None
         else None
     )
-    return await check.execute(ta, adv_field)
+    return await check.execute()
 
 
 async def test_no_advances_no_taxes_success() -> None:
