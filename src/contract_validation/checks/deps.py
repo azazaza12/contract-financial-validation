@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, get_origin, get_args, Sequence
+from typing import Any, get_origin, get_args, Sequence, Iterable
 from app.domain.entities.single_supplier_fields import BaseField
 from app.domain.checks.errors import (
     InvalidCheckSignatureError,
@@ -12,7 +12,7 @@ class Requires[T]:
     field_type: type[T]
 
     def resolve(
-        self, attr_name: str, fields: Sequence[BaseField], label: str
+        self, attr_name: str, fields: Iterable[BaseField], label: str
     ) -> Any:
         element_type = self.field_type
         if isinstance(element_type, type):
