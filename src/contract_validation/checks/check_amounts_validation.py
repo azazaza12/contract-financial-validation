@@ -1,4 +1,3 @@
-import logging
 from decimal import Decimal
 
 from app.domain.checks.base import BaseCheck
@@ -12,9 +11,6 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
-
-
-logger = logging.getLogger(__name__)
 
 
 class CheckTotalAmountsValidation(BaseCheck):
