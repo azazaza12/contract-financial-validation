@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 from app.domain.entities.errors import BaseCheckError
 
 
-class CheckStatus(Enum):
+class CheckStatus(StrEnum):
     success = "SUCCESS"
     failed = "FAILED"
     progress = "PROGRESS"
