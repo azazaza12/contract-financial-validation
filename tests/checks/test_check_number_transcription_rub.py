@@ -30,7 +30,7 @@ pytestmark = pytest.mark.asyncio
 
 def _check_services(transcription_service: AsyncMock) -> CheckServices:
     return cast(
-        CheckServices,
+        "CheckServices",
         SimpleNamespace(
             check_transcription_compliance_service=transcription_service,
             check_position_compliance_service=MagicMock(),

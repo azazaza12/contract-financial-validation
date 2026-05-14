@@ -19,6 +19,7 @@ from app.domain.entities.validation import CheckStatus
 
 from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 
+
 pytestmark = pytest.mark.asyncio
 
 
