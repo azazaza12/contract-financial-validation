@@ -15,7 +15,7 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
-from .deps import OptionalDep, Requires
+from .deps import CheckServices, OptionalDep, Requires
 
 
 if TYPE_CHECKING:
@@ -82,9 +82,37 @@ class CheckTaxRatesValidation(BaseCheck):
     total_amount_field = Requires(TotalAmountField)
     advance_payments_field = OptionalDep(AdvancePaymentsField)
 
-    async def execute(  # noqa: C901
-        self,
-    ) -> CheckExecutionResult:
+    def _collect_advance_rate_errors(
+        self, contract_rate: Decimal | None
+    ) -> list[BaseCheckError]:
+        errors = []
+        for advance_payment in self.advance_payments_field.value:
+            if not advance_payment.payments:
+                mismatch = _aggregate_rate_vs_contract(
+                    contract_rate,
+                    advance_payment.total,
+                )
+                if mismatch is not None:
+                    errors.append(mismatch)
+                    return errors
+                continue
+            advance_total_rate = (
+                advance_payment.total and advance_payment.total.vat.rate
+            )
+            if advance_total_rate is None:
+                continue
+
+            mismatch = _payment_lines_mismatch_vs_reference(
+                advance_total_rate,
+                advance_payment.payments,
+            )
+            if mismatch is None:
+                continue
+            errors.append(mismatch)
+            return errors
+        return errors
+
+    async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
         self.total_amount_field = cast("TotalAmountField", self.total_amount_field)
         self.advance_payments_field = cast(
             "AdvancePaymentsField | None",
@@ -116,30 +144,5 @@ class CheckTaxRatesValidation(BaseCheck):
             return self._result(errors)
 
         contract_rate = ta.total.vat.rate
-        for advance_payment in self.advance_payments_field.value:
-            if not advance_payment.payments:
-                mismatch = _aggregate_rate_vs_contract(
-                    contract_rate,
-                    advance_payment.total,
-                )
-                if mismatch is not None:
-                    errors.append(mismatch)
-                    return self._result(errors)
-                continue
-
-            advance_total_rate = (
-                advance_payment.total and advance_payment.total.vat.rate
-            )
-            if advance_total_rate is None:
-                continue
-
-            mismatch = _payment_lines_mismatch_vs_reference(
-                advance_total_rate,
-                advance_payment.payments,
-            )
-            if mismatch is None:
-                continue
-            errors.append(mismatch)
-            return self._result(errors)
-
+        errors.extend(self._collect_advance_rate_errors(contract_rate))
         return self._result(errors)
