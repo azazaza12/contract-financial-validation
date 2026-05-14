@@ -1,11 +1,14 @@
 from decimal import Decimal
-from unittest.mock import AsyncMock
+from types import SimpleNamespace
+from typing import cast
+from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
 from app.domain.checks.check_number_transcription_rub import (
     CheckNumberTranscriptionRub,
 )
+from app.domain.checks.deps import CheckServices
 from app.domain.entities.errors import NumberTranscriptionError
 from app.domain.entities.merge_types import Source
 from app.domain.entities.single_supplier import SingleSupplierDocument
@@ -23,6 +26,16 @@ from app.domain.service.checker import TranscriptionCheckIssue, TranscriptionChe
 
 
 pytestmark = pytest.mark.asyncio
+
+
+def _check_services(transcription_service: AsyncMock) -> CheckServices:
+    return cast(
+        CheckServices,
+        SimpleNamespace(
+            check_transcription_compliance_service=transcription_service,
+            check_position_compliance_service=MagicMock(),
+        ),
+    )
 
 
 def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmountField:
@@ -50,9 +63,7 @@ async def test_check_14_succeeds_when_no_transcription_issues() -> None:
     )
     check.advance_payments_field = AdvancePaymentsField(value=[], sources=[])
 
-    result = await check.execute(
-        check_transcription_compliance_service=service_mock,
-    )
+    result = await check.execute(_check_services(service_mock))
 
     assert result.status == CheckStatus.success
     assert result.errors == []
@@ -84,9 +95,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
     )
     check.advance_payments_field = AdvancePaymentsField(value=[], sources=[])
 
-    result = await check.execute(
-        check_transcription_compliance_service=service_mock,
-    )
+    result = await check.execute(_check_services(service_mock))
 
     assert result.status == CheckStatus.failed
     assert len(result.errors) == 2  # noqa: PLR2004
@@ -182,9 +191,7 @@ async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
     check.total_amount_field = total_amount_field
     check.advance_payments_field = advance_payments_field
 
-    result = await check.execute(
-        check_transcription_compliance_service=service_mock,
-    )
+    result = await check.execute(_check_services(service_mock))
 
     assert result.status == CheckStatus.success
     service_mock.evaluate.assert_awaited_once()
