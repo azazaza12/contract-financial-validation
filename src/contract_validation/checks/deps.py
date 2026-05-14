@@ -18,7 +18,7 @@ from app.domain.service.checker import (
 class Requires[T]:
     field_type: type[T]
 
-    def resolve(self, attr_name: str, fields: Iterable[BaseField], label: str) -> Any:
+    def resolve(self, attr_name: str, fields: Iterable[BaseField], label: str) -> T:
         element_type = self.field_type
         if isinstance(element_type, type):
             field_type = element_type
@@ -63,7 +63,7 @@ class Requires[T]:
 class OptionalDep[T]:
     field_type: type[T]
 
-    def resolve(self, attr_name: str, fields: Iterable[BaseField], label: str) -> Any:
+    def resolve(self, attr_name: str, fields: Iterable[BaseField], label: str) -> T:
         element_type = self.field_type
         if isinstance(element_type, type):
             field_type = element_type
