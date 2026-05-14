@@ -17,6 +17,7 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckStatus
 
+from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 
 pytestmark = pytest.mark.asyncio
 
@@ -72,7 +73,7 @@ async def _run(
         if advances is not None
         else None
     )
-    return await check.execute()
+    return await check.execute(STUB_CHECK_SERVICES)
 
 
 async def test_no_advances_no_taxes_success() -> None:

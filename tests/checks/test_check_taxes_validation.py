@@ -18,6 +18,7 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckStatus
 
+from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 
 pytestmark = pytest.mark.asyncio
 
@@ -115,7 +116,7 @@ async def test_check_nds_succeeds_when_formula_and_sums_are_valid() -> None:
         taxes=taxes,
     )
     check.advance_payments_field = AdvancePaymentsField(value=advances, sources=[])
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.success
     assert result.errors == []
@@ -143,7 +144,7 @@ async def test_check_nds_fails_when_formula_is_incorrect() -> None:
         taxes=taxes,
     )
     check.advance_payments_field = None
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.failed
     assert any(
@@ -174,7 +175,7 @@ async def test_check_nds_fails_when_total_and_taxes_vat_sums_differ() -> None:
         taxes=taxes,
     )
     check.advance_payments_field = None
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.failed
     assert any(isinstance(error, VatAmountDiscrepancyError) for error in result.errors)
@@ -221,7 +222,7 @@ async def test_check_nds_compares_sums_even_when_amount_is_missing() -> None:
         taxes=taxes,
     )
     check.advance_payments_field = AdvancePaymentsField(value=advances, sources=[])
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.success
     assert not any(
@@ -254,7 +255,7 @@ async def test_check_nds_succeeds_when_vat_is_not_included_and_formula_is_correc
         taxes=taxes,
     )
     check.advance_payments_field = None
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.success
     assert result.errors == []
@@ -282,7 +283,7 @@ async def test_check_nds_tolerance_allows_exactly_one_cent_difference() -> None:
         taxes=taxes,
     )
     check.advance_payments_field = None
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.success
     assert not any(
@@ -313,7 +314,7 @@ async def test_check_nds_tolerance_fails_when_difference_is_above_one_cent() -> 
         taxes=taxes,
     )
     check.advance_payments_field = None
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.failed
     assert any(
@@ -336,7 +337,7 @@ async def test_check_nds_fails_when_amount_is_not_positive() -> None:
         taxes=None,
     )
     check.advance_payments_field = None
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.failed
     assert any(isinstance(error, AmountNotPositiveError) for error in result.errors)
@@ -356,7 +357,7 @@ async def test_check_nds_allows_zero_vat_amount() -> None:
         taxes=None,
     )
     check.advance_payments_field = None
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.success
     assert result.errors == []
@@ -376,7 +377,7 @@ async def test_check_nds_allows_zero_vat_rate() -> None:
         taxes=None,
     )
     check.advance_payments_field = None
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.success
     assert result.errors == []
@@ -396,7 +397,7 @@ async def test_check_nds_ignores_empty_taxes_list() -> None:
         taxes=[],
     )
     check.advance_payments_field = None
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.success
     assert not any(
@@ -422,7 +423,7 @@ async def test_check_nds_ignores_advances_without_totals_and_payments() -> None:
         taxes=None,
     )
     check.advance_payments_field = AdvancePaymentsField(value=advances, sources=[])
-    result = await check.execute()
+    result = await check.execute(STUB_CHECK_SERVICES)
 
     assert result.status == CheckStatus.success
     assert not any(
