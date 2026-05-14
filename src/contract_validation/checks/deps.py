@@ -37,28 +37,26 @@ class Requires[T]:
                     count=len(matches),
                 )
             return matches[0]
-        if get_origin(element_type) is list:
-            args = get_args(element_type)
-            if len(args) != 1:
-                msg = (
-                    f"{label}.{attr_name}: Requires list[T] needs 1 arg, "
-                    f"got {len(args)}"
-                )
-                raise InvalidCheckSignatureError(msg)
-            field_type = args[0]
-            matches = [f for f in fields if isinstance(f, field_type)]
-            if len(matches) == 0:
-                raise MissingRequiredFieldError(
-                    label=label,
-                    param_name=attr_name,
-                    field_type=field_type.__name__,
-                )
-            return matches
-        msg = (
-            f"{label}.{attr_name}: Requires wants Field|list[Field], "
-            f"got {element_type!r}"
-        )
-        raise InvalidCheckSignatureError(msg)
+
+        if get_origin(element_type) is not list:
+            msg = (
+                f"{label}.{attr_name}: Requires wants Field|list[Field], "
+                f"got {element_type!r}"
+            )
+            raise InvalidCheckSignatureError(msg)
+        args = get_args(element_type)
+        if len(args) != 1:
+            msg = f"{label}.{attr_name}: Requires list[T] needs 1 arg, got {len(args)}"
+            raise InvalidCheckSignatureError(msg)
+        field_type = args[0]
+        matches = [f for f in fields if isinstance(f, field_type)]
+        if len(matches) == 0:
+            raise MissingRequiredFieldError(
+                label=label,
+                param_name=attr_name,
+                field_type=field_type.__name__,
+            )
+        return matches
 
 
 @dataclass(frozen=True, slots=True)
@@ -74,31 +72,30 @@ class OptionalDep[T]:
                 return None
             if len(matches) == 1:
                 return matches[0]
-            if len(matches) > 1:
-                raise MultiplyRequiredFieldError(
-                    label, attr_name, field_type.__name__, count=len(matches)
-                )
-        elif get_origin(element_type) is list:
-            args = get_args(element_type)
-            if len(args) != 1:
-                msg = (
-                    f"{label}.{attr_name}: OptionalDep list[T] needs 1 arg, "
-                    f"got {len(args)}"
-                )
-                raise InvalidCheckSignatureError(msg)
-            field_type = args[0]
-            matches = [f for f in fields if isinstance(f, field_type)]
-            if len(matches) == 0:
-                return []
-            if len(matches) >= 1:
-                return matches
-        else:
+            raise MultiplyRequiredFieldError(
+                label=label,
+                param_name=attr_name,
+                field_type=field_type.__name__,
+                count=len(matches),
+            )
+
+        if get_origin(element_type) is not list:
             msg = (
                 f"{label}.{attr_name}: OptionalDep wants Field|list[Field], "
                 f"got {element_type!r}"
             )
             raise InvalidCheckSignatureError(msg)
-        return None
+        args = get_args(element_type)
+        if len(args) != 1:
+            msg = (
+                f"{label}.{attr_name}: OptionalDep list[T] needs 1 arg, got {len(args)}"
+            )
+            raise InvalidCheckSignatureError(msg)
+        field_type = args[0]
+        matches = [f for f in fields if isinstance(f, field_type)]
+        if len(matches) == 0:
+            return []
+        return matches
 
 
 class CheckServices(Protocol):
