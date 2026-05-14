@@ -104,9 +104,3 @@ class OptionalDep[T]:
 class CheckServices(Protocol):
     check_position_compliance_service: IPositionsComplianceService
     check_transcription_compliance_service: ITranscriptionComplianceService
-
-
-@dataclass(kw_only=True)
-class PipelineCheckServices:
-    check_position_compliance_service: IPositionsComplianceService
-    check_transcription_compliance_service: ITranscriptionComplianceService
