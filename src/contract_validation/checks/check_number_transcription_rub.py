@@ -9,9 +9,8 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
-from app.domain.service.checker import ITranscriptionComplianceService
 
-from .deps import OptionalDep
+from .deps import CheckServices, OptionalDep
 
 
 class CheckNumberTranscriptionRub(BaseCheck):
@@ -51,9 +50,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
                     amounts.extend(self._amounts_from_payment(payment))
         return amounts
 
-    async def execute(
-        self, check_transcription_compliance_service: ITranscriptionComplianceService
-    ) -> CheckExecutionResult:
+    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:
         self.total_amount_field = cast(
             "TotalAmountField | None",
             self.total_amount_field,
@@ -69,7 +66,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
                 if f is not None
             ],
         )
-        result = await check_transcription_compliance_service.evaluate(
+        result = await check_services.check_transcription_compliance_service.evaluate(
             extracted_amounts,
         )
 

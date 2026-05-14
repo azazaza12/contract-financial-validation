@@ -14,7 +14,7 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
-from .deps import Requires
+from .deps import CheckServices, Requires
 
 
 def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
@@ -42,9 +42,7 @@ class CheckPaymentPercentValidation(BaseCheck):
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
-    async def execute(
-        self,
-    ) -> CheckExecutionResult:
+    async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
         self.advance_payments_field = cast(
             "AdvancePaymentsField",
             self.advance_payments_field,

@@ -17,7 +17,7 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
-from .deps import OptionalDep, Requires
+from .deps import CheckServices, OptionalDep, Requires
 
 
 class CheckTaxesValidation(BaseCheck):
@@ -151,6 +151,7 @@ class CheckTaxesValidation(BaseCheck):
 
     async def execute(
         self,
+        _check_services: CheckServices,
     ) -> CheckExecutionResult:
         self.total_amount_field = cast("TotalAmountField", self.total_amount_field)
         self.advance_payments_field = cast(
