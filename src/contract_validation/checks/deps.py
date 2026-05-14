@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Protocol, get_args, get_origin
+from typing import Protocol, get_args, get_origin
 
 from app.domain.checks.errors import (
     InvalidCheckSignatureError,
