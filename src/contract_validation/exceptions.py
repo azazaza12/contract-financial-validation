@@ -6,10 +6,6 @@ class IMCPExtractionError(Exception):
     pass
 
 
-class AnchorAmountNotFoundError(IMCPExtractionError):
-    pass
-
-
 class IMCPNotFoundError(IMCPExtractionError):
     pass
 
