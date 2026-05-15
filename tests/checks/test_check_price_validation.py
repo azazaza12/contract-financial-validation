@@ -118,7 +118,7 @@ async def test_check_price_validation_raises_when_required_field_is_missing() ->
 
     await CheckTask(check=check).run(ctx)
 
-    records = await ctx.pipeline_run_repo.get_task_records(ctx.pipeline.id)
+    records = await ctx.pipeline_run_repo.find_task_records(ctx.pipeline.id)
     assert records[-1].status == TaskStatus.SKIPPED
     assert "missing required field for 'total_amount_field'" in (
         records[-1].error_message or ""
@@ -156,7 +156,7 @@ async def test_check_price_validation_raises_when_required_field_has_collision()
 
     await CheckTask(check=check).run(ctx)
 
-    records = await ctx.pipeline_run_repo.get_task_records(ctx.pipeline.id)
+    records = await ctx.pipeline_run_repo.find_task_records(ctx.pipeline.id)
     assert records[-1].status == TaskStatus.SKIPPED
     assert "collision for 'total_amount_field'" in (records[-1].error_message or "")
     contract_repo.save_errors.assert_not_awaited()
