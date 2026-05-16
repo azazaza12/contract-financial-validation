@@ -173,5 +173,7 @@ async def test_check1_raises_when_required_field_has_collision() -> None:
 
     run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
     assert run.records[-1].status == TaskStatus.SKIPPED
-    assert "collision for 'spec_positions_field'" in (run.records[-1].error_message or "")
+    assert "collision for 'spec_positions_field'" in (
+        run.records[-1].error_message or ""
+    )
     contract_repo.save_errors.assert_not_awaited()
