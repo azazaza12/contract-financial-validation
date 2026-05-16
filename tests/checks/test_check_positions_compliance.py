@@ -110,10 +110,10 @@ async def test_check1_raises_when_required_field_is_missing() -> None:
 
     await CheckTask(check=check).run(ctx)
 
-    records = await ctx.pipeline_run_repo.find_task_records(ctx.pipeline.id)
-    assert records[-1].status == TaskStatus.SKIPPED
+    run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
+    assert run.records[-1].status == TaskStatus.SKIPPED
     assert "missing required field for 'document_object_field'" in (
-        records[-1].error_message or ""
+        run.records[-1].error_message or ""
     )
     contract_repo.save_errors.assert_not_awaited()
 
@@ -171,7 +171,7 @@ async def test_check1_raises_when_required_field_has_collision() -> None:
 
     await CheckTask(check=check).run(ctx)
 
-    records = await ctx.pipeline_run_repo.find_task_records(ctx.pipeline.id)
-    assert records[-1].status == TaskStatus.SKIPPED
-    assert "collision for 'spec_positions_field'" in (records[-1].error_message or "")
+    run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
+    assert run.records[-1].status == TaskStatus.SKIPPED
+    assert "collision for 'spec_positions_field'" in (run.records[-1].error_message or "")
     contract_repo.save_errors.assert_not_awaited()
