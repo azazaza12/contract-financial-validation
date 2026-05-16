@@ -1,7 +1,6 @@
 from uuid import uuid4
 
 import pytest
-
 from app.domain.entities.errors import ValuesDiscrepancyError
 from app.domain.entities.merge_types import Source, ValueCandidate
 from app.domain.merge.defaults import STRICT_REGISTRY
@@ -26,7 +25,7 @@ def _candidate(value: str) -> ValueCandidate:
         (["Оборудование", "Оборудование "], True),
     ],
 )
-def test_all_equal_str(values: list[str], expected: bool) -> None:
+def test_all_equal_str(values: list[str], *, expected: bool) -> None:
     assert all_equal_str(values) is expected
 
 
