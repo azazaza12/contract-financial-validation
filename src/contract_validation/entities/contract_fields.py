@@ -12,6 +12,7 @@ class DocumentObjectField(BaseField[str]):
     def has_data(self) -> bool:
         if self.value.strip() != "":
             return True
+        return False
 
 
 @dataclass(kw_only=True, frozen=True)
