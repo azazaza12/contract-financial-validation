@@ -10,9 +10,7 @@ class DocumentObjectField(BaseField[str]):
     merge_registry = STRICT_REGISTRY
 
     def has_data(self) -> bool:
-        if self.value.strip() != "":
-            return True
-        return False
+        return self.value.strip() != ""
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -23,9 +21,7 @@ class Amount:
     def has_data(self) -> bool:
         if self.value is not None:
             return True
-        if self.transcription is not None and self.transcription.strip() != "":
-            return True
-        return False
+        return bool(self.transcription is not None and self.transcription.strip() != "")
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -36,9 +32,7 @@ class Vat:
     def has_data(self) -> bool:
         if self.amount is not None and self.amount.has_data():
             return True
-        if self.rate is not None:
-            return True
-        return False
+        return self.rate is not None
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -64,9 +58,7 @@ class TotalAmount:
     def has_data(self) -> bool:
         if self.total.has_data():
             return True
-        if any(payment.has_data() for payment in self.taxes):
-            return True
-        return False
+        return bool(any(payment.has_data() for payment in self.taxes))
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -88,9 +80,7 @@ class AdvancePayment:
             return True
         if self.total is not None and self.total.has_data():
             return True
-        if any(payment.has_data() for payment in self.payments):
-            return True
-        return False
+        return bool(any(payment.has_data() for payment in self.payments))
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -98,9 +88,7 @@ class AdvancePaymentsField(BaseField[list[AdvancePayment]]):
     merge_registry = STRICT_REGISTRY
 
     def has_data(self) -> bool:
-        if any(payment.has_data() for payment in self.value):
-            return True
-        return False
+        return bool(any(payment.has_data() for payment in self.value))
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -129,9 +117,7 @@ class SpecPositionsField(BaseField[list[SpecPosition]]):
     merge_registry = STRICT_REGISTRY
 
     def has_data(self) -> bool:
-        if any(position.has_data() for position in self.value):
-            return True
-        return False
+        return bool(any(position.has_data() for position in self.value))
 
 
 @dataclass(kw_only=True, frozen=True)
