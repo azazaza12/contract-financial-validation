@@ -44,9 +44,8 @@ class Payment:
     def has_data(self) -> bool:
         # ignore include_vat data
         return (
-                (self.amount is not None and self.amount.has_data())
-                or self.vat.has_data()
-        )
+            self.amount is not None and self.amount.has_data()
+        ) or self.vat.has_data()
 
 
 @dataclass(kw_only=True, frozen=True)
