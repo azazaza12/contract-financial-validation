@@ -42,12 +42,11 @@ class Payment:
     include_vat: bool | None
 
     def has_data(self) -> bool:
-        if self.amount is not None and self.amount.has_data():
-            return True
-        if self.vat.has_data():
-            return True
         # ignore include_vat data
-        return False
+        return (
+                (self.amount is not None and self.amount.has_data())
+                or self.vat.has_data()
+        )
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -100,16 +99,13 @@ class SpecPosition:
     unit_of_measurement: str | None
 
     def has_data(self) -> bool:
-        if self.name is not None and self.name.strip() != "":
-            return True
-        if self.quantity is not None:
-            return True
-        if self.unit_price is not None:
-            return True
-        if self.total_price is not None:
-            return True
         # ignore unit_of_measurement
-        return False
+        return (
+            (self.name is not None and self.name.strip() != "")
+            or self.quantity is not None
+            or self.unit_price is not None
+            or self.total_price is not None
+        )
 
 
 @dataclass(kw_only=True, frozen=True)
