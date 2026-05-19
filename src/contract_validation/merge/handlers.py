@@ -34,12 +34,25 @@ def all_equal(candidates: list[ValueCandidate]) -> bool:
     return all(c.value == first for c in candidates[1:])
 
 
+def _normalize_str(value: str) -> str:
+    return " ".join(
+        value.strip().replace("ё", "е").replace("Ё", "Е").casefold().split()
+    )
+
+
+def all_equal_str(values: list[str]) -> bool:
+    if not values:
+        return True
+    normalized_values = [_normalize_str(value) for value in values]
+    first = normalized_values[0]
+    return all(n == first for n in normalized_values[1:])
+
+
 def is_scalar(value_type: type) -> bool:
 
     return value_type in (
         int,
         float,
-        str,
         bool,
         Decimal,
         date,
@@ -67,6 +80,20 @@ def merge_scalar_strict(
     return ValueCandidate(
         value=candidates[0].value,
         sources=combine_sources(candidates),
+    )
+
+
+def merge_scalar_strict_str(
+    candidates: list[ValueCandidate],
+    path: str,
+    errors: list[BaseMergeError],
+    _registry: MergeRegistry,
+) -> ValueCandidate | None:
+    if not all_equal_str([candidate.value for candidate in candidates]):
+        errors.append(ValuesDiscrepancyError(candidates=candidates, path=path))
+        return None
+    return ValueCandidate(
+        value=candidates[0].value, sources=combine_sources(candidates)
     )
 
 
