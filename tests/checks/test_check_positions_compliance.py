@@ -15,7 +15,7 @@ from app.domain.entities.single_supplier_fields import (
     SpecPositionsField,
 )
 from app.domain.pipeline.task import CheckTask, TaskStatus
-from app.domain.service.checker import EvaluateResult
+from app.domain.ports.checker import EvaluateResult
 
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
