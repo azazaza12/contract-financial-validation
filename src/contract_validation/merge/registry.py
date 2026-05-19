@@ -11,6 +11,7 @@ from app.domain.merge.handlers import (
     merge_dataclass_default,
     merge_list_strict,
     merge_scalar_strict,
+    merge_scalar_strict_str,
 )
 
 
@@ -27,6 +28,7 @@ class MergeRegistry:
         self.handlers: dict[type, Callable] = {}
 
         self.scalar_handler: Callable = merge_scalar_strict
+        self.scalar_handler_str: Callable = merge_scalar_strict_str
         self.list_handler: Callable = merge_list_strict
         self.dataclass_handler: Callable = merge_dataclass_default
 
@@ -81,6 +83,9 @@ class MergeRegistry:
             isinstance(value_type, type) and issubclass(value_type, list)
         ):
             return self.list_handler
+
+        if value_type is str:
+            return self.scalar_handler_str
 
         if is_scalar(value_type):
             return self.scalar_handler
