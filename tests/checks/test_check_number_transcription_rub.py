@@ -22,7 +22,7 @@ from app.domain.entities.single_supplier_fields import (
     Vat,
 )
 from app.domain.entities.validation import CheckStatus
-from app.domain.service.checker import TranscriptionCheckIssue, TranscriptionCheckResult
+from app.domain.ports.checker import TranscriptionCheckIssue, TranscriptionCheckResult
 
 
 pytestmark = pytest.mark.asyncio
