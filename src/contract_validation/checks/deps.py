@@ -8,7 +8,7 @@ from app.domain.checks.errors import (
     MultiplyRequiredFieldError,
 )
 from app.domain.entities.single_supplier_fields import BaseField
-from app.domain.service.checker import (
+from app.domain.ports.checker import (
     IPositionsComplianceService,
     ITranscriptionComplianceService,
 )

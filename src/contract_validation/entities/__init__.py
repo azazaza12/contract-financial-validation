@@ -3,7 +3,6 @@ from app.domain.benchmark.match_result import BenchmarkMatchResult
 from .contract import BaseContract
 from .document import BaseDocument
 from .field import BaseField, FieldCollector
-from .imcp.document import ExcelIMCPDocument
 from .imcp.fields import (
     IMCPAvgField,
     IMCPLimitField,
@@ -26,7 +25,6 @@ from .single_supplier_fields import (
     TotalAmountField,
     Vat,
 )
-from .unknown import UnknownDocument
 
 
 __all__ = [
@@ -38,7 +36,6 @@ __all__ = [
     "BaseField",
     "BenchmarkMatchResult",
     "DocumentObjectField",
-    "ExcelIMCPDocument",
     "FieldCollector",
     "IMCPAvgField",
     "IMCPLimitField",
@@ -53,7 +50,6 @@ __all__ = [
     "SpecPositionsField",
     "TotalAmount",
     "TotalAmountField",
-    "UnknownDocument",
     "ValueCandidate",
     "Vat",
 ]

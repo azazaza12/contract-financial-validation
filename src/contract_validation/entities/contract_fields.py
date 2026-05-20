@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from app.domain.entities.field import BaseField
 from app.domain.merge.defaults import STRICT_REGISTRY
-from app.domain.service.nomenclature_classifier import NomenclatureArticle
+from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
 
 class DocumentObjectField(BaseField[str]):
