@@ -4,6 +4,7 @@ import pytest
 from app.domain.checks.check_amounts_validation import (
     CheckTotalAmountsValidation,
 )
+from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors import AmountDiscrepancyError
 from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
@@ -14,7 +15,6 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
     Vat,
 )
-from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.validation import CheckStatus
 
 from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES

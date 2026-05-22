@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 from app.domain.checks.check_price_validation import CheckPriceValidation
+from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors import (
     AmountDiscrepancyError,
     AmountNotPositiveError,
@@ -25,8 +26,6 @@ from app.domain.pipeline.task import CheckTask, TaskStatus
 
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
-
-from app.domain.constants import AMOUNT_TOLERANCE
 
 pytestmark = pytest.mark.asyncio
 
@@ -263,13 +262,17 @@ async def test_check_price_validation_succeeds_when_within_tolerance() -> None:
                         name="Позиция 1",
                         quantity=Decimal("1.0"),
                         unit_price=Decimal("100.00"),
-                        total_price=Decimal("100.00") + AMOUNT_TOLERANCE - Decimal("0.01"),
+                        total_price=Decimal("100.00")
+                        + AMOUNT_TOLERANCE
+                        - Decimal("0.01"),
                         unit_of_measurement="шт",
                     ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
-            _make_total_amount_field(str(Decimal("100.00") + AMOUNT_TOLERANCE - Decimal("0.01")), document),
+            _make_total_amount_field(
+                str(Decimal("100.00") + AMOUNT_TOLERANCE - Decimal("0.01")), document
+            ),
         ],
     )
     contract = _make_contract(document, fields)

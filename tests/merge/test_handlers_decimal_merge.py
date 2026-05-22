@@ -60,7 +60,9 @@ def test_merge_scalar_strict_merges_decimals_within_tolerance() -> None:
     assert errors == []
 
 
-def test_merge_scalar_strict_reports_discrepancy_when_decimals_exceed_tolerance() -> None:
+def test_merge_scalar_strict_reports_discrepancy_when_decimals_exceed_tolerance() -> (
+    None
+):
     errors: list = []
     exceeds = Decimal("100.00") + AMOUNT_TOLERANCE + Decimal("0.01")
     candidates = [_candidate(Decimal("100.00")), _candidate(exceeds)]
