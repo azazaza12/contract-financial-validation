@@ -25,7 +25,7 @@ class CheckPriceValidation(BaseCheck):
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:
+    async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
         self.spec_positions_field = cast(
             "SpecPositionsField",
             self.spec_positions_field,
