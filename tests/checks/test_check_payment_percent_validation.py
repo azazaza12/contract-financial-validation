@@ -27,9 +27,9 @@ from app.domain.pipeline.task import CheckTask
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
-pytestmark = pytest.mark.asyncio
+from app.domain.constants import AMOUNT_TOLERANCE
 
-DEFAULT_TOLERANCE = Decimal("0.01")
+pytestmark = pytest.mark.asyncio
 
 
 def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:
@@ -80,7 +80,7 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
     )
     contract_repo = MagicMock()
     ctx = create_context(contract=contract, contract_repo=contract_repo)
-    check = CheckPaymentPercentValidation(tolerance=DEFAULT_TOLERANCE)
+    check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
 
     await CheckTask(check=check).run(ctx)
 
@@ -179,7 +179,7 @@ async def test_payment_percent_succeeds_when_amount_difference_within_tolerance(
     called_errors = await _run_check(
         total_amount="100.00",
         advances=[
-            _make_advance(percent=Decimal("50.00"), payment_value="50.01"),
+            _make_advance(percent=Decimal("50.00"), payment_value=str(Decimal("50.00") + AMOUNT_TOLERANCE - Decimal("0.01"))),
             _make_advance(percent=Decimal("50.00"), payment_value="50.00"),
         ],
     )
@@ -191,7 +191,7 @@ async def test_payment_percent_fails_when_amount_difference_exceeds_tolerance() 
     called_errors = await _run_check(
         total_amount="100.00",
         advances=[
-            _make_advance(percent=Decimal("50.00"), payment_value="50.02"),
+            _make_advance(percent=Decimal("50.00"), payment_value=str(Decimal("50.00") + AMOUNT_TOLERANCE + Decimal("0.01"))),
             _make_advance(percent=Decimal("50.00"), payment_value="50.00"),
         ],
     )
