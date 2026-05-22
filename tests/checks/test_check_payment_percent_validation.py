@@ -6,6 +6,7 @@ import pytest
 from app.domain.checks.check_payment_percent_validation import (
     CheckPaymentPercentValidation,
 )
+from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors import (
     PaymentAmountPercentDiscrepancyError,
     PaymentPercentSumDiscrepancyError,
@@ -26,8 +27,6 @@ from app.domain.pipeline.task import CheckTask
 
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
-
-from app.domain.constants import AMOUNT_TOLERANCE
 
 pytestmark = pytest.mark.asyncio
 
@@ -179,7 +178,12 @@ async def test_payment_percent_succeeds_when_amount_difference_within_tolerance(
     called_errors = await _run_check(
         total_amount="100.00",
         advances=[
-            _make_advance(percent=Decimal("50.00"), payment_value=str(Decimal("50.00") + AMOUNT_TOLERANCE - Decimal("0.01"))),
+            _make_advance(
+                percent=Decimal("50.00"),
+                payment_value=str(
+                    Decimal("50.00") + AMOUNT_TOLERANCE - Decimal("0.01")
+                ),
+            ),
             _make_advance(percent=Decimal("50.00"), payment_value="50.00"),
         ],
     )
@@ -191,7 +195,12 @@ async def test_payment_percent_fails_when_amount_difference_exceeds_tolerance() 
     called_errors = await _run_check(
         total_amount="100.00",
         advances=[
-            _make_advance(percent=Decimal("50.00"), payment_value=str(Decimal("50.00") + AMOUNT_TOLERANCE + Decimal("0.01"))),
+            _make_advance(
+                percent=Decimal("50.00"),
+                payment_value=str(
+                    Decimal("50.00") + AMOUNT_TOLERANCE + Decimal("0.01")
+                ),
+            ),
             _make_advance(percent=Decimal("50.00"), payment_value="50.00"),
         ],
     )
