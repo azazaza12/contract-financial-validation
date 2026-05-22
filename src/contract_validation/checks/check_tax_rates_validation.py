@@ -112,7 +112,7 @@ class CheckTaxRatesValidation(BaseCheck):
             return errors
         return errors
 
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:
+    async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
         self.total_amount_field = cast("TotalAmountField", self.total_amount_field)
         self.advance_payments_field = cast(
             "AdvancePaymentsField | None",

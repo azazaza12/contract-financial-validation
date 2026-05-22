@@ -42,7 +42,7 @@ class CheckPaymentPercentValidation(BaseCheck):
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
 
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:
+    async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
         self.advance_payments_field = cast(
             "AdvancePaymentsField",
             self.advance_payments_field,
