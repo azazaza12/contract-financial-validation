@@ -1,6 +1,6 @@
-from collections.abc import Hashable, Sequence
+from collections.abc import Hashable
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from app.domain.entities.merge_types import Source, ValueCandidate
 from app.domain.merge.defaults import DEFAULT_REGISTRY
@@ -55,8 +55,8 @@ class BaseField[T]:
 
 
 class FieldCollector:
-    def __init__(self, fields: Sequence[BaseField[Any]]) -> None:
-        self._fields: list[BaseField[Any]] = list(fields)
+    def __init__(self, fields: list[BaseField]) -> None:
+        self._fields: list[BaseField] = fields
         self._type_map: dict[type[BaseField], list[BaseField]] | None = None
 
     def extend(self, collector: FieldCollector) -> None:
