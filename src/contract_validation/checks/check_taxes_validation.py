@@ -151,7 +151,7 @@ class CheckTaxesValidation(BaseCheck):
 
     async def execute(
         self,
-        _check_services: CheckServices,
+        check_services: CheckServices,
     ) -> CheckExecutionResult:
         self.total_amount_field = cast("TotalAmountField", self.total_amount_field)
         self.advance_payments_field = cast(
