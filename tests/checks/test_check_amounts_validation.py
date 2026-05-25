@@ -4,6 +4,7 @@ import pytest
 from app.domain.checks.check_amounts_validation import (
     CheckTotalAmountsValidation,
 )
+from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors import AmountDiscrepancyError
 from app.domain.entities.single_supplier_fields import (
@@ -21,6 +22,8 @@ from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 
 
 pytestmark = pytest.mark.asyncio
+
+TWO_ERRORS = 2
 
 
 def _make_payment(amount_value: str | None) -> Payment:
@@ -121,26 +124,25 @@ async def test_total_amounts_fails_when_advance_total_and_payments_differ() -> N
 
 
 async def test_total_amounts_skips_none_amounts_without_crash() -> None:
-    result = await _run_check(
-        total_amount=None,
-        taxes_amounts=[None],
-        advances=[
-            AdvancePayment(
-                percent=None,
-                total=None,
-                payments=[],
-            )
-        ],
-    )
-
-    assert result.status == CheckStatus.success
-    assert result.errors == []
+    with pytest.raises(InsufficientCheckDataError):
+        await _run_check(
+            total_amount=None,
+            taxes_amounts=[None],
+            advances=[
+                AdvancePayment(
+                    percent=None,
+                    total=None,
+                    payments=[],
+                )
+            ],
+        )
 
 
-async def test_total_amounts_tolerance_allows_difference_within_one_ruble() -> None:
+async def test_total_amounts_tolerance_allows_exactly_one_cent() -> None:
+    within_tolerance = str(Decimal("100.00") + AMOUNT_TOLERANCE)
     result = await _run_check(
         total_amount="100.00",
-        taxes_amounts=[str(Decimal("100.00") + AMOUNT_TOLERANCE - Decimal("0.01"))],
+        taxes_amounts=[within_tolerance],
         advances=None,
     )
 
@@ -149,9 +151,10 @@ async def test_total_amounts_tolerance_allows_difference_within_one_ruble() -> N
 
 
 async def test_total_amounts_fails_when_tolerance_exceeded() -> None:
+    over_tolerance = str(Decimal("100.00") + AMOUNT_TOLERANCE + Decimal("0.01"))
     result = await _run_check(
         total_amount="100.00",
-        taxes_amounts=[str(Decimal("100.00") + AMOUNT_TOLERANCE + Decimal("0.01"))],
+        taxes_amounts=[over_tolerance],
         advances=None,
     )
 
@@ -216,3 +219,131 @@ async def test_total_amounts_succeeds_with_multiple_advances_and_nested_payments
 
     assert result.status == CheckStatus.success
     assert result.errors == []
+
+
+# --- аванс только с total, без payments ---
+
+
+async def test_advance_with_only_total_matches_contract_success() -> None:
+    result = await _run_check(
+        total_amount="100.00",
+        taxes_amounts=None,
+        advances=[
+            AdvancePayment(percent=None, total=_make_payment("100.00"), payments=[]),
+        ],
+    )
+    assert result.status == CheckStatus.success
+    assert result.errors == []
+
+
+async def test_advance_with_only_total_differs_from_contract_fails() -> None:
+    result = await _run_check(
+        total_amount="100.00",
+        taxes_amounts=None,
+        advances=[
+            AdvancePayment(percent=None, total=_make_payment("90.00"), payments=[]),
+        ],
+    )
+    assert result.status == CheckStatus.failed
+    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
+
+
+# --- аванс только с payments, без total ---
+
+
+async def test_advance_with_only_payments_matches_contract_success() -> None:
+    result = await _run_check(
+        total_amount="100.00",
+        taxes_amounts=None,
+        advances=[
+            AdvancePayment(
+                percent=None,
+                total=None,
+                payments=[_make_payment("60.00"), _make_payment("40.00")],
+            ),
+        ],
+    )
+    assert result.status == CheckStatus.success
+    assert result.errors == []
+
+
+async def test_advance_with_only_payments_differs_from_contract_fails() -> None:
+    result = await _run_check(
+        total_amount="100.00",
+        taxes_amounts=None,
+        advances=[
+            AdvancePayment(
+                percent=None,
+                total=None,
+                payments=[_make_payment("90.00")],
+            ),
+        ],
+    )
+    assert result.status == CheckStatus.failed
+    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
+
+
+# --- смешанные авансы: одни с total, другие с payments ---
+
+
+async def test_mixed_advances_total_only_and_payments_only_success() -> None:
+    result = await _run_check(
+        total_amount="100.00",
+        taxes_amounts=None,
+        advances=[
+            AdvancePayment(percent=None, total=_make_payment("60.00"), payments=[]),
+            AdvancePayment(
+                percent=None,
+                total=None,
+                payments=[_make_payment("40.00")],
+            ),
+        ],
+    )
+    assert result.status == CheckStatus.success
+    assert result.errors == []
+
+
+# --- taxes с частичными None суммами ---
+
+
+async def test_taxes_with_none_amount_skipped_in_sum() -> None:
+    result = await _run_check(
+        total_amount="100.00",
+        taxes_amounts=[None, "100.00"],
+        advances=None,
+    )
+    assert result.status == CheckStatus.success
+    assert result.errors == []
+
+
+# --- несколько ошибок за один прогон ---
+
+
+async def test_errors_collected_from_multiple_sources() -> None:
+    result = await _run_check(
+        total_amount="100.00",
+        taxes_amounts=["90.00"],
+        advances=[
+            AdvancePayment(percent=None, total=_make_payment("80.00"), payments=[]),
+        ],
+    )
+    assert result.status == CheckStatus.failed
+    assert len(result.errors) == TWO_ERRORS
+    assert all(isinstance(err, AmountDiscrepancyError) for err in result.errors)
+
+
+async def test_within_advance_and_cross_source_errors_both_collected() -> None:
+    result = await _run_check(
+        total_amount="100.00",
+        taxes_amounts=None,
+        advances=[
+            AdvancePayment(
+                percent=None,
+                total=_make_payment("80.00"),
+                payments=[_make_payment("70.00")],
+            ),
+        ],
+    )
+    assert result.status == CheckStatus.failed
+    assert len(result.errors) == TWO_ERRORS
+    assert all(isinstance(err, AmountDiscrepancyError) for err in result.errors)
