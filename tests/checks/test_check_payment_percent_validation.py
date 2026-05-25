@@ -23,7 +23,7 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
     Vat,
 )
-from app.domain.pipeline.task import CheckTask
+from app.domain.pipeline.task import CheckTask, TaskStatus
 
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
@@ -98,7 +98,7 @@ async def test_payment_percent_validates_amount_even_when_percents_missing() -> 
     assert any(
         isinstance(err, PaymentAmountPercentDiscrepancyError) for err in called_errors
     )
-    assert not any(
+    assert any(
         isinstance(err, PaymentPercentSumDiscrepancyError) for err in called_errors
     )
 
@@ -210,10 +210,83 @@ async def test_payment_percent_fails_when_amount_difference_exceeds_tolerance() 
     )
 
 
-async def test_payment_percent_succeeds_when_payment_list_is_empty() -> None:
-    called_errors = await _run_check(total_amount="100.00", advances=[])
+async def test_payment_percent_skips_when_advance_list_is_empty() -> None:
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    contract = DummyContract(
+        id=uuid4(),
+        user_id="test-user",
+        contract_name="contract.pdf",
+        documents=[document],
+        fields=FieldCollector(
+            [
+                TotalAmountField(
+                    value=TotalAmount(
+                        total=_make_payment("100.00"),
+                        taxes=[],
+                    ),
+                    sources=[Source(document_id=document.id)],
+                ),
+                AdvancePaymentsField(
+                    value=[],
+                    sources=[Source(document_id=document.id)],
+                ),
+            ],
+        ),
+    )
+    contract_repo = MagicMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
 
-    assert called_errors == []
+    await CheckTask(
+        check=CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
+    ).run(
+        ctx,
+    )
+
+    run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
+    assert run.records[-1].status == TaskStatus.SKIPPED
+    assert "no advance payment records" in (run.records[-1].error_message or "")
+    contract_repo.save_errors.assert_not_awaited()
+
+
+async def test_payment_percent_skips_when_no_advance_has_percent() -> None:
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    contract = DummyContract(
+        id=uuid4(),
+        user_id="test-user",
+        contract_name="contract.pdf",
+        documents=[document],
+        fields=FieldCollector(
+            [
+                TotalAmountField(
+                    value=TotalAmount(
+                        total=_make_payment("100.00"),
+                        taxes=[],
+                    ),
+                    sources=[Source(document_id=document.id)],
+                ),
+                AdvancePaymentsField(
+                    value=[
+                        _make_advance(percent=None, payment_value="50.00"),
+                        _make_advance(percent=None, payment_value="50.00"),
+                    ],
+                    sources=[Source(document_id=document.id)],
+                ),
+            ],
+        ),
+    )
+    contract_repo = MagicMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
+
+    await CheckTask(
+        check=CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
+    ).run(
+        ctx,
+    )
+
+    run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
+    assert run.records[-1].status == TaskStatus.SKIPPED
+    assert "no advance payment percents" in (run.records[-1].error_message or "")
+    contract_repo.save_errors.assert_not_awaited()
 
 
 async def test_payment_percent_succeeds_for_single_100_percent_payment() -> None:
