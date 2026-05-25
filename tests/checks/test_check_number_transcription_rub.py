@@ -9,6 +9,7 @@ from app.domain.checks.check_number_transcription_rub import (
     CheckNumberTranscriptionRub,
 )
 from app.domain.checks.deps import CheckServices
+from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.entities.errors import NumberTranscriptionError
 from app.domain.entities.merge_types import Source
 from app.domain.entities.single_supplier import SingleSupplierDocument
@@ -23,6 +24,9 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckStatus
 from app.domain.ports.checker import TranscriptionCheckIssue, TranscriptionCheckResult
+from app.infrastructure.checkers.checker_transcription_compliance import (
+    TranscriptionCompliance,
+)
 
 
 pytestmark = pytest.mark.asyncio
@@ -217,3 +221,31 @@ async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
         (Decimal("2560.13"), "Две тысячи пятьсот шестьдесят"),
     }
     assert actual_pairs == expected_pairs
+
+
+async def test_check_14_skips_when_no_amount_transcription_pairs() -> None:
+    check = CheckNumberTranscriptionRub()
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    check.total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=Payment(
+                amount=Amount(value=None, transcription="Сто"),
+                vat=Vat(amount=None, rate=None),
+                include_vat=False,
+            ),
+            taxes=[],
+        ),
+        sources=[Source(document_id=document.id)],
+    )
+    check.advance_payments_field = AdvancePaymentsField(value=[], sources=[])
+
+    with pytest.raises(InsufficientCheckDataError):
+        await check.execute(
+            cast(
+                "CheckServices",
+                SimpleNamespace(
+                    check_transcription_compliance_service=TranscriptionCompliance(),
+                    check_position_compliance_service=MagicMock(),
+                ),
+            ),
+        )
