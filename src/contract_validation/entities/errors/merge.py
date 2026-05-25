@@ -41,4 +41,4 @@ class ValueNotDefinedError(BaseMergeError):
         base_result = super()._compare_same_type(error)
         if not base_result:
             return base_result
-        return self.value == other.value
+        return bool(self.value == other.value)
