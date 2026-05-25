@@ -10,5 +10,4 @@ class NomenclatureArticle:
 
 class INomenclatureClassifier(ABC):
     @abstractmethod
-    async def classify(self, nomenclature: str) -> list[NomenclatureArticle]:
-        raise NotImplementedError
+    async def classify(self, nomenclature: str) -> list[NomenclatureArticle]: ...
