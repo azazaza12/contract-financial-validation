@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID
 
+from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors import (
     BaseMergeError,
     ValuesDiscrepancyError,
@@ -32,6 +33,13 @@ def all_equal(candidates: list[ValueCandidate]) -> bool:
         return True
     first = candidates[0].value
     return all(c.value == first for c in candidates[1:])
+
+
+def all_equal_decimal(candidates: list[ValueCandidate]) -> bool:
+    if not candidates:
+        return True
+    first = candidates[0].value
+    return all(abs(c.value - first) <= AMOUNT_TOLERANCE for c in candidates[1:])
 
 
 def _normalize_str(value: str) -> str:
@@ -68,7 +76,11 @@ def merge_scalar_strict(
     errors: list[BaseMergeError],
     _registry: MergeRegistry,
 ) -> ValueCandidate | None:
-    if not all_equal(candidates):
+    if isinstance(candidates[0].value, Decimal):
+        equal = all_equal_decimal(candidates)
+    else:
+        equal = all_equal(candidates)
+    if not equal:
         errors.append(
             ValuesDiscrepancyError(
                 candidates=candidates,

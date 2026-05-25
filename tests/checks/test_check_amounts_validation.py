@@ -4,6 +4,7 @@ import pytest
 from app.domain.checks.check_amounts_validation import (
     CheckTotalAmountsValidation,
 )
+from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors import AmountDiscrepancyError
 from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
@@ -20,8 +21,6 @@ from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 
 
 pytestmark = pytest.mark.asyncio
-
-DEFAULT_TOLERANCE = Decimal("0.01")
 
 
 def _make_payment(amount_value: str | None) -> Payment:
@@ -58,7 +57,7 @@ async def _run_check(
     taxes_amounts: list[str | None] | None,
     advances: list[AdvancePayment] | None,
 ):
-    check = CheckTotalAmountsValidation(tolerance=DEFAULT_TOLERANCE)
+    check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
     check.total_amount_field = _make_total_amount_field(
         total_amount=total_amount,
         taxes_amounts=taxes_amounts,
@@ -138,10 +137,10 @@ async def test_total_amounts_skips_none_amounts_without_crash() -> None:
     assert result.errors == []
 
 
-async def test_total_amounts_tolerance_allows_exactly_one_cent() -> None:
+async def test_total_amounts_tolerance_allows_difference_within_one_ruble() -> None:
     result = await _run_check(
         total_amount="100.00",
-        taxes_amounts=["100.01"],
+        taxes_amounts=[str(Decimal("100.00") + AMOUNT_TOLERANCE - Decimal("0.01"))],
         advances=None,
     )
 
@@ -152,7 +151,7 @@ async def test_total_amounts_tolerance_allows_exactly_one_cent() -> None:
 async def test_total_amounts_fails_when_tolerance_exceeded() -> None:
     result = await _run_check(
         total_amount="100.00",
-        taxes_amounts=["100.02"],
+        taxes_amounts=[str(Decimal("100.00") + AMOUNT_TOLERANCE + Decimal("0.01"))],
         advances=None,
     )
 
