@@ -12,8 +12,7 @@ from app.domain.entities.validation import (
 
 class BaseCheck(ABC):
     @abstractmethod
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:
-        raise NotImplementedError
+    async def execute(self, check_services: CheckServices) -> CheckExecutionResult: ...
 
     def prepare(self, fields: Iterable[BaseField]) -> None:
         attr_dict = type(self).__dict__

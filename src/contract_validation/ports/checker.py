@@ -21,8 +21,7 @@ class IPositionsComplianceService(ABC):
         self,
         document_object: str,
         position_names: list[str],
-    ) -> EvaluateResult:
-        raise NotImplementedError
+    ) -> EvaluateResult: ...
 
 
 @dataclass
@@ -40,5 +39,4 @@ class TranscriptionCheckResult:
 
 class ITranscriptionComplianceService(ABC):
     @abstractmethod
-    async def evaluate(self, amounts: list[Amount]) -> TranscriptionCheckResult:
-        raise NotImplementedError
+    async def evaluate(self, amounts: list[Amount]) -> TranscriptionCheckResult: ...
