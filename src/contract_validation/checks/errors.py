@@ -25,5 +25,12 @@ class MultiplyRequiredFieldError(CheckInputError):
         self.count = count
 
 
+class InsufficientCheckDataError(CheckInputError):
+    def __init__(self, label: str, reason: str) -> None:
+        super().__init__(f"{label}: insufficient data — {reason}")
+        self.label = label
+        self.reason = reason
+
+
 class InvalidCheckSignatureError(Exception):
     pass
