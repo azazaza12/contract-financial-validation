@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 
 from app.domain.checks.deps import CheckServices, OptionalDep, Requires
 from app.domain.entities.field import BaseField
@@ -24,7 +24,7 @@ class BaseCheck(ABC):
                 )
                 setattr(self, attr_name, value)
 
-    def _result(self, errors: list[BaseCheckError]) -> CheckExecutionResult:
+    def _result(self, errors: Sequence[BaseCheckError]) -> CheckExecutionResult:
         status = CheckStatus.failed if errors else CheckStatus.success
         return CheckExecutionResult(
             label=self.__class__.__name__,

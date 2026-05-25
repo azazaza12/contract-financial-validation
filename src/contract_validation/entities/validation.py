@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -14,5 +15,5 @@ class CheckStatus(StrEnum):
 @dataclass(kw_only=True)
 class CheckExecutionResult:
     label: str
-    errors: list[BaseCheckError]
+    errors: Sequence[BaseCheckError]
     status: CheckStatus
