@@ -10,12 +10,12 @@ from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
     Payment,
-    TotalAmount,
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
 
 from .deps import CheckServices, OptionalDep, Requires
+from .errors import InsufficientCheckDataError
 
 
 if TYPE_CHECKING:
@@ -25,25 +25,18 @@ if TYPE_CHECKING:
 def _payment_lines_mismatch_vs_reference(
     reference_rate: Decimal | None,
     lines: list[Payment],
-) -> PaymentVatRatesDifferError | None:
-    for payment in lines:
-        line_rate = payment.vat.rate
-        if line_rate != reference_rate:
-            return PaymentVatRatesDifferError(
-                index=None,
-                rate_one=reference_rate,
-                rate_two=line_rate,
+) -> list[PaymentVatRatesDifferError]:
+    errors = []
+    for i, payment in enumerate(lines):
+        if payment.vat.rate != reference_rate:
+            errors.append(
+                PaymentVatRatesDifferError(
+                    index=i,
+                    rate_one=reference_rate,
+                    rate_two=payment.vat.rate,
+                )
             )
-    return None
-
-
-def _total_amount_has_any_vat_rate(ta: TotalAmount) -> bool:
-    if ta.total.vat.rate is not None:
-        return True
-    taxes = ta.taxes
-    if taxes:
-        return any(p.vat.rate is not None for p in taxes)
-    return False
+    return errors
 
 
 def _advance_has_any_vat_rate(adv: AdvancePayment) -> bool:
@@ -65,6 +58,7 @@ def _advances_field_has_any_vat_rate(
 def _aggregate_rate_vs_contract(
     contract_rate: Decimal | None,
     aggregate: Payment | None,
+    index: int | None = None,
 ) -> PaymentVatRatesDifferError | None:
     if aggregate is None:
         return None
@@ -72,10 +66,39 @@ def _aggregate_rate_vs_contract(
     if contract_rate == adv_rate:
         return None
     return PaymentVatRatesDifferError(
-        index=None,
+        index=index,
         rate_one=contract_rate,
         rate_two=adv_rate,
     )
+
+
+def _check_aggregate_vs_reference(
+    aggregate: Payment | None,
+    contract_rate: Decimal | None,
+    tax_rates: set,
+    index: int | None = None,
+) -> PaymentVatRatesDifferError | None:
+    if aggregate is None:
+        return None
+    rate = aggregate.vat.rate
+    if tax_rates:
+        if rate not in tax_rates:
+            return PaymentVatRatesDifferError(index=index, rate_one=rate, rate_two=None)
+        return None
+    return _aggregate_rate_vs_contract(contract_rate, aggregate, index=index)
+
+
+def _filter_valid_payments(
+    payments: list[Payment],
+) -> tuple[list[BaseCheckError], list[Payment]]:
+    errors: list[BaseCheckError] = []
+    valid: list[Payment] = []
+    for payment in payments:
+        if payment.vat.rate is None:
+            errors.append(PaymentVatRateNotFoundError())
+        else:
+            valid.append(payment)
+    return errors, valid
 
 
 class CheckTaxRatesValidation(BaseCheck):
@@ -83,33 +106,57 @@ class CheckTaxRatesValidation(BaseCheck):
     advance_payments_field = OptionalDep(AdvancePaymentsField)
 
     def _collect_advance_rate_errors(
-        self, contract_rate: Decimal | None
+        self, contract_rate: Decimal | None, valid_taxes: list[Payment]
     ) -> list[BaseCheckError]:
-        errors = []
-        for advance_payment in self.advance_payments_field.value:
+        errors: list[BaseCheckError] = []
+        tax_rates = {p.vat.rate for p in valid_taxes}
+        for i, advance_payment in enumerate(self.advance_payments_field.value):
             if not advance_payment.payments:
-                mismatch = _aggregate_rate_vs_contract(
-                    contract_rate,
-                    advance_payment.total,
+                mismatch = _check_aggregate_vs_reference(
+                    advance_payment.total, contract_rate, tax_rates, index=i
                 )
                 if mismatch is not None:
                     errors.append(mismatch)
-                    return errors
                 continue
+
+            filter_errors, valid_payments = _filter_valid_payments(
+                advance_payment.payments,
+            )
+            errors.extend(filter_errors)
+
             advance_total_rate = (
                 advance_payment.total and advance_payment.total.vat.rate
             )
             if advance_total_rate is None:
-                continue
-
-            mismatch = _payment_lines_mismatch_vs_reference(
-                advance_total_rate,
-                advance_payment.payments,
-            )
-            if mismatch is None:
-                continue
-            errors.append(mismatch)
-            return errors
+                if tax_rates:
+                    errors.extend(
+                        PaymentVatRatesDifferError(
+                            index=i,
+                            rate_one=payment.vat.rate,
+                            rate_two=None,
+                        )
+                        for payment in valid_payments
+                        if payment.vat.rate not in tax_rates
+                    )
+                elif contract_rate is not None:
+                    errors.extend(
+                        _payment_lines_mismatch_vs_reference(
+                            contract_rate,
+                            valid_payments,
+                        )
+                    )
+            else:
+                mismatch = _check_aggregate_vs_reference(
+                    advance_payment.total, contract_rate, tax_rates, index=i
+                )
+                if mismatch is not None:
+                    errors.append(mismatch)
+                errors.extend(
+                    _payment_lines_mismatch_vs_reference(
+                        advance_total_rate,
+                        valid_payments,
+                    )
+                )
         return errors
 
     async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
@@ -123,19 +170,25 @@ class CheckTaxRatesValidation(BaseCheck):
         taxes = ta.taxes
 
         if not (
-            _total_amount_has_any_vat_rate(ta)
+            ta.total.vat.rate is not None
+            or any(p.vat.rate is not None for p in taxes)
             or _advances_field_has_any_vat_rate(self.advance_payments_field)
         ):
-            errors.append(PaymentVatRateNotFoundError())
-            return self._result(errors)
+            raise InsufficientCheckDataError(
+                self.__class__.__name__,
+                "no VAT rates found in contract, taxes, or advances",
+            )
 
-        if taxes is not None and len(taxes) > 0:
-            total_rate = ta.total.vat.rate
-            if total_rate is not None:
-                mismatch = _payment_lines_mismatch_vs_reference(total_rate, taxes)
-                if mismatch is not None:
-                    errors.append(mismatch)
-                    return self._result(errors)
+        filter_errors, valid_taxes = _filter_valid_payments(taxes)
+        errors.extend(filter_errors)
+
+        if valid_taxes and ta.total.vat.rate is not None:
+            errors.extend(
+                _payment_lines_mismatch_vs_reference(
+                    ta.total.vat.rate,
+                    valid_taxes,
+                ),
+            )
 
         if (
             self.advance_payments_field is None
@@ -144,5 +197,5 @@ class CheckTaxRatesValidation(BaseCheck):
             return self._result(errors)
 
         contract_rate = ta.total.vat.rate
-        errors.extend(self._collect_advance_rate_errors(contract_rate))
+        errors.extend(self._collect_advance_rate_errors(contract_rate, valid_taxes))
         return self._result(errors)
