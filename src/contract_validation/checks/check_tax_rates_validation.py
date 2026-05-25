@@ -102,15 +102,22 @@ def _filter_valid_payments(
 
 
 class CheckTaxRatesValidation(BaseCheck):
-    total_amount_field = Requires(TotalAmountField)
-    advance_payments_field = OptionalDep(AdvancePaymentsField)
+    if TYPE_CHECKING:
+        total_amount_field: TotalAmountField
+        advance_payments_field: AdvancePaymentsField | None
+    else:
+        total_amount_field = Requires(TotalAmountField)
+        advance_payments_field = OptionalDep(AdvancePaymentsField)
 
     def _collect_advance_rate_errors(
         self, contract_rate: Decimal | None, valid_taxes: list[Payment]
     ) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         tax_rates = {p.vat.rate for p in valid_taxes}
-        for i, advance_payment in enumerate(self.advance_payments_field.value):
+        advances = self.advance_payments_field
+        if advances is None:
+            return errors
+        for i, advance_payment in enumerate(advances.value):
             if not advance_payment.payments:
                 mismatch = _check_aggregate_vs_reference(
                     advance_payment.total, contract_rate, tax_rates, index=i
@@ -125,7 +132,9 @@ class CheckTaxRatesValidation(BaseCheck):
             errors.extend(filter_errors)
 
             advance_total_rate = (
-                advance_payment.total and advance_payment.total.vat.rate
+                advance_payment.total.vat.rate
+                if advance_payment.total is not None
+                else None
             )
             if advance_total_rate is None:
                 if tax_rates:
@@ -160,11 +169,6 @@ class CheckTaxRatesValidation(BaseCheck):
         return errors
 
     async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
-        self.total_amount_field = cast("TotalAmountField", self.total_amount_field)
-        self.advance_payments_field = cast(
-            "AdvancePaymentsField | None",
-            self.advance_payments_field,
-        )
         errors: list[BaseCheckError] = []
         ta = self.total_amount_field.value
         taxes = ta.taxes

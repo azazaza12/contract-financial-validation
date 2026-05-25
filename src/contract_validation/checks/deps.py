@@ -63,7 +63,7 @@ class Requires[T]:
 class OptionalDep[T]:
     field_type: type[T]
 
-    def resolve(self, attr_name: str, fields: Iterable[BaseField], label: str) -> T:
+    def resolve(self, attr_name: str, fields: Iterable[BaseField], label: str) -> T | None:
         element_type = self.field_type
         if isinstance(element_type, type):
             field_type = element_type
