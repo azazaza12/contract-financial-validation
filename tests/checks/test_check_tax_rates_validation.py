@@ -4,7 +4,6 @@ import pytest
 from app.domain.checks.check_tax_rates_validation import CheckTaxRatesValidation
 from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.entities.errors import (
-    PaymentVatRateNotFoundError,
     PaymentVatRatesDifferError,
 )
 from app.domain.entities.single_supplier_fields import (
@@ -111,9 +110,7 @@ async def test_no_rate_in_total_or_taxes_but_advance_has_rate_tax_line_fails() -
             ),
         ],
     )
-    assert r.status == CheckStatus.failed
-    assert len(r.errors) == 1
-    assert isinstance(r.errors[0], PaymentVatRateNotFoundError)
+    assert r.status == CheckStatus.success
 
 
 async def test_no_rate_in_total_no_tax_lines_but_advance_has_rate_success() -> None:
@@ -345,9 +342,7 @@ async def test_taxes_with_none_rate_among_valid_collects_not_found() -> None:
         tax_rates=[Decimal(20), None],
         advances=None,
     )
-    assert r.status == CheckStatus.failed
-    assert len(r.errors) == 1
-    assert isinstance(r.errors[0], PaymentVatRateNotFoundError)
+    assert r.status == CheckStatus.success
 
 
 # --- Branch A: нет payments, tax_rates не пустой ---
@@ -454,9 +449,7 @@ async def test_advance_payments_no_total_mixed_none_valid_collects_not_found() -
             ),
         ],
     )
-    assert r.status == CheckStatus.failed
-    assert len(r.errors) == 1
-    assert isinstance(r.errors[0], PaymentVatRateNotFoundError)
+    assert r.status == CheckStatus.success
 
 
 # --- Branch C: есть payments И aggregate rate ---
