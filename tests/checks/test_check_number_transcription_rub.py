@@ -24,9 +24,6 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckStatus
 from app.domain.ports.checker import TranscriptionCheckIssue, TranscriptionCheckResult
-from app.infrastructure.checkers.checker_transcription_compliance import (
-    TranscriptionCompliance,
-)
 
 
 def _check_services(transcription_service: AsyncMock) -> CheckServices:
@@ -221,6 +218,7 @@ async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
 
 
 async def test_check_14_skips_when_no_amount_transcription_pairs() -> None:
+    service_mock = AsyncMock()
     check = CheckNumberTranscriptionRub()
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     check.total_amount_field = TotalAmountField(
@@ -237,12 +235,6 @@ async def test_check_14_skips_when_no_amount_transcription_pairs() -> None:
     check.advance_payments_field = AdvancePaymentsField(value=[], sources=[])
 
     with pytest.raises(InsufficientCheckDataError):
-        await check.execute(
-            cast(
-                "CheckServices",
-                SimpleNamespace(
-                    check_transcription_compliance_service=TranscriptionCompliance(),
-                    check_position_compliance_service=MagicMock(),
-                ),
-            ),
-        )
+        await check.execute(_check_services(service_mock))
+
+    service_mock.evaluate.assert_not_awaited()
