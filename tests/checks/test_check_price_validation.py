@@ -2,7 +2,6 @@ from decimal import Decimal
 from unittest.mock import MagicMock
 from uuid import uuid4
 
-import pytest
 from app.domain.checks.check_price_validation import CheckPriceValidation
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors import (
@@ -25,9 +24,6 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.pipeline.task import CheckTask, TaskStatus
 
 from tests.domain.pipeline.conftest import DummyContract, create_context
-
-
-pytestmark = pytest.mark.asyncio
 
 
 def _make_payment(value: str) -> Payment:

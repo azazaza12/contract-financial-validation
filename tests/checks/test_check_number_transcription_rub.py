@@ -29,9 +29,6 @@ from app.infrastructure.checkers.checker_transcription_compliance import (
 )
 
 
-pytestmark = pytest.mark.asyncio
-
-
 def _check_services(transcription_service: AsyncMock) -> CheckServices:
     return cast(
         "CheckServices",

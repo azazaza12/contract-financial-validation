@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-import pytest
 from app.domain.checks.check_taxes_validation import CheckTaxesValidation
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors import (
@@ -20,9 +19,6 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckStatus
 
 from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
-
-
-pytestmark = pytest.mark.asyncio
 
 
 def _make_payment(

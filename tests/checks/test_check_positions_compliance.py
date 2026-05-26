@@ -4,7 +4,6 @@ from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 from app.domain.checks.check_positions_compliance import (
     CheckPositionsCompliance,
 )
@@ -21,9 +20,6 @@ from app.domain.pipeline.task import CheckTask, TaskStatus
 from app.domain.ports.checker import EvaluateResult
 
 from tests.domain.pipeline.conftest import DummyContract, create_context
-
-
-pytestmark = pytest.mark.asyncio
 
 
 def _check_services(position_service: AsyncMock) -> CheckServices:
