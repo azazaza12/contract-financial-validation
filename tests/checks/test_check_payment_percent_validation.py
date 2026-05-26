@@ -2,7 +2,6 @@ from decimal import Decimal
 from unittest.mock import MagicMock
 from uuid import uuid4
 
-import pytest
 from app.domain.checks.check_payment_percent_validation import (
     CheckPaymentPercentValidation,
 )
@@ -26,9 +25,6 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.pipeline.task import CheckTask
 
 from tests.domain.pipeline.conftest import DummyContract, create_context
-
-
-pytestmark = pytest.mark.asyncio
 
 
 def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:

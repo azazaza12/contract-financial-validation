@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-import pytest
 from app.domain.checks.check_tax_rates_validation import CheckTaxRatesValidation
 from app.domain.entities.errors import (
     PaymentVatRateNotFoundError,
@@ -18,9 +17,6 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckStatus
 
 from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
-
-
-pytestmark = pytest.mark.asyncio
 
 
 def _payment(*, vat_rate: Decimal | None) -> Payment:
