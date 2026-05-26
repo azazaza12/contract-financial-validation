@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, cast
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import (
     BaseCheckError,
-    PaymentVatRateNotFoundError,
     PaymentVatRatesDifferError,
 )
 from app.domain.entities.single_supplier_fields import (
@@ -90,15 +89,8 @@ def _check_aggregate_vs_reference(
 
 def _filter_valid_payments(
     payments: list[Payment],
-) -> tuple[list[BaseCheckError], list[Payment]]:
-    errors: list[BaseCheckError] = []
-    valid: list[Payment] = []
-    for payment in payments:
-        if payment.vat.rate is None:
-            errors.append(PaymentVatRateNotFoundError())
-        else:
-            valid.append(payment)
-    return errors, valid
+) -> list[Payment]:
+    return [payment for payment in payments if payment.vat.rate is not None]
 
 
 class CheckTaxRatesValidation(BaseCheck):
@@ -119,10 +111,9 @@ class CheckTaxRatesValidation(BaseCheck):
                     errors.append(mismatch)
                 continue
 
-            filter_errors, valid_payments = _filter_valid_payments(
+            valid_payments = _filter_valid_payments(
                 advance_payment.payments,
             )
-            errors.extend(filter_errors)
 
             advance_total_rate = (
                 advance_payment.total and advance_payment.total.vat.rate
@@ -179,8 +170,7 @@ class CheckTaxRatesValidation(BaseCheck):
                 "no VAT rates found in contract, taxes, or advances",
             )
 
-        filter_errors, valid_taxes = _filter_valid_payments(taxes)
-        errors.extend(filter_errors)
+        valid_taxes = _filter_valid_payments(taxes)
 
         if valid_taxes and ta.total.vat.rate is not None:
             errors.extend(
