@@ -102,9 +102,7 @@ class CheckTaxRatesValidation(BaseCheck):
                     )
                 )
             return
-        self._append_aggregate_rate_vs_contract(
-            contract_rate, aggregate, index=index
-        )
+        self._append_aggregate_rate_vs_contract(contract_rate, aggregate, index=index)
 
     def _collect_advance_rate_errors(
         self,
