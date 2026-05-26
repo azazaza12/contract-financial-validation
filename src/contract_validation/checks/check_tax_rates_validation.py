@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import (
