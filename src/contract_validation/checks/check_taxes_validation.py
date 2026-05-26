@@ -75,7 +75,9 @@ class CheckTaxesValidation(BaseCheck):
 
         return aggregate_vat if aggregate_vat is not None else lines_vat
 
-    def _collect_advances_vat(self, advance_payments_field: AdvancePaymentsField) -> None:
+    def _collect_advances_vat(
+        self, advance_payments_field: AdvancePaymentsField
+    ) -> None:
         advances_vat_total: Decimal | None = None
         for advance_payment in advance_payments_field.value:
             vat_amount = self._process_advance(advance_payment)
