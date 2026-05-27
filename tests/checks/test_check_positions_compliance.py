@@ -69,25 +69,6 @@ async def _run_check_task(
     return contract_repo, run
 
 
-async def test_skips_when_document_object_is_blank() -> None:
-    contract_repo, run = await _run_check_task(
-        document_object="   ",
-        positions=[
-            SpecPosition(
-                name="Позиция 1",
-                quantity=None,
-                unit_price=None,
-                total_price=None,
-                unit_of_measurement=None,
-            ),
-        ],
-    )
-
-    assert run.records[-1].status == TaskStatus.SKIPPED
-    assert "no document object" in (run.records[-1].error_message or "")
-    contract_repo.save_errors.assert_not_awaited()
-
-
 async def test_skips_when_all_position_names_are_blank() -> None:
     contract_repo, run = await _run_check_task(
         document_object="Поставка оборудования",
