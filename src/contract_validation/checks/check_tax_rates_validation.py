@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, cast
+from decimal import Decimal
+from typing import cast
 
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import (
@@ -15,11 +16,6 @@ from app.domain.entities.validation import CheckExecutionResult
 
 from .deps import CheckServices, OptionalDep, Requires
 from .errors import InsufficientCheckDataError
-
-
-if TYPE_CHECKING:
-    from decimal import Decimal
-
 
 def _advance_has_any_vat_rate(adv: AdvancePayment) -> bool:
     if adv.total is not None and adv.total.vat.rate is not None:
@@ -44,12 +40,8 @@ def _filter_valid_payments(
 
 
 class CheckTaxRatesValidation(BaseCheck):
-    if TYPE_CHECKING:
-        total_amount_field: TotalAmountField
-        advance_payments_field: AdvancePaymentsField | None
-    else:
-        total_amount_field = Requires(TotalAmountField)
-        advance_payments_field = OptionalDep(AdvancePaymentsField)
+    total_amount_field = Requires(TotalAmountField)
+    advance_payments_field = OptionalDep(AdvancePaymentsField)
 
     def __init__(self) -> None:
         self.errors: list[BaseCheckError] = []
@@ -161,18 +153,19 @@ class CheckTaxRatesValidation(BaseCheck):
     async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
         self.errors = []
 
-        self.total_amount_field = cast("TotalAmountField", self.total_amount_field)
-        self.advance_payments_field = cast(
-            "AdvancePaymentsField | None",
+        total_amount_field = cast(TotalAmountField, self.total_amount_field)
+        advance_payments_field = cast(
+            AdvancePaymentsField | None,
             self.advance_payments_field,
         )
-        ta = self.total_amount_field.value
+
+        ta = total_amount_field.value
         taxes = ta.taxes
 
         if not (
             ta.total.vat.rate is not None
             or any(p.vat.rate is not None for p in taxes)
-            or _advances_field_has_any_vat_rate(self.advance_payments_field)
+            or _advances_field_has_any_vat_rate(advance_payments_field)
         ):
             raise InsufficientCheckDataError(
                 self.__class__.__name__,
@@ -187,10 +180,7 @@ class CheckTaxRatesValidation(BaseCheck):
                 valid_taxes,
             )
 
-        if (
-            self.advance_payments_field is None
-            or len(self.advance_payments_field.value) == 0
-        ):
+        if advance_payments_field is None or len(advance_payments_field.value) == 0:
             return self._result(self.errors)
 
         contract_rate = ta.total.vat.rate
