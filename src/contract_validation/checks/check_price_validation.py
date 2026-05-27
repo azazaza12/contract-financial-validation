@@ -4,18 +4,19 @@ from typing import cast
 from app.domain.checks.base import BaseCheck
 from app.domain.entities.errors import (
     AmountDiscrepancyError,
-    AmountNotFoundError,
     AmountNotPositiveError,
     BaseCheckError,
     PositionCostDiscrepancyError,
 )
 from app.domain.entities.single_supplier_fields import (
+    SpecPosition,
     SpecPositionsField,
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
 
 from .deps import CheckServices, Requires
+from .errors import InsufficientCheckDataError
 
 
 class CheckPriceValidation(BaseCheck):
@@ -24,64 +25,89 @@ class CheckPriceValidation(BaseCheck):
 
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
+        self.errors: list[BaseCheckError] = []
+
+    @staticmethod
+    def _has_any_position_line_total(positions: list[SpecPosition]) -> bool:
+        return any(position.total_price is not None for position in positions)
+
+    def _validate_position_lines_and_sum(
+        self, spec_positions: list[SpecPosition]
+    ) -> Decimal:
+        total_calculated = Decimal("0.00")
+        for count, spec_position in enumerate(spec_positions, start=1):
+            quantity = spec_position.quantity
+            price = spec_position.unit_price
+            position_total_amount = spec_position.total_price
+
+            if position_total_amount is None:
+                continue
+
+            if position_total_amount <= 0:
+                self.errors.append(AmountNotPositiveError(value=position_total_amount))
+            else:
+                total_calculated += position_total_amount
+
+            if quantity is None or price is None:
+                continue
+
+            if price <= 0:
+                self.errors.append(AmountNotPositiveError(value=price))
+                continue
+
+            position_calculated = quantity * price
+            diff = abs(position_total_amount - position_calculated)
+            if diff > self.tolerance:
+                self.errors.append(
+                    PositionCostDiscrepancyError(
+                        count=count,
+                        position_name=spec_position.name,
+                        cost=position_total_amount,
+                        calculated_cost=position_calculated,
+                        difference_sum=diff,
+                    ),
+                )
+        return total_calculated
 
     async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
-        self.spec_positions_field = cast(
-            "SpecPositionsField",
-            self.spec_positions_field,
-        )
-        self.total_amount_field = cast(
-            "TotalAmountField",
-            self.total_amount_field,
-        )
-        errors: list[BaseCheckError] = []
+        self.errors = []
 
-        spec_positions = self.spec_positions_field.value
-        total_payment = self.total_amount_field.value.total
+        spec_positions_field = cast("SpecPositionsField", self.spec_positions_field)
+        total_amount_field = cast("TotalAmountField", self.total_amount_field)
+
+        spec_positions = spec_positions_field.value
+        total_payment = total_amount_field.value.total
         total_amount = (
             total_payment.amount.value if total_payment.amount is not None else None
         )
-        total_calculated = Decimal("0.0")
-
-        for count, spec_position in enumerate(spec_positions, start=1):
-            quantity_dec = Decimal(str(spec_position.quantity))
-            price = spec_position.unit_price
-            if price <= 0:
-                errors.append(AmountNotPositiveError(value=price))
-            position_total_amount_calculated = quantity_dec * price
-            total_calculated += position_total_amount_calculated
-            position_total_amount = spec_position.total_price
-            if position_total_amount <= 0:
-                errors.append(AmountNotPositiveError(value=position_total_amount))
-            position_name = spec_position.name
-            position_amount_difference = abs(
-                position_total_amount - position_total_amount_calculated,
-            )
-
-            if position_amount_difference > self.tolerance:
-                errors.append(
-                    PositionCostDiscrepancyError(
-                        count=count,
-                        position_name=position_name,
-                        cost=position_total_amount,
-                        calculated_cost=position_total_amount_calculated,
-                        difference_sum=position_amount_difference,
-                    ),
-                )
+        label = self.__class__.__name__
 
         if total_amount is None:
-            errors.append(AmountNotFoundError())
-        elif total_amount <= 0:
-            errors.append(AmountNotPositiveError(value=total_amount))
+            raise InsufficientCheckDataError(
+                label,
+                "no contract total amount for comparison",
+            )
+
+        positions_total = self._validate_position_lines_and_sum(spec_positions)
+
+        has_position_totals = self._has_any_position_line_total(spec_positions)
+
+        if total_amount <= 0:
+            self.errors.append(AmountNotPositiveError(value=total_amount))
+        elif positions_total == 0 and not has_position_totals:
+            raise InsufficientCheckDataError(
+                label,
+                "cannot calculate positions total for comparison",
+            )
         else:
-            difference = abs(total_calculated - total_amount)
+            difference = abs(positions_total - total_amount)
             if difference > self.tolerance:
-                errors.append(
+                self.errors.append(
                     AmountDiscrepancyError(
                         reference_value=total_amount,
-                        value=total_calculated,
+                        value=positions_total,
                         difference=difference,
                     ),
                 )
 
-        return self._result(errors)
+        return self._result(self.errors)
