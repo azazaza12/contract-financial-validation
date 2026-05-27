@@ -17,6 +17,7 @@ from app.domain.entities.validation import CheckExecutionResult
 from .deps import CheckServices, OptionalDep, Requires
 from .errors import InsufficientCheckDataError
 
+
 def _advance_has_any_vat_rate(adv: AdvancePayment) -> bool:
     if adv.total is not None and adv.total.vat.rate is not None:
         return True
@@ -153,9 +154,9 @@ class CheckTaxRatesValidation(BaseCheck):
     async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
         self.errors = []
 
-        total_amount_field = cast(TotalAmountField, self.total_amount_field)
+        total_amount_field = cast("TotalAmountField", self.total_amount_field)
         advance_payments_field = cast(
-            AdvancePaymentsField | None,
+            "AdvancePaymentsField | None",
             self.advance_payments_field,
         )
 
