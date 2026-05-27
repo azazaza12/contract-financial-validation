@@ -39,13 +39,6 @@ class CheckPositionsCompliance(BaseCheck):
         )
         errors: list[BaseCheckError] = []
         label = self.__class__.__name__
-
-        if not document_object_field.has_data():
-            raise InsufficientCheckDataError(
-                label,
-                "no document object for compliance check",
-            )
-
         document_object = document_object_field.value.strip()
         position_names = _non_empty_position_names(spec_positions_field.value)
         if not position_names:

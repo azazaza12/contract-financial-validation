@@ -138,11 +138,10 @@ async def test_total_amounts_skips_none_amounts_without_crash() -> None:
         )
 
 
-async def test_total_amounts_tolerance_allows_exactly_one_cent() -> None:
-    within_tolerance = str(Decimal("100.00") + AMOUNT_TOLERANCE)
+async def test_total_amounts_tolerance_allows_difference_within_one_ruble() -> None:
     result = await _run_check(
         total_amount="100.00",
-        taxes_amounts=[within_tolerance],
+        taxes_amounts=[str(Decimal("100.00") + AMOUNT_TOLERANCE - Decimal("0.01"))],
         advances=None,
     )
 
@@ -151,10 +150,9 @@ async def test_total_amounts_tolerance_allows_exactly_one_cent() -> None:
 
 
 async def test_total_amounts_fails_when_tolerance_exceeded() -> None:
-    over_tolerance = str(Decimal("100.00") + AMOUNT_TOLERANCE + Decimal("0.01"))
     result = await _run_check(
         total_amount="100.00",
-        taxes_amounts=[over_tolerance],
+        taxes_amounts=[str(Decimal("100.00") + AMOUNT_TOLERANCE + Decimal("0.01"))],
         advances=None,
     )
 

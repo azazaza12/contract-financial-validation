@@ -29,9 +29,6 @@ from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
-pytestmark = pytest.mark.asyncio
-
-
 def _make_payment(value: str) -> Payment:
     amount = Amount(value=Decimal(value), transcription=None)
     return Payment(

@@ -23,23 +23,23 @@ class CheckTotalAmountsValidation(BaseCheck):
 
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
+        self.errors: list[BaseCheckError] = []
+        self.amounts_to_compare: list[Decimal] = []
 
-    def all_equal(self, values: list[Decimal]) -> list[BaseCheckError]:
-        if not values:
-            return []
-        errors: list[BaseCheckError] = []
-        reference_value = values[0]
-        for value in values[1:]:
+    def _check_amounts_consistent(self) -> None:
+        if not self.amounts_to_compare:
+            return
+        reference_value = self.amounts_to_compare[0]
+        for value in self.amounts_to_compare[1:]:
             difference = abs(value - reference_value)
             if difference > self.tolerance:
-                errors.append(
+                self.errors.append(
                     AmountDiscrepancyError(
                         value=value,
                         reference_value=reference_value,
                         difference=difference,
                     ),
                 )
-        return errors
 
     def collect_sums_from_payments(self, payments: list[Payment]) -> Decimal | None:
         total_amount_sum: Decimal | None = None
@@ -51,26 +51,23 @@ class CheckTotalAmountsValidation(BaseCheck):
             ) + payment.amount.value
         return total_amount_sum
 
-    def collect_total_sum(self, total_amount_field: TotalAmountField) -> list[Decimal]:
-        target: list[Decimal] = []
+    def _collect_total_amounts(self, total_amount_field: TotalAmountField) -> None:
         total_amount_sum = self.collect_sums_from_payments(
             [total_amount_field.value.total],
         )
         if total_amount_sum is not None:
-            target.append(total_amount_sum)
+            self.amounts_to_compare.append(total_amount_sum)
+
         taxes_total_amount_sum = self.collect_sums_from_payments(
             total_amount_field.value.taxes,
         )
-        if taxes_total_amount_sum is None:
-            return target
-        target.append(taxes_total_amount_sum)
-        return target
+        if taxes_total_amount_sum is not None:
+            self.amounts_to_compare.append(taxes_total_amount_sum)
 
-    def collect_advances_sum(
+    def _collect_advances_sum(
         self,
         advance_payments_field: AdvancePaymentsField,
-    ) -> tuple[list[BaseCheckError], Decimal | None]:
-        errors: list[BaseCheckError] = []
+    ) -> None:
         advances_sum: Decimal | None = None
         for advance_payment in advance_payments_field.value:
             total_amount = (
@@ -83,7 +80,7 @@ class CheckTotalAmountsValidation(BaseCheck):
             if total_amount is not None and payments_sum is not None:
                 diff = abs(total_amount - payments_sum)
                 if diff > self.tolerance:
-                    errors.append(
+                    self.errors.append(
                         AmountDiscrepancyError(
                             reference_value=total_amount,
                             value=payments_sum,
@@ -95,29 +92,28 @@ class CheckTotalAmountsValidation(BaseCheck):
             if amount is not None:
                 advances_sum = (advances_sum or Decimal("0.00")) + amount
 
-        return errors, advances_sum
+        if advances_sum is not None:
+            self.amounts_to_compare.append(advances_sum)
 
     async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
-        self.total_amount_field = cast("TotalAmountField", self.total_amount_field)
-        self.advance_payments_field = cast(
+        self.errors = []
+        self.amounts_to_compare = []
+
+        total_amount_field = cast("TotalAmountField", self.total_amount_field)
+        advance_payments_field = cast(
             "AdvancePaymentsField | None",
             self.advance_payments_field,
         )
-        errors: list[BaseCheckError] = []
-        amounts_to_compare: list[Decimal] = []
-        amounts_to_compare.extend(self.collect_total_sum(self.total_amount_field))
-        if self.advance_payments_field is not None:
-            adv_errors, advances_sum = self.collect_advances_sum(
-                self.advance_payments_field
-            )
-            errors.extend(adv_errors)
-            if advances_sum is not None:
-                amounts_to_compare.append(advances_sum)
-        if not amounts_to_compare:
+
+        self._collect_total_amounts(total_amount_field)
+        if advance_payments_field is not None:
+            self._collect_advances_sum(advance_payments_field)
+
+        if not self.amounts_to_compare:
             raise InsufficientCheckDataError(
                 self.__class__.__name__,
                 "no amounts found to compare",
             )
-        errors.extend(self.all_equal(amounts_to_compare))
 
-        return self._result(errors)
+        self._check_amounts_consistent()
+        return self._result(self.errors)
