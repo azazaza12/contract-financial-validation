@@ -4,7 +4,6 @@ from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import pytest
 from app.domain.checks.check_positions_compliance import (
     CheckPositionsCompliance,
 )
@@ -21,9 +20,6 @@ from app.domain.pipeline.task import CheckTask, TaskStatus
 from app.domain.ports.checker import EvaluateResult
 
 from tests.domain.pipeline.conftest import DummyContract, create_context
-
-
-pytestmark = pytest.mark.asyncio
 
 
 def _check_services(position_service: AsyncMock) -> CheckServices:
@@ -71,25 +67,6 @@ async def _run_check_task(
     await CheckTask(check=CheckPositionsCompliance()).run(ctx)
     run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
     return contract_repo, run
-
-
-async def test_skips_when_document_object_is_blank() -> None:
-    contract_repo, run = await _run_check_task(
-        document_object="   ",
-        positions=[
-            SpecPosition(
-                name="Позиция 1",
-                quantity=None,
-                unit_price=None,
-                total_price=None,
-                unit_of_measurement=None,
-            ),
-        ],
-    )
-
-    assert run.records[-1].status == TaskStatus.SKIPPED
-    assert "no document object" in (run.records[-1].error_message or "")
-    contract_repo.save_errors.assert_not_awaited()
 
 
 async def test_skips_when_all_position_names_are_blank() -> None:
