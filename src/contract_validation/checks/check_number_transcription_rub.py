@@ -11,6 +11,7 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 
 from .deps import CheckServices, OptionalDep
+from .errors import InsufficientCheckDataError
 
 
 class CheckNumberTranscriptionRub(BaseCheck):
@@ -18,11 +19,21 @@ class CheckNumberTranscriptionRub(BaseCheck):
     advance_payments_field = OptionalDep(AdvancePaymentsField)
 
     @staticmethod
+    def _amounts_with_transcription(amounts: list[Amount]) -> list[Amount]:
+        return [
+            amount
+            for amount in amounts
+            if amount.value is not None
+            and amount.transcription is not None
+            and amount.transcription.strip()
+        ]
+
+    @staticmethod
     def _amounts_from_payment(payment: Payment) -> list[Amount]:
         out: list[Amount] = []
-        if payment.amount is not None:
+        if payment.amount is not None and payment.amount.value is not None:
             out.append(payment.amount)
-        if payment.vat.amount is not None:
+        if payment.vat.amount is not None and payment.vat.amount.value is not None:
             out.append(payment.vat.amount)
         return out
 
@@ -35,8 +46,6 @@ class CheckNumberTranscriptionRub(BaseCheck):
             if isinstance(field, TotalAmountField):
                 total_amount = field.value
                 amounts.extend(self._amounts_from_payment(total_amount.total))
-                if total_amount.taxes is None:
-                    continue
                 for tax_payment in total_amount.taxes:
                     amounts.extend(self._amounts_from_payment(tax_payment))
                 continue
@@ -44,8 +53,6 @@ class CheckNumberTranscriptionRub(BaseCheck):
             for advance_payment in field.value:
                 if advance_payment.total is not None:
                     amounts.extend(self._amounts_from_payment(advance_payment.total))
-                if advance_payment.payments is None:
-                    continue
                 for payment in advance_payment.payments:
                     amounts.extend(self._amounts_from_payment(payment))
         return amounts
@@ -66,8 +73,14 @@ class CheckNumberTranscriptionRub(BaseCheck):
                 if f is not None
             ],
         )
+        checkable_amounts = self._amounts_with_transcription(extracted_amounts)
+        if not checkable_amounts:
+            raise InsufficientCheckDataError(
+                self.__class__.__name__,
+                "no amount-transcription pairs to validate",
+            )
         result = await check_services.check_transcription_compliance_service.evaluate(
-            extracted_amounts,
+            checkable_amounts,
         )
 
         errors = [
