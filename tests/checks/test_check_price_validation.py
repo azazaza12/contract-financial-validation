@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 from app.domain.checks.check_price_validation import CheckPriceValidation
+from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors import (
     AmountDiscrepancyError,
@@ -24,10 +25,8 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.pipeline.task import CheckTask, TaskStatus
 
+from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 from tests.domain.pipeline.conftest import DummyContract, create_context
-
-
-pytestmark = pytest.mark.asyncio
 
 
 def _make_payment(value: str) -> Payment:
@@ -252,6 +251,117 @@ async def test_check_price_validation_fails_when_values_not_positive() -> None:
     assert any(isinstance(err, AmountNotPositiveError) for err in called_errors)
 
 
+async def test_check_price_validation_skips_when_no_position_totals_to_compare() -> (
+    None
+):
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            SpecPositionsField(
+                value=[
+                    SpecPosition(
+                        name="Кухонный рабочий",
+                        quantity=Decimal("6.0"),
+                        unit_price=None,
+                        total_price=None,
+                        unit_of_measurement=None,
+                    ),
+                ],
+                sources=[Source(document_id=document.id)],
+            ),
+            _make_total_amount_field("6714000.0", document),
+        ],
+    )
+    contract = _make_contract(document, fields)
+    check = CheckPriceValidation(tolerance=AMOUNT_TOLERANCE)
+    contract_repo = MagicMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
+
+    await CheckTask(check=check).run(ctx)
+
+    run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
+    assert run.records[-1].status == TaskStatus.SKIPPED
+    assert "cannot calculate positions total" in (run.records[-1].error_message or "")
+    contract_repo.save_errors.assert_not_awaited()
+
+
+async def test_check_price_validation_skips_when_no_amounts_at_all() -> None:
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            SpecPositionsField(
+                value=[
+                    SpecPosition(
+                        name="Позиция 1",
+                        quantity=Decimal("1.0"),
+                        unit_price=None,
+                        total_price=None,
+                        unit_of_measurement="шт",
+                    ),
+                ],
+                sources=[Source(document_id=document.id)],
+            ),
+            TotalAmountField(
+                value=TotalAmount(
+                    total=Payment(
+                        amount=None,
+                        vat=Vat(amount=None, rate=None),
+                        include_vat=False,
+                    ),
+                    taxes=[],
+                ),
+                sources=[Source(document_id=document.id)],
+            ),
+        ],
+    )
+    check = CheckPriceValidation(tolerance=AMOUNT_TOLERANCE)
+    check.prepare(fields)
+    with pytest.raises(InsufficientCheckDataError):
+        await check.execute(STUB_CHECK_SERVICES)
+
+
+async def test_check_price_validation_skips_when_contract_total_is_missing() -> None:
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            SpecPositionsField(
+                value=[
+                    SpecPosition(
+                        name="Позиция 1",
+                        quantity=Decimal("2.0"),
+                        unit_price=Decimal("50.00"),
+                        total_price=Decimal("100.00"),
+                        unit_of_measurement="шт",
+                    ),
+                ],
+                sources=[Source(document_id=document.id)],
+            ),
+            TotalAmountField(
+                value=TotalAmount(
+                    total=Payment(
+                        amount=None,
+                        vat=Vat(amount=None, rate=None),
+                        include_vat=False,
+                    ),
+                    taxes=[],
+                ),
+                sources=[Source(document_id=document.id)],
+            ),
+        ],
+    )
+    contract = _make_contract(document, fields)
+    check = CheckPriceValidation(tolerance=AMOUNT_TOLERANCE)
+    contract_repo = MagicMock()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
+
+    await CheckTask(check=check).run(ctx)
+
+    run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
+    assert run.records[-1].status == TaskStatus.SKIPPED
+    assert "no contract total amount" in (run.records[-1].error_message or "")
+    contract_repo.save_errors.assert_not_awaited()
+
+
 async def test_check_price_validation_succeeds_when_within_tolerance() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
@@ -262,17 +372,13 @@ async def test_check_price_validation_succeeds_when_within_tolerance() -> None:
                         name="Позиция 1",
                         quantity=Decimal("1.0"),
                         unit_price=Decimal("100.00"),
-                        total_price=Decimal("100.00")
-                        + AMOUNT_TOLERANCE
-                        - Decimal("0.01"),
+                        total_price=Decimal("100.01"),  # ровно tolerance
                         unit_of_measurement="шт",
                     ),
                 ],
                 sources=[Source(document_id=document.id)],
             ),
-            _make_total_amount_field(
-                str(Decimal("100.00") + AMOUNT_TOLERANCE - Decimal("0.01")), document
-            ),
+            _make_total_amount_field("100.01", document),
         ],
     )
     contract = _make_contract(document, fields)

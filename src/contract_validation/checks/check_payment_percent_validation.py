@@ -15,23 +15,21 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 
 from .deps import CheckServices, Requires
+from .errors import InsufficientCheckDataError
 
 
 def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
-    if adv.total is not None and adv.total.amount is not None:
+    if (
+        adv.total is not None
+        and adv.total.amount is not None
+        and adv.total.amount.value is not None
+    ):
         return adv.total.amount.value
-    if not adv.payments:
-        return None
-
-    s = Decimal("0.00")
-    has_any = False
+    s: Decimal | None = None
     for p in adv.payments:
-        if p.amount is None:
+        if p.amount is None or p.amount.value is None:
             continue
-        s += p.amount.value
-        has_any = True
-    if not has_any:
-        return None
+        s = (s or Decimal("0.00")) + p.amount.value
     return s
 
 
@@ -55,8 +53,19 @@ class CheckPaymentPercentValidation(BaseCheck):
             total_payment.amount.value if total_payment.amount is not None else None
         )
 
+        label = self.__class__.__name__
+
         if not payments:
-            return self._result(errors)
+            raise InsufficientCheckDataError(
+                label,
+                "no advance payment records to validate",
+            )
+
+        if not any(advance_payment.percent is not None for advance_payment in payments):
+            raise InsufficientCheckDataError(
+                label,
+                "no advance payment percents to validate",
+            )
 
         total_percent = Decimal("0.00")
 
@@ -83,14 +92,8 @@ class CheckPaymentPercentValidation(BaseCheck):
                 ),
             )
 
-        all_percents_specified = all(p.percent is not None for p in payments)
-        if all_percents_specified:
-            percent_diff = abs(total_percent - Decimal("100.00"))
-            if percent_diff > self.tolerance:
-                errors.append(
-                    PaymentPercentSumDiscrepancyError(total_percent=total_percent)
-                )
-        if errors:
-            return self._result(errors)
-
+        if abs(total_percent - Decimal("100.00")) > self.tolerance:
+            errors.append(
+                PaymentPercentSumDiscrepancyError(total_percent=total_percent)
+            )
         return self._result(errors)
