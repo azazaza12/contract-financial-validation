@@ -72,7 +72,7 @@ class CheckPriceValidation(BaseCheck):
     async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
         self.errors = []
 
-        spec_positions_field = cast("SpecPositionsField", self.spec_positions_field)
+        spec_positions_field = cast(SpecPositionsField, self.spec_positions_field)
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
 
         spec_positions = spec_positions_field.value
