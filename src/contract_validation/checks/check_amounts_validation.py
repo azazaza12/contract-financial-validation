@@ -95,7 +95,7 @@ class CheckTotalAmountsValidation(BaseCheck):
         if advances_sum is not None:
             self.amounts_to_compare.append(advances_sum)
 
-    async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
+    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:  # noqa: ARG002
         self.errors = []
         self.amounts_to_compare = []
 

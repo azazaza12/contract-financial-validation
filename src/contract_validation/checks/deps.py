@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Protocol, get_args, get_origin
+from typing import Protocol, cast, get_args, get_origin
 
 from app.domain.checks.errors import (
     InvalidCheckSignatureError,
@@ -36,7 +36,7 @@ class Requires[T]:
                     field_type=field_type.__name__,
                     count=len(matches),
                 )
-            return matches[0]
+            return cast("T", matches[0])
 
         if get_origin(element_type) is not list:
             msg = (
@@ -56,7 +56,7 @@ class Requires[T]:
                 param_name=attr_name,
                 field_type=field_type.__name__,
             )
-        return matches
+        return cast("T", matches)
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,7 +73,7 @@ class OptionalDep[T]:
             if len(matches) == 0:
                 return None
             if len(matches) == 1:
-                return matches[0]
+                return cast("T", matches[0])
             raise MultiplyRequiredFieldError(
                 label=label,
                 param_name=attr_name,
@@ -96,8 +96,8 @@ class OptionalDep[T]:
         field_type = args[0]
         matches = [f for f in fields if isinstance(f, field_type)]
         if len(matches) == 0:
-            return []
-        return matches
+            return cast("T", [])
+        return cast("T", matches)
 
 
 class CheckServices(Protocol):

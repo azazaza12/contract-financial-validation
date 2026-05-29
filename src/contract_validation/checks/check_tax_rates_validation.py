@@ -107,7 +107,7 @@ class CheckTaxRatesValidation(BaseCheck):
         valid_taxes: list[Payment],
     ) -> None:
         tax_rates = {p.vat.rate for p in valid_taxes}
-        advances = self.advance_payments_field
+        advances = cast("AdvancePaymentsField | None", self.advance_payments_field)
         if advances is None:
             return
         for i, advance_payment in enumerate(advances.value):
@@ -151,7 +151,7 @@ class CheckTaxRatesValidation(BaseCheck):
                     valid_payments,
                 )
 
-    async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
+    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:  # noqa: ARG002
         self.errors = []
 
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
