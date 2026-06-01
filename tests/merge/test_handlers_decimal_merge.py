@@ -2,6 +2,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
+
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors import ValuesDiscrepancyError
 from app.domain.entities.merge_types import Source, ValueCandidate
