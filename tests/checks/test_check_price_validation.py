@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
+
 from app.domain.checks.check_price_validation import CheckPriceValidation
 from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.constants import AMOUNT_TOLERANCE
@@ -24,7 +25,6 @@ from app.domain.entities.single_supplier_fields import (
     Vat,
 )
 from app.domain.pipeline.task import CheckTask, TaskStatus
-
 from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
