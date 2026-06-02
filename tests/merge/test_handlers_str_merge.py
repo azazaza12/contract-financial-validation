@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import pytest
+
 from app.domain.entities.errors import ValuesDiscrepancyError
 from app.domain.entities.merge_types import Source, ValueCandidate
 from app.domain.merge.defaults import STRICT_REGISTRY
