@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+
 from app.domain.checks.check_number_transcription_rub import (
     CheckNumberTranscriptionRub,
 )
