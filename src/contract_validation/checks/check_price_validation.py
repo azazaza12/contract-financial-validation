@@ -69,7 +69,7 @@ class CheckPriceValidation(BaseCheck):
                 )
         return total_calculated
 
-    async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
+    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:  # noqa: ARG002
         self.errors = []
 
         spec_positions_field = cast("SpecPositionsField", self.spec_positions_field)

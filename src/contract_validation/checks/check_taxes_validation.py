@@ -138,7 +138,7 @@ class CheckTaxesValidation(BaseCheck):
                 vat_sum = (vat_sum or Decimal("0.00")) + vat_amount
         return vat_sum
 
-    async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
+    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:  # noqa: ARG002
         self.errors = []
         self.vat_amounts = []
 
