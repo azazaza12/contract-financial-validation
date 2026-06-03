@@ -88,7 +88,7 @@ class CheckTaxRatesValidation(BaseCheck):
         tax_rates: set[Decimal | None],
         index: int | None = None,
     ) -> None:
-        if aggregate is None:
+        if aggregate is None or aggregate.vat.rate is None:
             return
         rate = aggregate.vat.rate
         if tax_rates:
