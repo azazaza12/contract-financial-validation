@@ -339,7 +339,7 @@ async def test_flat_advance_total_amount_without_vat_rate_success() -> None:
         tax_rates=[],
         advances=[
             AdvancePayment(
-                percent=Decimal("50"),
+                percent=Decimal(50),
                 total=_payment(vat_rate=None),
                 payments=[],
             ),
