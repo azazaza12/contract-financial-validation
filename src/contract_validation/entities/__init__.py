@@ -25,6 +25,7 @@ from .single_supplier_fields import (
     TotalAmountField,
     Vat,
 )
+from .user import User
 
 
 __all__ = [
@@ -50,6 +51,7 @@ __all__ = [
     "SpecPositionsField",
     "TotalAmount",
     "TotalAmountField",
+    "User",
     "ValueCandidate",
     "Vat",
 ]
