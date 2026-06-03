@@ -149,7 +149,7 @@ class CheckTaxRatesValidation(BaseCheck):
                     valid_payments,
                 )
 
-    async def execute(self, _check_services: CheckServices) -> CheckExecutionResult:
+    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:  # noqa: ARG002
         self.errors = []
 
         total_amount_field = cast("TotalAmountField", self.total_amount_field)

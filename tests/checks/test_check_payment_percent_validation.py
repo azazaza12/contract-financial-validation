@@ -23,7 +23,6 @@ from app.domain.entities.single_supplier_fields import (
     Vat,
 )
 from app.domain.pipeline.task import CheckTask, TaskStatus
-
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
