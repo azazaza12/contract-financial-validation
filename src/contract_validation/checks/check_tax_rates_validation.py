@@ -105,12 +105,10 @@ class CheckTaxRatesValidation(BaseCheck):
         self,
         contract_rate: Decimal | None,
         valid_taxes: list[Payment],
+        advance_payments: list[AdvancePayment],
     ) -> None:
         tax_rates = {p.vat.rate for p in valid_taxes}
-        advances = self.advance_payments_field
-        if advances is None:
-            return
-        for i, advance_payment in enumerate(advances.value):
+        for i, advance_payment in enumerate(advance_payments):
             if not advance_payment.payments:
                 self._append_aggregate_vs_reference(
                     advance_payment.total, contract_rate, tax_rates, index=i
@@ -185,5 +183,7 @@ class CheckTaxRatesValidation(BaseCheck):
             return self._result(self.errors)
 
         contract_rate = ta.total.vat.rate
-        self._collect_advance_rate_errors(contract_rate, valid_taxes)
+        self._collect_advance_rate_errors(
+            contract_rate, valid_taxes, advance_payments_field.value
+        )
         return self._result(self.errors)
