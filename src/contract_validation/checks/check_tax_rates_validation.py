@@ -68,7 +68,7 @@ class CheckTaxRatesValidation(BaseCheck):
         aggregate: Payment | None,
         index: int | None = None,
     ) -> None:
-        if aggregate is None:
+        if aggregate is None or aggregate.vat.rate is None:
             return
         adv_rate = aggregate.vat.rate
         if contract_rate == adv_rate:
