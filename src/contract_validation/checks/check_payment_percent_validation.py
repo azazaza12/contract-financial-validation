@@ -41,14 +41,14 @@ class CheckPaymentPercentValidation(BaseCheck):
         self.tolerance = tolerance
 
     async def execute(self, check_services: CheckServices) -> CheckExecutionResult:  # noqa: ARG002
-        self.advance_payments_field = cast(
+        advance_payments_field = cast(
             "AdvancePaymentsField",
             self.advance_payments_field,
         )
-        self.total_amount_field = cast("TotalAmountField", self.total_amount_field)
+        total_amount_field = cast("TotalAmountField", self.total_amount_field)
         errors: list[BaseCheckError] = []
-        payments = self.advance_payments_field.value
-        total_payment = self.total_amount_field.value.total
+        payments = advance_payments_field.value
+        total_payment = total_amount_field.value.total
         total_amount = (
             total_payment.amount.value if total_payment.amount is not None else None
         )
