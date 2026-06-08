@@ -333,6 +333,22 @@ async def test_flat_advances_skip_none_total_success() -> None:
     assert r.status == CheckStatus.success
 
 
+async def test_flat_advance_total_amount_without_vat_rate_success() -> None:
+    r = await _run(
+        total_rate=Decimal(22),
+        tax_rates=[],
+        advances=[
+            AdvancePayment(
+                percent=Decimal(50),
+                total=_payment(vat_rate=None),
+                payments=[],
+            ),
+        ],
+    )
+    assert r.status == CheckStatus.success
+    assert r.errors == []
+
+
 # --- execute: taxes со смешанными None/valid ставками ---
 
 

@@ -58,20 +58,16 @@ class CheckNumberTranscriptionRub(BaseCheck):
         return amounts
 
     async def execute(self, check_services: CheckServices) -> CheckExecutionResult:
-        self.total_amount_field = cast(
+        total_amount_field = cast(
             "TotalAmountField | None",
             self.total_amount_field,
         )
-        self.advance_payments_field = cast(
+        advance_payments_field = cast(
             "AdvancePaymentsField | None",
             self.advance_payments_field,
         )
         extracted_amounts = self._extract_amounts_from_fields(
-            [
-                f
-                for f in (self.total_amount_field, self.advance_payments_field)
-                if f is not None
-            ],
+            [f for f in (total_amount_field, advance_payments_field) if f is not None],
         )
         checkable_amounts = self._amounts_with_transcription(extracted_amounts)
         if not checkable_amounts:
