@@ -7,24 +7,25 @@ import pytest
 from app.domain.checks.check_price_validation import CheckPriceValidation
 from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities.errors import (
-    AmountDiscrepancyError,
-    AmountNotPositiveError,
-    PositionCostDiscrepancyError,
-)
-from app.domain.entities.field import FieldCollector
-from app.domain.entities.merge_types import Source
-from app.domain.entities.single_supplier import SingleSupplierDocument
-from app.domain.entities.single_supplier_fields import (
+from app.domain.entities import (
     Amount,
+    FieldCollector,
     Payment,
+    Source,
     SpecPosition,
     SpecPositionsField,
     TotalAmount,
     TotalAmountField,
     Vat,
 )
-from app.domain.pipeline.task import CheckTask, TaskStatus
+from app.domain.entities.errors import (
+    AmountDiscrepancyError,
+    AmountNotPositiveError,
+    PositionCostDiscrepancyError,
+)
+from app.domain.entities.single_supplier import SingleSupplierDocument
+from app.domain.pipeline import TaskStatus
+from app.domain.pipeline.task import CheckTask
 from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 from tests.domain.pipeline.conftest import DummyContract, create_context
 

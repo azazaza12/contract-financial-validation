@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
-from app.domain.entities.errors import BaseCheckError
+from .errors.checks import BaseCheckError
 
 
 class CheckStatus(StrEnum):

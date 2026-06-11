@@ -6,23 +6,21 @@ from uuid import uuid4
 
 import pytest
 
-from app.domain.checks.check_number_transcription_rub import (
-    CheckNumberTranscriptionRub,
-)
+from app.domain.checks.check_number_transcription_rub import CheckNumberTranscriptionRub
 from app.domain.checks.deps import CheckServices
 from app.domain.checks.errors import InsufficientCheckDataError
-from app.domain.entities.errors import NumberTranscriptionError
-from app.domain.entities.merge_types import Source
-from app.domain.entities.single_supplier import SingleSupplierDocument
-from app.domain.entities.single_supplier_fields import (
+from app.domain.entities import (
     AdvancePayment,
     AdvancePaymentsField,
     Amount,
     Payment,
+    Source,
     TotalAmount,
     TotalAmountField,
     Vat,
 )
+from app.domain.entities.errors import NumberTranscriptionError
+from app.domain.entities.single_supplier import SingleSupplierDocument
 from app.domain.entities.validation import CheckStatus
 from app.domain.ports.checker import TranscriptionCheckIssue, TranscriptionCheckResult
 

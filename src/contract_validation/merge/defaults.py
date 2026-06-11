@@ -1,4 +1,4 @@
-from app.domain.merge.handlers import (
+from .handlers import (
     merge_dataclass_default,
     merge_list_concat,
     merge_list_flexible,
@@ -7,7 +7,7 @@ from app.domain.merge.handlers import (
     merge_scalar_strict,
     merge_scalar_strict_str,
 )
-from app.domain.merge.registry import MergeRegistry
+from .registry import MergeRegistry
 
 
 STRICT_REGISTRY = MergeRegistry("strict")

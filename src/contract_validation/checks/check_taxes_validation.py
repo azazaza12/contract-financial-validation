@@ -1,8 +1,7 @@
 from decimal import Decimal
 from typing import cast
 
-from app.domain.checks.base import BaseCheck
-from app.domain.entities.errors import (
+from app.domain.entities.errors.checks import (
     AmountNotPositiveError,
     BaseCheckError,
     VatAmountCalculationDiscrepancyError,
@@ -18,6 +17,7 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
+from .base import BaseCheck
 from .deps import CheckServices, OptionalDep, Requires
 from .errors import InsufficientCheckDataError
 
