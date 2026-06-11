@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 
-from app.domain.checks.deps import CheckServices, OptionalDep, Requires
 from app.domain.entities.field import BaseField
 from app.domain.entities.validation import (
     BaseCheckError,
     CheckExecutionResult,
     CheckStatus,
 )
+
+from .deps import CheckServices, OptionalDep, Requires
 
 
 class BaseCheck(ABC):

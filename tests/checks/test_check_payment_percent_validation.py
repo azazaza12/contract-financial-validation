@@ -6,23 +6,24 @@ from app.domain.checks.check_payment_percent_validation import (
     CheckPaymentPercentValidation,
 )
 from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities.errors import (
-    PaymentAmountPercentDiscrepancyError,
-    PaymentPercentSumDiscrepancyError,
-)
-from app.domain.entities.field import FieldCollector
-from app.domain.entities.merge_types import Source
-from app.domain.entities.single_supplier import SingleSupplierDocument
-from app.domain.entities.single_supplier_fields import (
+from app.domain.entities import (
     AdvancePayment,
     AdvancePaymentsField,
     Amount,
+    FieldCollector,
     Payment,
+    Source,
     TotalAmount,
     TotalAmountField,
     Vat,
 )
-from app.domain.pipeline.task import CheckTask, TaskStatus
+from app.domain.entities.errors import (
+    PaymentAmountPercentDiscrepancyError,
+    PaymentPercentSumDiscrepancyError,
+)
+from app.domain.entities.single_supplier import SingleSupplierDocument
+from app.domain.pipeline import TaskStatus
+from app.domain.pipeline.task import CheckTask
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
