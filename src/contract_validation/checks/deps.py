@@ -1,18 +1,21 @@
-from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Protocol, cast, get_args, get_origin
-
-from app.domain.entities.field import BaseField
-from app.domain.ports.checker import (
-    IPositionsComplianceService,
-    ITranscriptionComplianceService,
-)
+from typing import TYPE_CHECKING, Protocol, cast, get_args, get_origin
 
 from .errors import (
     InvalidCheckSignatureError,
     MissingRequiredFieldError,
     MultiplyRequiredFieldError,
 )
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from app.domain.entities.field import BaseField
+    from app.domain.ports.checker import (
+        IPositionsComplianceService,
+        ITranscriptionComplianceService,
+    )
 
 
 @dataclass(frozen=True, slots=True)
