@@ -1,7 +1,6 @@
 from typing import cast
 
-from app.domain.checks.base import BaseCheck
-from app.domain.entities.errors import NumberTranscriptionError
+from app.domain.entities.errors.checks import NumberTranscriptionError
 from app.domain.entities.single_supplier_fields import (
     AdvancePaymentsField,
     Amount,
@@ -10,6 +9,7 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
+from .base import BaseCheck
 from .deps import CheckServices, OptionalDep
 from .errors import InsufficientCheckDataError
 

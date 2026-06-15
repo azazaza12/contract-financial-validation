@@ -1,5 +1,3 @@
-from app.domain.benchmark.match_result import BenchmarkMatchResult
-
 from .benchmark_matcher import IBenchmarkErrorsMatcher
 from .document_classifier import IDocumentClassifier
 from .documents import BinaryDocumentContent, MarkdownDocumentContent
@@ -10,7 +8,6 @@ from .queue_manager import IPipelineQueueManager
 
 
 __all__ = [
-    "BenchmarkMatchResult",
     "BinaryDocumentContent",
     "IBenchmarkErrorsMatcher",
     "IDocumentClassifier",

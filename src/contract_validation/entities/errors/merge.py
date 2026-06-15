@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Any, cast
 
-from app.domain.entities.errors.base import BaseContractError
 from app.domain.entities.merge_types import ValueCandidate
+
+from .base import BaseContractError
 
 
 @dataclass

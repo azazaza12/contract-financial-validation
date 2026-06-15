@@ -4,19 +4,18 @@ from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-from app.domain.checks.check_positions_compliance import (
-    CheckPositionsCompliance,
-)
+from app.domain.checks.check_positions_compliance import CheckPositionsCompliance
 from app.domain.checks.deps import CheckServices
-from app.domain.entities.field import FieldCollector
-from app.domain.entities.merge_types import Source
-from app.domain.entities.single_supplier import SingleSupplierDocument
-from app.domain.entities.single_supplier_fields import (
+from app.domain.entities import (
     DocumentObjectField,
+    FieldCollector,
+    Source,
     SpecPosition,
     SpecPositionsField,
 )
-from app.domain.pipeline.task import CheckTask, TaskStatus
+from app.domain.entities.single_supplier import SingleSupplierDocument
+from app.domain.pipeline import TaskStatus
+from app.domain.pipeline.task import CheckTask
 from app.domain.ports.checker import EvaluateResult
 from tests.domain.pipeline.conftest import DummyContract, create_context
 

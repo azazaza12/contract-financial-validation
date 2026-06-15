@@ -5,15 +5,12 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities.errors import (
-    BaseMergeError,
-    ValuesDiscrepancyError,
-)
+from app.domain.entities.errors.merge import BaseMergeError, ValuesDiscrepancyError
 from app.domain.entities.merge_types import Source, ValueCandidate
 
 
 if TYPE_CHECKING:
-    from app.domain.merge.registry import MergeRegistry
+    from .registry import MergeRegistry
 
 
 def combine_sources(candidates: list[ValueCandidate]) -> list[Source]:
