@@ -2,6 +2,10 @@ class UnknownHandlerTypeError(Exception):
     pass
 
 
+class InvalidTokenError(Exception):
+    pass
+
+
 class IMCPExtractionError(Exception):
     pass
 

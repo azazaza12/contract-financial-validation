@@ -1,3 +1,4 @@
+from .auth import IPasswordHasher, ITokenProvider
 from .benchmark_matcher import IBenchmarkErrorsMatcher
 from .document_classifier import IDocumentClassifier
 from .documents import BinaryDocumentContent, MarkdownDocumentContent
@@ -13,8 +14,10 @@ __all__ = [
     "IDocumentClassifier",
     "IExcelIMCPExtractor",
     "INomenclatureClassifier",
+    "IPasswordHasher",
     "IPipelineEventPublisher",
     "IPipelineQueueManager",
+    "ITokenProvider",
     "MarkdownDocumentContent",
     "NomenclatureArticle",
 ]
