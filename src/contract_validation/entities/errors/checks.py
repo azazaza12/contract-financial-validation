@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import cast
 
-from app.domain.entities.errors.base import BaseContractError
+from .base import BaseContractError
 
 
 @dataclass

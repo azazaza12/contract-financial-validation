@@ -3,10 +3,11 @@ from typing import TYPE_CHECKING
 
 import structlog
 
-from app.domain.entities.errors import BaseMergeError
+from app.domain.entities.errors.merge import BaseMergeError
 from app.domain.entities.merge_types import ValueCandidate
 from app.domain.exceptions import UnknownHandlerTypeError
-from app.domain.merge.handlers import (
+
+from .handlers import (
     is_scalar,
     merge_dataclass_default,
     merge_list_strict,

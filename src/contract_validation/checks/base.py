@@ -1,13 +1,16 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Sequence
+from typing import TYPE_CHECKING
 
-from app.domain.checks.deps import CheckServices, OptionalDep, Requires
-from app.domain.entities.field import BaseField
-from app.domain.entities.validation import (
-    BaseCheckError,
-    CheckExecutionResult,
-    CheckStatus,
-)
+from app.domain.entities.validation import CheckExecutionResult, CheckStatus
+
+from .deps import CheckServices, OptionalDep, Requires
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
+    from app.domain.entities.errors.checks import BaseCheckError
+    from app.domain.entities.field import BaseField
 
 
 class BaseCheck(ABC):

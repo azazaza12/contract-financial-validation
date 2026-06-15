@@ -2,15 +2,17 @@ from collections.abc import Hashable
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, ClassVar
 
-from app.domain.entities.merge_types import Source, ValueCandidate
 from app.domain.merge.defaults import DEFAULT_REGISTRY
+
+from .merge_types import Source, ValueCandidate
 
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from app.domain.entities.errors import BaseMergeError
     from app.domain.merge.registry import MergeRegistry
+
+    from .errors.merge import BaseMergeError
 
 
 @dataclass(kw_only=True, frozen=True)

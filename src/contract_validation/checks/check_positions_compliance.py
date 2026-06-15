@@ -1,7 +1,6 @@
 from typing import cast
 
-from app.domain.checks.base import BaseCheck
-from app.domain.entities.errors import BaseCheckError, PositionsComplianceError
+from app.domain.entities.errors.checks import BaseCheckError, PositionsComplianceError
 from app.domain.entities.single_supplier_fields import (
     DocumentObjectField,
     SpecPosition,
@@ -9,6 +8,7 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
+from .base import BaseCheck
 from .deps import CheckServices, Requires
 from .errors import InsufficientCheckDataError
 
