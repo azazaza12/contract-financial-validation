@@ -179,6 +179,40 @@ def merge_list_flexible(
     )
 
 
+def merge_list_skip_empty(
+    candidates: list[ValueCandidate],
+    path: str,
+    errors: list[BaseMergeError],
+    registry: MergeRegistry,
+) -> ValueCandidate | None:
+    non_empty = [c for c in candidates if len(c.value) > 0]
+
+    if not non_empty:
+        return ValueCandidate(value=[], sources=combine_sources(candidates))
+
+    if len({len(c.value) for c in non_empty}) > 1:
+        errors.append(
+            ValuesDiscrepancyError(
+                candidates=candidates,
+                path=path,
+            ),
+        )
+        return None
+
+    merged_list = []
+    for i in range(len(non_empty[0].value)):
+        elem_candidates = [
+            ValueCandidate(value=c.value[i], sources=c.sources) for c in non_empty
+        ]
+        merged_elem = registry.merge(elem_candidates, f"{path}[{i}]", errors)
+        merged_list.append(merged_elem.value if merged_elem else None)
+
+    return ValueCandidate(
+        value=merged_list,
+        sources=combine_sources(candidates),
+    )
+
+
 def merge_list_concat(
     candidates: list[ValueCandidate],
     _path: str,
