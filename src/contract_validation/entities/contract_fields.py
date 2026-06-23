@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
+from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.merge.defaults import STRICT_REGISTRY
+from app.domain.merge.handlers import merge_payment
 from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
 from .field import BaseField
@@ -47,6 +49,54 @@ class Payment:
         return (
             self.amount is not None and self.amount.has_data()
         ) or self.vat.has_data()
+
+    def calculated_vat_amount(self) -> Decimal | None:
+        if self.amount is None or self.amount.value is None or self.vat.rate is None:
+            return None
+        if self.include_vat:
+            return self.amount.value * self.vat.rate / (Decimal("100") + self.vat.rate)
+        return self.amount.value * self.vat.rate / Decimal("100")
+
+    def amount_excluding_vat(self) -> Decimal | None:
+        if self.amount is None or self.amount.value is None or self.vat.rate is None:
+            return None
+        if self.include_vat:
+            return self.amount.value * Decimal("100") / (Decimal("100") + self.vat.rate)
+        return self.amount.value
+
+    def is_equivalent_to(self, other: "Payment") -> bool:
+        self_value = self.amount.value if self.amount is not None else None
+        other_value = other.amount.value if other.amount is not None else None
+        if self_value is not None and other_value is not None:
+            self_net = (
+                self.amount_excluding_vat() if self.include_vat is not None else None
+            )
+            other_net = (
+                other.amount_excluding_vat() if other.include_vat is not None else None
+            )
+            if self_net is not None and other_net is not None:
+                if abs(self_net - other_net) > AMOUNT_TOLERANCE:
+                    return False
+            elif abs(self_value - other_value) > AMOUNT_TOLERANCE:
+                return False
+
+        if (
+            self.vat.rate is not None
+            and other.vat.rate is not None
+            and self.vat.rate != other.vat.rate
+        ):
+            return False
+
+        self_vat = self.vat.amount.value if self.vat.amount is not None else None
+        other_vat = other.vat.amount.value if other.vat.amount is not None else None
+        if (
+            self_vat is not None
+            and other_vat is not None
+            and abs(self_vat - other_vat) > AMOUNT_TOLERANCE
+        ):
+            return False
+
+        return True
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -125,3 +175,6 @@ class NomenclatureClassification:
 @dataclass(kw_only=True, frozen=True)
 class NomenclatureClassificationsField(BaseField[list[NomenclatureClassification]]):
     merge_registry = STRICT_REGISTRY
+
+
+STRICT_REGISTRY.register_type(Payment, merge_payment)

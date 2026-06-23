@@ -1,4 +1,4 @@
-from dataclasses import fields as dc_fields
+from dataclasses import fields as dc_fields, replace
 from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
@@ -227,6 +227,47 @@ def merge_list_concat(
         value=result,
         sources=combine_sources(candidates),
     )
+
+
+def merge_payment(
+    candidates: list[ValueCandidate],
+    path: str,
+    errors: list[BaseMergeError],
+    registry: MergeRegistry,
+) -> ValueCandidate | None:
+    if len(candidates) == 1:
+        return merge_dataclass_default(candidates, path, errors, registry)
+
+    payments = [c.value for c in candidates]
+    first = payments[0]
+    if not all(first.is_equivalent_to(other) for other in payments[1:]):
+        return merge_dataclass_default(candidates, path, errors, registry)
+
+    with_amount = [
+        p for p in payments if p.amount is not None and p.amount.value is not None
+    ]
+    base = next(
+        (p for p in with_amount if p.include_vat is not None),
+        with_amount[0] if with_amount else payments[0],
+    )
+
+    rate = base.vat.rate
+    if rate is None:
+        rate = next((p.vat.rate for p in payments if p.vat.rate is not None), None)
+
+    vat_amount = base.vat.amount
+    if vat_amount is None or vat_amount.value is None:
+        vat_amount = next(
+            (
+                p.vat.amount
+                for p in payments
+                if p.vat.amount is not None and p.vat.amount.value is not None
+            ),
+            base.vat.amount,
+        )
+
+    merged = replace(base, vat=replace(base.vat, rate=rate, amount=vat_amount))
+    return ValueCandidate(value=merged, sources=combine_sources(candidates))
 
 
 def merge_dataclass_default(
