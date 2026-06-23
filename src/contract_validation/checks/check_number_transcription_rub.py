@@ -15,8 +15,8 @@ from .errors import InsufficientCheckDataError
 
 
 class CheckNumberTranscriptionRub(BaseCheck):
-    total_amount_field = OptionalDep(TotalAmountField)
-    advance_payments_field = OptionalDep(AdvancePaymentsField)
+    total_amount_fields = OptionalDep(list[TotalAmountField])
+    advance_payments_fields = OptionalDep(list[AdvancePaymentsField])
 
     @staticmethod
     def _amounts_with_transcription(amounts: list[Amount]) -> list[Amount]:
@@ -58,16 +58,16 @@ class CheckNumberTranscriptionRub(BaseCheck):
         return amounts
 
     async def execute(self, check_services: CheckServices) -> CheckExecutionResult:
-        total_amount_field = cast(
-            "TotalAmountField | None",
-            self.total_amount_field,
+        total_amount_fields = cast(
+            "list[TotalAmountField]",
+            self.total_amount_fields,
         )
-        advance_payments_field = cast(
-            "AdvancePaymentsField | None",
-            self.advance_payments_field,
+        advance_payments_fields = cast(
+            "list[AdvancePaymentsField]",
+            self.advance_payments_fields,
         )
         extracted_amounts = self._extract_amounts_from_fields(
-            [f for f in (total_amount_field, advance_payments_field) if f is not None],
+            [*total_amount_fields, *advance_payments_fields],
         )
         checkable_amounts = self._amounts_with_transcription(extracted_amounts)
         if not checkable_amounts:

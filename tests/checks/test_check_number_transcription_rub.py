@@ -54,11 +54,13 @@ async def test_check_14_succeeds_when_no_transcription_issues() -> None:
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
     check = CheckNumberTranscriptionRub()
-    check.total_amount_field = _make_total_amount_field(
-        value="100.00",
-        transcription="Сто",
-    )
-    check.advance_payments_field = AdvancePaymentsField(value=[], sources=[])
+    check.total_amount_fields = [
+        _make_total_amount_field(
+            value="100.00",
+            transcription="Сто",
+        )
+    ]
+    check.advance_payments_fields = []
 
     result = await check.execute(_check_services(service_mock))
 
@@ -86,11 +88,13 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
         ],
     )
     check = CheckNumberTranscriptionRub()
-    check.total_amount_field = _make_total_amount_field(
-        value="100.00",
-        transcription="Сто один",
-    )
-    check.advance_payments_field = AdvancePaymentsField(value=[], sources=[])
+    check.total_amount_fields = [
+        _make_total_amount_field(
+            value="100.00",
+            transcription="Сто один",
+        )
+    ]
+    check.advance_payments_fields = []
 
     result = await check.execute(_check_services(service_mock))
 
@@ -185,8 +189,8 @@ async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
         sources=[Source(document_id=document.id)],
     )
 
-    check.total_amount_field = total_amount_field
-    check.advance_payments_field = advance_payments_field
+    check.total_amount_fields = [total_amount_field]
+    check.advance_payments_fields = [advance_payments_field]
 
     result = await check.execute(_check_services(service_mock))
 
@@ -220,18 +224,20 @@ async def test_check_14_skips_when_no_amount_transcription_pairs() -> None:
     service_mock = AsyncMock()
     check = CheckNumberTranscriptionRub()
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    check.total_amount_field = TotalAmountField(
-        value=TotalAmount(
-            total=Payment(
-                amount=Amount(value=None, transcription="Сто"),
-                vat=Vat(amount=None, rate=None),
-                include_vat=False,
+    check.total_amount_fields = [
+        TotalAmountField(
+            value=TotalAmount(
+                total=Payment(
+                    amount=Amount(value=None, transcription="Сто"),
+                    vat=Vat(amount=None, rate=None),
+                    include_vat=False,
+                ),
+                taxes=[],
             ),
-            taxes=[],
-        ),
-        sources=[Source(document_id=document.id)],
-    )
-    check.advance_payments_field = AdvancePaymentsField(value=[], sources=[])
+            sources=[Source(document_id=document.id)],
+        )
+    ]
+    check.advance_payments_fields = []
 
     with pytest.raises(InsufficientCheckDataError):
         await check.execute(_check_services(service_mock))
