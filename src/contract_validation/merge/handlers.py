@@ -1,4 +1,5 @@
-from dataclasses import fields as dc_fields, replace
+from dataclasses import fields as dc_fields
+from dataclasses import replace
 from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING

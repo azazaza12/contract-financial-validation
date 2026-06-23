@@ -54,17 +54,17 @@ class Payment:
         if self.amount is None or self.amount.value is None or self.vat.rate is None:
             return None
         if self.include_vat:
-            return self.amount.value * self.vat.rate / (Decimal("100") + self.vat.rate)
-        return self.amount.value * self.vat.rate / Decimal("100")
+            return self.amount.value * self.vat.rate / (Decimal(100) + self.vat.rate)
+        return self.amount.value * self.vat.rate / Decimal(100)
 
     def amount_excluding_vat(self) -> Decimal | None:
         if self.amount is None or self.amount.value is None or self.vat.rate is None:
             return None
         if self.include_vat:
-            return self.amount.value * Decimal("100") / (Decimal("100") + self.vat.rate)
+            return self.amount.value * Decimal(100) / (Decimal(100) + self.vat.rate)
         return self.amount.value
 
-    def is_equivalent_to(self, other: "Payment") -> bool:
+    def is_equivalent_to(self, other: Payment) -> bool:
         self_value = self.amount.value if self.amount is not None else None
         other_value = other.amount.value if other.amount is not None else None
         if self_value is not None and other_value is not None:
@@ -89,14 +89,11 @@ class Payment:
 
         self_vat = self.vat.amount.value if self.vat.amount is not None else None
         other_vat = other.vat.amount.value if other.vat.amount is not None else None
-        if (
+        return not (
             self_vat is not None
             and other_vat is not None
             and abs(self_vat - other_vat) > AMOUNT_TOLERANCE
-        ):
-            return False
-
-        return True
+        )
 
 
 @dataclass(kw_only=True, frozen=True)
