@@ -20,12 +20,12 @@ from .errors import InsufficientCheckDataError
 
 def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
     if adv.total is not None:
-        total = adv.total.amount_including_vat_or_stated()
+        total = adv.total.amount_including_vat_or_stated
         if total is not None:
             return total
     s: Decimal | None = None
     for p in adv.payments:
-        amount = p.amount_including_vat_or_stated()
+        amount = p.amount_including_vat_or_stated
         if amount is None:
             continue
         s = (s or Decimal("0.00")) + amount
@@ -48,7 +48,7 @@ class CheckPaymentPercentValidation(BaseCheck):
         errors: list[BaseCheckError] = []
         payments = advance_payments_field.value
         total_payment = total_amount_field.value.total
-        total_amount = total_payment.amount_including_vat_or_stated()
+        total_amount = total_payment.amount_including_vat_or_stated
 
         label = self.__class__.__name__
 
