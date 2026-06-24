@@ -63,21 +63,16 @@ class Payment:
         return self.amount.value * self.vat.rate / Decimal(100)
 
     def amount_excluding_vat(self) -> Decimal | None:
-        if (
-            self.amount is None
-            or self.amount.value is None
-            or self.vat.rate is None
-            or self.include_vat is None
-        ):
+        if self.amount is None or self.amount.value is None or self.include_vat is None:
             return None
-        if self.include_vat:
-            return self.amount.value * Decimal(100) / (Decimal(100) + self.vat.rate)
-        return self.amount.value
+        if not self.include_vat:
+            return self.amount.value
+        if self.vat.rate is None:
+            return None
+        return self.amount.value * Decimal(100) / (Decimal(100) + self.vat.rate)
 
     def amount_including_vat(self) -> Decimal | None:
-        if self.amount is None or self.amount.value is None:
-            return None
-        if self.include_vat is None:
+        if self.amount is None or self.amount.value is None or self.include_vat is None:
             return None
         if self.include_vat:
             return self.amount.value
