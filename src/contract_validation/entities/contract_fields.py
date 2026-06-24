@@ -32,6 +32,10 @@ class Vat:
     amount: Amount | None
     rate: Decimal | None
 
+    @property
+    def stated_amount(self) -> Decimal | None:
+        return self.amount.value if self.amount is not None else None
+
     def has_data(self) -> bool:
         if self.amount is not None and self.amount.has_data():
             return True
@@ -116,8 +120,8 @@ class Payment:
         ):
             return False
 
-        self_vat = self.vat.amount.value if self.vat.amount is not None else None
-        other_vat = other.vat.amount.value if other.vat.amount is not None else None
+        self_vat = self.vat.stated_amount
+        other_vat = other.vat.stated_amount
         return not self._differ_beyond_tolerance(self_vat, other_vat)
 
 

@@ -88,9 +88,7 @@ class CheckPriceValidation(BaseCheck):
             if candidate is not None
         ]
         if not candidate_totals:
-            raw_total = (
-                total_payment.amount.value if total_payment.amount is not None else None
-            )
+            raw_total = total_payment.stated_amount
             if raw_total is not None:
                 candidate_totals = [raw_total]
 

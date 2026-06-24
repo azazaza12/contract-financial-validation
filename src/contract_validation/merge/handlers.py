@@ -233,9 +233,7 @@ def merge_list_concat(
 
 
 def _assemble_most_complete_payment(payments: list[Payment]) -> Payment:
-    with_amount = [
-        p for p in payments if p.amount is not None and p.amount.value is not None
-    ]
+    with_amount = [p for p in payments if p.stated_amount is not None]
     base = next(
         (p for p in with_amount if p.include_vat is not None),
         with_amount[0] if with_amount else payments[0],
@@ -246,13 +244,9 @@ def _assemble_most_complete_payment(payments: list[Payment]) -> Payment:
         rate = next((p.vat.rate for p in payments if p.vat.rate is not None), None)
 
     vat_amount = base.vat.amount
-    if vat_amount is None or vat_amount.value is None:
+    if base.vat.stated_amount is None:
         vat_amount = next(
-            (
-                p.vat.amount
-                for p in payments
-                if p.vat.amount is not None and p.vat.amount.value is not None
-            ),
+            (p.vat.amount for p in payments if p.vat.stated_amount is not None),
             base.vat.amount,
         )
 
