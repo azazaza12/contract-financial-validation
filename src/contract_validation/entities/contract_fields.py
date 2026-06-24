@@ -51,29 +51,52 @@ class Payment:
         ) or self.vat.has_data()
 
     def calculated_vat_amount(self) -> Decimal | None:
-        if self.amount is None or self.amount.value is None or self.vat.rate is None:
+        if (
+            self.amount is None
+            or self.amount.value is None
+            or self.vat.rate is None
+            or self.include_vat is None
+        ):
             return None
         if self.include_vat:
             return self.amount.value * self.vat.rate / (Decimal(100) + self.vat.rate)
         return self.amount.value * self.vat.rate / Decimal(100)
 
     def amount_excluding_vat(self) -> Decimal | None:
-        if self.amount is None or self.amount.value is None or self.vat.rate is None:
+        if (
+            self.amount is None
+            or self.amount.value is None
+            or self.vat.rate is None
+            or self.include_vat is None
+        ):
             return None
         if self.include_vat:
             return self.amount.value * Decimal(100) / (Decimal(100) + self.vat.rate)
         return self.amount.value
 
+    def amount_including_vat(self) -> Decimal | None:
+        if self.amount is None or self.amount.value is None:
+            return None
+        if self.include_vat is None:
+            return None
+        if self.include_vat:
+            return self.amount.value
+        if self.vat.rate is None:
+            return None
+        return self.amount.value * (Decimal(100) + self.vat.rate) / Decimal(100)
+
+    def amount_including_vat_or_stated(self) -> Decimal | None:
+        including_vat = self.amount_including_vat()
+        if including_vat is not None:
+            return including_vat
+        return self.amount.value if self.amount is not None else None
+
     def is_equivalent_to(self, other: Payment) -> bool:
         self_value = self.amount.value if self.amount is not None else None
         other_value = other.amount.value if other.amount is not None else None
         if self_value is not None and other_value is not None:
-            self_net = (
-                self.amount_excluding_vat() if self.include_vat is not None else None
-            )
-            other_net = (
-                other.amount_excluding_vat() if other.include_vat is not None else None
-            )
+            self_net = self.amount_excluding_vat()
+            other_net = other.amount_excluding_vat()
             if self_net is not None and other_net is not None:
                 if abs(self_net - other_net) > AMOUNT_TOLERANCE:
                     return False

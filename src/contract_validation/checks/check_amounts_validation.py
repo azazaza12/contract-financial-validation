@@ -41,11 +41,10 @@ class CheckTotalAmountsValidation(BaseCheck):
     def collect_sums_from_payments(self, payments: list[Payment]) -> Decimal | None:
         total_amount_sum: Decimal | None = None
         for payment in payments:
-            if payment.amount is None or payment.amount.value is None:
+            amount = payment.amount_including_vat_or_stated()
+            if amount is None:
                 continue
-            total_amount_sum = (
-                total_amount_sum or Decimal("0.00")
-            ) + payment.amount.value
+            total_amount_sum = (total_amount_sum or Decimal("0.00")) + amount
         return total_amount_sum
 
     def _collect_total_amounts(self, total_amount_field: TotalAmountField) -> None:
