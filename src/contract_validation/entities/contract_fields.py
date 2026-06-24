@@ -50,56 +50,62 @@ class Payment:
             self.amount is not None and self.amount.has_data()
         ) or self.vat.has_data()
 
+    @property
+    def stated_amount(self) -> Decimal | None:
+        return self.amount.value if self.amount is not None else None
+
+    @property
     def calculated_vat_amount(self) -> Decimal | None:
-        if (
-            self.amount is None
-            or self.amount.value is None
-            or self.vat.rate is None
-            or self.include_vat is None
-        ):
+        stated = self.stated_amount
+        if stated is None or self.vat.rate is None or self.include_vat is None:
             return None
         if self.include_vat:
-            return self.amount.value * self.vat.rate / (Decimal(100) + self.vat.rate)
-        return self.amount.value * self.vat.rate / Decimal(100)
+            return stated * self.vat.rate / (Decimal(100) + self.vat.rate)
+        return stated * self.vat.rate / Decimal(100)
 
+    @property
     def amount_excluding_vat(self) -> Decimal | None:
-        if self.amount is None or self.amount.value is None or self.include_vat is None:
+        stated = self.stated_amount
+        if stated is None or self.include_vat is None:
             return None
         if not self.include_vat:
-            return self.amount.value
+            return stated
         if self.vat.rate is None:
             return None
-        return self.amount.value * Decimal(100) / (Decimal(100) + self.vat.rate)
+        return stated * Decimal(100) / (Decimal(100) + self.vat.rate)
 
+    @property
     def amount_including_vat(self) -> Decimal | None:
-        if self.amount is None or self.amount.value is None or self.include_vat is None:
+        stated = self.stated_amount
+        if stated is None or self.include_vat is None:
             return None
         if self.include_vat:
-            return self.amount.value
+            return stated
         if self.vat.rate is None:
             return None
-        return self.amount.value * (Decimal(100) + self.vat.rate) / Decimal(100)
+        return stated * (Decimal(100) + self.vat.rate) / Decimal(100)
 
+    @property
     def amount_including_vat_or_stated(self) -> Decimal | None:
-        including_vat = self.amount_including_vat()
+        including_vat = self.amount_including_vat
         if including_vat is not None:
             return including_vat
-        return self.amount.value if self.amount is not None else None
+        return self.stated_amount
 
     @staticmethod
     def _differ_beyond_tolerance(a: Decimal | None, b: Decimal | None) -> bool:
         return a is not None and b is not None and abs(a - b) > AMOUNT_TOLERANCE
 
     def is_equivalent_to(self, other: Payment) -> bool:
-        self_net = self.amount_excluding_vat()
-        other_net = other.amount_excluding_vat()
+        self_net = self.amount_excluding_vat
+        other_net = other.amount_excluding_vat
         self_amount: Decimal | None
         other_amount: Decimal | None
         if self_net is not None and other_net is not None:
             self_amount, other_amount = self_net, other_net
         else:
-            self_amount = self.amount.value if self.amount is not None else None
-            other_amount = other.amount.value if other.amount is not None else None
+            self_amount = self.stated_amount
+            other_amount = other.stated_amount
         if self._differ_beyond_tolerance(self_amount, other_amount):
             return False
 

@@ -105,7 +105,7 @@ class CheckTaxesValidation(BaseCheck):
             self.errors.append(VatRateNotPositiveError(value=vat_rate))
             vat_rate = None
 
-        expected_vat = payment.calculated_vat_amount()
+        expected_vat = payment.calculated_vat_amount
         if (
             expected_vat is not None
             and amount is not None

@@ -82,8 +82,8 @@ class CheckPriceValidation(BaseCheck):
         candidate_totals = [
             candidate
             for candidate in (
-                total_payment.amount_including_vat(),
-                total_payment.amount_excluding_vat(),
+                total_payment.amount_including_vat,
+                total_payment.amount_excluding_vat,
             )
             if candidate is not None
         ]
