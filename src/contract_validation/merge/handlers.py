@@ -11,6 +11,8 @@ from app.domain.entities.merge_types import Source, ValueCandidate
 
 
 if TYPE_CHECKING:
+    from app.domain.entities.single_supplier_fields import Payment
+
     from .registry import MergeRegistry
 
 
@@ -230,20 +232,7 @@ def merge_list_concat(
     )
 
 
-def merge_payment(
-    candidates: list[ValueCandidate],
-    path: str,
-    errors: list[BaseMergeError],
-    registry: MergeRegistry,
-) -> ValueCandidate | None:
-    if len(candidates) == 1:
-        return merge_dataclass_default(candidates, path, errors, registry)
-
-    payments = [c.value for c in candidates]
-    first = payments[0]
-    if not all(first.is_equivalent_to(other) for other in payments[1:]):
-        return merge_dataclass_default(candidates, path, errors, registry)
-
+def _assemble_most_complete_payment(payments: list[Payment]) -> Payment:
     with_amount = [
         p for p in payments if p.amount is not None and p.amount.value is not None
     ]
@@ -267,7 +256,23 @@ def merge_payment(
             base.vat.amount,
         )
 
-    merged = replace(base, vat=replace(base.vat, rate=rate, amount=vat_amount))
+    return replace(base, vat=replace(base.vat, rate=rate, amount=vat_amount))
+
+
+def merge_payment(
+    candidates: list[ValueCandidate],
+    path: str,
+    errors: list[BaseMergeError],
+    registry: MergeRegistry,
+) -> ValueCandidate | None:
+    if len(candidates) == 1:
+        return merge_dataclass_default(candidates, path, errors, registry)
+
+    payments = [c.value for c in candidates]
+    if not all(payments[0].is_equivalent_to(other) for other in payments[1:]):
+        return merge_dataclass_default(candidates, path, errors, registry)
+
+    merged = _assemble_most_complete_payment(payments)
     return ValueCandidate(value=merged, sources=combine_sources(candidates))
 
 
