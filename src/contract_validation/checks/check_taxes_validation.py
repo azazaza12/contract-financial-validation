@@ -89,10 +89,8 @@ class CheckTaxesValidation(BaseCheck):
             self.vat_amounts.append(advances_vat_total)
 
     def _validate_payment(self, payment: Payment) -> Decimal | None:
-        amount = payment.amount.value if payment.amount is not None else None
-        vat_amount = (
-            payment.vat.amount.value if payment.vat.amount is not None else None
-        )
+        amount = payment.stated_amount
+        vat_amount = payment.vat.stated_amount
         vat_rate = payment.vat.rate
 
         if amount is not None and amount <= 0:
