@@ -93,6 +93,8 @@ class Payment:
     def is_equivalent_to(self, other: Payment) -> bool:
         self_net = self.amount_excluding_vat()
         other_net = other.amount_excluding_vat()
+        self_amount: Decimal | None
+        other_amount: Decimal | None
         if self_net is not None and other_net is not None:
             self_amount, other_amount = self_net, other_net
         else:
