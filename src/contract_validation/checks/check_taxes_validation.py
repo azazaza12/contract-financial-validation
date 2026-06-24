@@ -97,34 +97,32 @@ class CheckTaxesValidation(BaseCheck):
 
         if amount is not None and amount <= 0:
             self.errors.append(AmountNotPositiveError(value=amount))
+            amount = None
         if vat_amount is not None and vat_amount < 0:
             self.errors.append(VatAmountNotPositiveError(value=vat_amount))
+            vat_amount = None
         if vat_rate is not None and vat_rate < 0:
             self.errors.append(VatRateNotPositiveError(value=vat_rate))
+            vat_rate = None
 
+        expected_vat = payment.calculated_vat_amount()
         if (
-            amount is not None
-            and amount > 0
+            expected_vat is not None
+            and amount is not None
             and vat_amount is not None
-            and vat_amount >= 0
             and vat_rate is not None
-            and vat_rate >= 0
         ):
-            if payment.include_vat:
-                expected = amount * vat_rate / (100 + vat_rate)
-            else:
-                expected = amount * vat_rate / 100
-            diff = abs(vat_amount - expected)
+            diff = abs(vat_amount - expected_vat)
             if diff > self.tolerance:
                 self.errors.append(
                     VatAmountCalculationDiscrepancyError(
-                        expected_vat_amount=expected,
+                        expected_vat_amount=expected_vat,
                         vat_amount=vat_amount,
                         difference=diff,
                     )
                 )
 
-        return vat_amount if (vat_amount is not None and vat_amount >= 0) else None
+        return vat_amount
 
     def _validate_payments_and_sum_vat(
         self, payments: list[Payment] | None

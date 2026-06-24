@@ -22,8 +22,10 @@ from app.domain.entities.errors import (
     PaymentPercentSumDiscrepancyError,
 )
 from app.domain.entities.single_supplier import SingleSupplierDocument
+from app.domain.entities.validation import CheckStatus
 from app.domain.pipeline import TaskStatus
 from app.domain.pipeline.task import CheckTask
+from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
@@ -339,3 +341,52 @@ async def test_payment_percent_sum_fails_without_total_when_not_100() -> None:
     assert not any(
         isinstance(err, PaymentAmountPercentDiscrepancyError) for err in called_errors
     )
+
+
+# --- экономическое сравнение: итог без НДС, авансы с НДС ---
+
+
+def _vat_payment(value: str, *, rate: str, include_vat: bool) -> Payment:
+    return Payment(
+        amount=Amount(value=Decimal(value), transcription=None),
+        vat=Vat(amount=None, rate=Decimal(rate)),
+        include_vat=include_vat,
+    )
+
+
+async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match() -> (
+    None
+):
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    total_payment = _vat_payment("100.00", rate="20.00", include_vat=False)
+    advances = [
+        AdvancePayment(
+            percent=Decimal("50.00"),
+            total=_vat_payment("60.00", rate="20.00", include_vat=True),
+            payments=[],
+        ),
+        AdvancePayment(
+            percent=Decimal("50.00"),
+            total=_vat_payment("60.00", rate="20.00", include_vat=True),
+            payments=[],
+        ),
+    ]
+    fields = FieldCollector(
+        [
+            TotalAmountField(
+                value=TotalAmount(total=total_payment, taxes=[]),
+                sources=[Source(document_id=document.id)],
+            ),
+            AdvancePaymentsField(
+                value=advances,
+                sources=[Source(document_id=document.id)],
+            ),
+        ],
+    )
+    check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
+    check.prepare(fields)
+
+    result = await check.execute(STUB_CHECK_SERVICES)
+
+    assert result.status == CheckStatus.success
+    assert result.errors == []
