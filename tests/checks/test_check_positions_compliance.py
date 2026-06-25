@@ -24,8 +24,8 @@ def _check_services(position_service: AsyncMock) -> CheckServices:
     return cast(
         "CheckServices",
         SimpleNamespace(
-            check_position_compliance_service=position_service,
-            check_transcription_compliance_service=MagicMock(),
+            check_position_compliancer=position_service,
+            check_transcription_compliancer=MagicMock(),
         ),
     )
 
@@ -60,7 +60,7 @@ async def _run_check_task(
     ctx = create_context(
         contract=contract,
         contract_repo=contract_repo,
-        check_position_compliance_service=position_service,
+        check_position_compliancer=position_service,
     )
     await CheckTask(check=CheckPositionsCompliance()).run(ctx)
     run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
@@ -111,7 +111,7 @@ async def test_skips_when_position_list_is_empty() -> None:
     contract_repo.save_errors.assert_not_awaited()
 
 
-async def test_passes_stripped_position_names_to_compliance_service() -> None:
+async def test_passes_stripped_position_names_to_compliancer() -> None:
     position_service = AsyncMock()
     position_service.evaluate.return_value = EvaluateResult(
         success=True,
@@ -192,7 +192,7 @@ async def test_check1_can_run_as_task_and_save_result() -> None:
     ctx = create_context(
         contract=contract,
         contract_repo=contract_repo,
-        check_position_compliance_service=position_service,
+        check_position_compliancer=position_service,
     )
     check = CheckPositionsCompliance()
 
@@ -232,7 +232,7 @@ async def test_check1_raises_when_required_field_is_missing() -> None:
     ctx = create_context(
         contract=contract,
         contract_repo=contract_repo,
-        check_position_compliance_service=position_service,
+        check_position_compliancer=position_service,
     )
     check = CheckPositionsCompliance()
 
@@ -293,7 +293,7 @@ async def test_check1_raises_when_required_field_has_collision() -> None:
     ctx = create_context(
         contract=contract,
         contract_repo=contract_repo,
-        check_position_compliance_service=position_service,
+        check_position_compliancer=position_service,
     )
     check = CheckPositionsCompliance()
 
