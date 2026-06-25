@@ -15,7 +15,7 @@ class EvaluateResult:
     error: str | None = None
 
 
-class IPositionsComplianceService(ABC):
+class IPositionsCompliancer(ABC):
     @abstractmethod
     async def evaluate(
         self,
@@ -37,6 +37,6 @@ class TranscriptionCheckResult:
     issues: list[TranscriptionCheckIssue]
 
 
-class ITranscriptionComplianceService(ABC):
+class ITranscriptionCompliancer(ABC):
     @abstractmethod
     async def evaluate(self, amounts: list[Amount]) -> TranscriptionCheckResult: ...
