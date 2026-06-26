@@ -6,7 +6,7 @@ from uuid import UUID
 
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors.merge import BaseMergeError, ValuesDiscrepancyError
-from app.domain.entities.merge_types import Source, ValueCandidate
+from app.domain.entities.merge_types import Source, SourceHeader, ValueCandidate
 
 
 if TYPE_CHECKING:
@@ -14,15 +14,20 @@ if TYPE_CHECKING:
 
 
 def combine_sources(candidates: list[ValueCandidate]) -> list[Source]:
-    sources = []
-    seen = set()
+    headers_by_document: dict[UUID, list[SourceHeader]] = {}
+    order: list[UUID] = []
     for c in candidates:
         for s in c.sources:
-            s_id = s.document_id
-            if s_id not in seen:
-                sources.append(s)
-                seen.add(s_id)
-    return sources
+            if s.document_id not in headers_by_document:
+                headers_by_document[s.document_id] = []
+                order.append(s.document_id)
+            for header in s.headers:
+                if header not in headers_by_document[s.document_id]:
+                    headers_by_document[s.document_id].append(header)
+    return [
+        Source(document_id=document_id, headers=tuple(headers_by_document[document_id]))
+        for document_id in order
+    ]
 
 
 def all_equal(candidates: list[ValueCandidate]) -> bool:
