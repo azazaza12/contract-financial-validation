@@ -34,27 +34,27 @@ def _candidate(payment: Payment) -> ValueCandidate:
 
 
 def test_is_equivalent_to_true_for_same_net() -> None:
-    p1 = _payment(amount=Decimal("100"), include_vat=False)
-    p2 = _payment(amount=Decimal("100"), include_vat=False)
+    p1 = _payment(amount=Decimal(100), include_vat=False)
+    p2 = _payment(amount=Decimal(100), include_vat=False)
     assert p1.is_equivalent_to(p2) is True
 
 
 def test_is_equivalent_to_false_for_different_net() -> None:
-    p1 = _payment(amount=Decimal("100"), include_vat=False)
-    p2 = _payment(amount=Decimal("200"), include_vat=False)
+    p1 = _payment(amount=Decimal(100), include_vat=False)
+    p2 = _payment(amount=Decimal(200), include_vat=False)
     assert p1.is_equivalent_to(p2) is False
 
 
 def test_is_equivalent_to_false_when_net_unavailable() -> None:
-    p1 = _payment(amount=Decimal("100"), include_vat=None)
-    p2 = _payment(amount=Decimal("100"), include_vat=None)
+    p1 = _payment(amount=Decimal(100), include_vat=None)
+    p2 = _payment(amount=Decimal(100), include_vat=None)
     assert p1.is_equivalent_to(p2) is False
 
 
 def test_merge_payment_assembles_most_complete_when_equivalent() -> None:
     errors: list = []
-    complete = _payment(amount=Decimal("100"), include_vat=False, rate=Decimal("20"))
-    partial = _payment(amount=Decimal("100"), include_vat=False, rate=None)
+    complete = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
+    partial = _payment(amount=Decimal(100), include_vat=False, rate=None)
 
     result = merge_payment(
         [_candidate(complete), _candidate(partial)], "total", errors, STRICT_REGISTRY
@@ -62,14 +62,14 @@ def test_merge_payment_assembles_most_complete_when_equivalent() -> None:
 
     assert errors == []
     assert result is not None
-    assert result.value.stated_amount == Decimal("100")
-    assert result.value.vat.rate == Decimal("20")
+    assert result.value.stated_amount == Decimal(100)
+    assert result.value.vat.rate == Decimal(20)
 
 
 def test_merge_payment_rate_conflict_reports_targeted_error_and_returns_none() -> None:
     errors: list = []
-    p1 = _payment(amount=Decimal("100"), include_vat=False, rate=Decimal("20"))
-    p2 = _payment(amount=Decimal("100"), include_vat=False, rate=Decimal("10"))
+    p1 = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
+    p2 = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(10))
 
     result = merge_payment(
         [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
@@ -79,24 +79,22 @@ def test_merge_payment_rate_conflict_reports_targeted_error_and_returns_none() -
     assert len(errors) == 1
     assert isinstance(errors[0], ValuesDiscrepancyError)
     assert errors[0].path == "total.vat.rate"
-    assert {c.value for c in errors[0].candidates} == {Decimal("20"), Decimal("10")}
+    assert {c.value for c in errors[0].candidates} == {Decimal(20), Decimal(10)}
 
 
-def test_merge_payment_vat_amount_conflict_reports_targeted_error_and_returns_none() -> (
-    None
-):
+def test_merge_payment_vat_amount_conflict_reports_error_and_returns_none() -> None:
     errors: list = []
     p1 = _payment(
-        amount=Decimal("100"),
+        amount=Decimal(100),
         include_vat=False,
-        rate=Decimal("20"),
-        vat_amount=Decimal("20"),
+        rate=Decimal(20),
+        vat_amount=Decimal(20),
     )
     p2 = _payment(
-        amount=Decimal("100"),
+        amount=Decimal(100),
         include_vat=False,
-        rate=Decimal("20"),
-        vat_amount=Decimal("18"),
+        rate=Decimal(20),
+        vat_amount=Decimal(18),
     )
 
     result = merge_payment(
@@ -111,8 +109,8 @@ def test_merge_payment_vat_amount_conflict_reports_targeted_error_and_returns_no
 
 def test_merge_payment_falls_back_to_strict_when_net_differs() -> None:
     errors: list = []
-    p1 = _payment(amount=Decimal("100"), include_vat=False)
-    p2 = _payment(amount=Decimal("200"), include_vat=False)
+    p1 = _payment(amount=Decimal(100), include_vat=False)
+    p2 = _payment(amount=Decimal(200), include_vat=False)
 
     result = merge_payment(
         [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
@@ -127,8 +125,8 @@ def test_merge_payment_falls_back_to_strict_when_net_differs() -> None:
 
 def test_merge_payment_falls_back_to_strict_when_net_unavailable() -> None:
     errors: list = []
-    p1 = _payment(amount=Decimal("100"), include_vat=None)
-    p2 = _payment(amount=Decimal("100"), include_vat=None)
+    p1 = _payment(amount=Decimal(100), include_vat=None)
+    p2 = _payment(amount=Decimal(100), include_vat=None)
 
     result = merge_payment(
         [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
@@ -136,4 +134,4 @@ def test_merge_payment_falls_back_to_strict_when_net_unavailable() -> None:
 
     assert errors == []
     assert result is not None
-    assert result.value.stated_amount == Decimal("100")
+    assert result.value.stated_amount == Decimal(100)
