@@ -266,6 +266,39 @@ def merge_payment(
     if not all(payments[0].is_equivalent_to(other) for other in payments[1:]):
         return merge_dataclass_default(candidates, path, errors, registry)
 
+    rates = {p.vat.rate for p in payments if p.vat.rate is not None}
+    rate_conflict = len(rates) > 1
+
+    vat_amounts = [
+        p.vat.stated_amount for p in payments if p.vat.stated_amount is not None
+    ]
+    amount_conflict = any(
+        abs(a - vat_amounts[0]) > AMOUNT_TOLERANCE for a in vat_amounts[1:]
+    )
+
+    if rate_conflict:
+        errors.append(
+            ValuesDiscrepancyError(
+                candidates=[
+                    ValueCandidate(value=c.value.vat.rate, sources=c.sources)
+                    for c in candidates
+                ],
+                path=f"{path}.vat.rate",
+            )
+        )
+    if amount_conflict:
+        errors.append(
+            ValuesDiscrepancyError(
+                candidates=[
+                    ValueCandidate(value=c.value.vat.amount, sources=c.sources)
+                    for c in candidates
+                ],
+                path=f"{path}.vat.amount",
+            )
+        )
+    if rate_conflict or amount_conflict:
+        return None
+
     merged = _assemble_most_complete_payment(payments)
     return ValueCandidate(value=merged, sources=combine_sources(candidates))
 

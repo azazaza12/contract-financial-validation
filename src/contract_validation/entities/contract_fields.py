@@ -103,26 +103,9 @@ class Payment:
     def is_equivalent_to(self, other: Payment) -> bool:
         self_net = self.amount_excluding_vat
         other_net = other.amount_excluding_vat
-        self_amount: Decimal | None
-        other_amount: Decimal | None
-        if self_net is not None and other_net is not None:
-            self_amount, other_amount = self_net, other_net
-        else:
-            self_amount = self.stated_amount
-            other_amount = other.stated_amount
-        if self._differ_beyond_tolerance(self_amount, other_amount):
+        if self_net is None or other_net is None:
             return False
-
-        if (
-            self.vat.rate is not None
-            and other.vat.rate is not None
-            and self.vat.rate != other.vat.rate
-        ):
-            return False
-
-        self_vat = self.vat.stated_amount
-        other_vat = other.vat.stated_amount
-        return not self._differ_beyond_tolerance(self_vat, other_vat)
+        return not self._differ_beyond_tolerance(self_net, other_net)
 
 
 @dataclass(kw_only=True, frozen=True)
