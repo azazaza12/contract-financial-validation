@@ -345,9 +345,6 @@ async def test_within_advance_and_cross_source_errors_both_collected() -> None:
     assert all(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
-# --- экономическое сравнение: разные базы (с НДС / без НДС) ---
-
-
 def _make_vat_payment(value: str, *, rate: str, include_vat: bool) -> Payment:
     return Payment(
         amount=Amount(value=Decimal(value), transcription=None),
