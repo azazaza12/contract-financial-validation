@@ -233,11 +233,7 @@ def merge_list_concat(
 
 
 def _assemble_most_complete_payment(payments: list[Payment]) -> Payment:
-    with_amount = [p for p in payments if p.stated_amount is not None]
-    base = next(
-        (p for p in with_amount if p.include_vat is not None),
-        with_amount[0] if with_amount else payments[0],
-    )
+    base = payments[0]
 
     rate = base.vat.rate
     if rate is None:
