@@ -343,9 +343,6 @@ async def test_payment_percent_sum_fails_without_total_when_not_100() -> None:
     )
 
 
-# --- экономическое сравнение: итог без НДС, авансы с НДС ---
-
-
 def _vat_payment(value: str, *, rate: str, include_vat: bool) -> Payment:
     return Payment(
         amount=Amount(value=Decimal(value), transcription=None),

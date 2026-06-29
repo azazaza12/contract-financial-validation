@@ -393,9 +393,6 @@ async def test_check_price_validation_succeeds_when_within_tolerance() -> None:
     assert called_errors == []
 
 
-# --- двойная база: позиции совпадают либо с нетто-итогом, либо с брутто-итогом ---
-
-
 def _make_vat_total_amount_field(
     value: str,
     *,
