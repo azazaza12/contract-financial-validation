@@ -21,15 +21,16 @@ from .errors import InsufficientCheckDataError
 
 def _calculate_advance_line_amount(
     adv: AdvancePayment,
+    *,
     use_gross: bool,
 ) -> Decimal | None:
     if adv.total is not None:
-        total = amount_in_basis(adv.total, use_gross)
+        total = amount_in_basis(adv.total, use_gross=use_gross)
         if total is not None:
             return total
     s: Decimal | None = None
     for p in adv.payments:
-        amount = amount_in_basis(p, use_gross)
+        amount = amount_in_basis(p, use_gross=use_gross)
         if amount is None:
             continue
         s = (s or Decimal("0.00")) + amount
@@ -64,7 +65,7 @@ class CheckPaymentPercentValidation(BaseCheck):
                 group.extend(advance_payment.payments)
         use_gross = use_gross_basis(group)
 
-        total_amount = amount_in_basis(total_payment, use_gross)
+        total_amount = amount_in_basis(total_payment, use_gross=use_gross)
 
         label = self.__class__.__name__
 
@@ -87,7 +88,9 @@ class CheckPaymentPercentValidation(BaseCheck):
                 continue
 
             total_percent += advance_payment.percent
-            line_amount = _calculate_advance_line_amount(advance_payment, use_gross)
+            line_amount = _calculate_advance_line_amount(
+                advance_payment, use_gross=use_gross
+            )
             if total_amount is None or line_amount is None:
                 continue
 

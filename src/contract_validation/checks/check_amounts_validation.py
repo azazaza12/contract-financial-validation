@@ -42,11 +42,12 @@ class CheckTotalAmountsValidation(BaseCheck):
     def collect_sums_from_payments(
         self,
         payments: list[Payment],
+        *,
         use_gross: bool,
     ) -> Decimal | None:
         total_amount_sum: Decimal | None = None
         for payment in payments:
-            amount = amount_in_basis(payment, use_gross)
+            amount = amount_in_basis(payment, use_gross=use_gross)
             if amount is None:
                 continue
             total_amount_sum = (total_amount_sum or Decimal("0.00")) + amount
@@ -55,18 +56,19 @@ class CheckTotalAmountsValidation(BaseCheck):
     def _collect_total_amounts(
         self,
         total_amount_field: TotalAmountField,
+        *,
         use_gross: bool,
     ) -> None:
         total_amount_sum = self.collect_sums_from_payments(
             [total_amount_field.value.total],
-            use_gross,
+            use_gross=use_gross,
         )
         if total_amount_sum is not None:
             self.amounts_to_compare.append(total_amount_sum)
 
         taxes_total_amount_sum = self.collect_sums_from_payments(
             total_amount_field.value.taxes,
-            use_gross,
+            use_gross=use_gross,
         )
         if taxes_total_amount_sum is not None:
             self.amounts_to_compare.append(taxes_total_amount_sum)
@@ -74,17 +76,20 @@ class CheckTotalAmountsValidation(BaseCheck):
     def _collect_advances_sum(
         self,
         advance_payments_field: AdvancePaymentsField,
+        *,
         use_gross: bool,
     ) -> None:
         advances_sum: Decimal | None = None
         for advance_payment in advance_payments_field.value:
             total_amount = (
-                self.collect_sums_from_payments([advance_payment.total], use_gross)
+                self.collect_sums_from_payments(
+                    [advance_payment.total], use_gross=use_gross
+                )
                 if advance_payment.total is not None
                 else None
             )
             payments_sum = self.collect_sums_from_payments(
-                advance_payment.payments, use_gross
+                advance_payment.payments, use_gross=use_gross
             )
 
             if total_amount is not None and payments_sum is not None:
@@ -123,9 +128,9 @@ class CheckTotalAmountsValidation(BaseCheck):
                 group.extend(advance_payment.payments)
         use_gross = use_gross_basis(group)
 
-        self._collect_total_amounts(total_amount_field, use_gross)
+        self._collect_total_amounts(total_amount_field, use_gross=use_gross)
         if advance_payments_field is not None:
-            self._collect_advances_sum(advance_payments_field, use_gross)
+            self._collect_advances_sum(advance_payments_field, use_gross=use_gross)
 
         if not self.amounts_to_compare:
             raise InsufficientCheckDataError(
