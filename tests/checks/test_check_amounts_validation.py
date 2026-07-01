@@ -370,6 +370,23 @@ async def test_total_amounts_succeeds_when_total_gross_and_tax_net_match() -> No
     assert result.errors == []
 
 
+async def test_total_amounts_falls_back_to_raw_when_tax_lacks_rate() -> None:
+    check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
+    check.total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=_make_vat_payment("100.00", rate="20.00", include_vat=False),
+            taxes=[_make_payment("100.00")],
+        ),
+        sources=[],
+    )
+    check.advance_payments_field = None
+
+    result = await check.execute(STUB_CHECK_SERVICES)
+
+    assert result.status == CheckStatus.success
+    assert result.errors == []
+
+
 async def test_total_amounts_fails_when_grossed_amounts_differ() -> None:
     check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
     check.total_amount_field = TotalAmountField(
