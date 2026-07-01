@@ -351,6 +351,41 @@ def _vat_payment(value: str, *, rate: str, include_vat: bool) -> Payment:
     )
 
 
+async def test_payment_percent_falls_back_to_raw_when_advance_lacks_rate() -> None:
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    total_payment = _vat_payment("100.00", rate="20.00", include_vat=False)
+    advances = [
+        AdvancePayment(
+            percent=Decimal("100.00"),
+            total=Payment(
+                amount=Amount(value=Decimal("100.00"), transcription=None),
+                vat=Vat(amount=None, rate=None),
+                include_vat=False,
+            ),
+            payments=[],
+        ),
+    ]
+    fields = FieldCollector(
+        [
+            TotalAmountField(
+                value=TotalAmount(total=total_payment, taxes=[]),
+                sources=[Source(document_id=document.id)],
+            ),
+            AdvancePaymentsField(
+                value=advances,
+                sources=[Source(document_id=document.id)],
+            ),
+        ],
+    )
+    check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
+    check.prepare(fields)
+
+    result = await check.execute(STUB_CHECK_SERVICES)
+
+    assert result.status == CheckStatus.success
+    assert result.errors == []
+
+
 async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match() -> (
     None
 ):

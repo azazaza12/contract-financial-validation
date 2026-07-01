@@ -89,13 +89,6 @@ class Payment:
             return None
         return stated * (Decimal(100) + self.vat.rate) / Decimal(100)
 
-    @property
-    def amount_including_vat_or_stated(self) -> Decimal | None:
-        including_vat = self.amount_including_vat
-        if including_vat is not None:
-            return including_vat
-        return self.stated_amount
-
     @staticmethod
     def _differ_beyond_tolerance(a: Decimal | None, b: Decimal | None) -> bool:
         return a is not None and b is not None and abs(a - b) > AMOUNT_TOLERANCE
