@@ -64,7 +64,10 @@ class Payment:
         if stated is None or self.vat.rate is None or self.include_vat is None:
             return None
         if self.include_vat:
-            return stated * self.vat.rate / (Decimal(100) + self.vat.rate)
+            gross_percent = Decimal(100) + self.vat.rate
+            if gross_percent <= 0:
+                return None
+            return stated * self.vat.rate / gross_percent
         return stated * self.vat.rate / Decimal(100)
 
     @property
@@ -76,7 +79,10 @@ class Payment:
             return stated
         if self.vat.rate is None:
             return None
-        return stated * Decimal(100) / (Decimal(100) + self.vat.rate)
+        gross_percent = Decimal(100) + self.vat.rate
+        if gross_percent <= 0:
+            return None
+        return stated * Decimal(100) / gross_percent
 
     @property
     def amount_including_vat(self) -> Decimal | None:
