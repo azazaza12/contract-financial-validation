@@ -9,7 +9,7 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
-from .amount_basis import amount_in_basis, use_gross_basis
+from .amount_basis import use_gross_basis
 from .base import BaseCheck
 from .deps import CheckServices, OptionalDep, Requires
 from .errors import InsufficientCheckDataError
@@ -47,7 +47,7 @@ class CheckTotalAmountsValidation(BaseCheck):
     ) -> Decimal | None:
         total_amount_sum: Decimal | None = None
         for payment in payments:
-            amount = amount_in_basis(payment, use_gross=use_gross)
+            amount = payment.amount_in_basis(use_gross=use_gross)
             if amount is None:
                 continue
             total_amount_sum = (total_amount_sum or Decimal("0.00")) + amount
