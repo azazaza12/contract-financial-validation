@@ -89,6 +89,9 @@ class Payment:
             return None
         return stated * (Decimal(100) + self.vat.rate) / Decimal(100)
 
+    def amount_in_basis(self, *, use_gross: bool) -> Decimal | None:
+        return self.amount_including_vat if use_gross else self.stated_amount
+
     @staticmethod
     def _differ_beyond_tolerance(a: Decimal | None, b: Decimal | None) -> bool:
         return a is not None and b is not None and abs(a - b) > AMOUNT_TOLERANCE

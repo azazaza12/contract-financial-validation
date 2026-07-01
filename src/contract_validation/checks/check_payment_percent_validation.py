@@ -13,7 +13,7 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
-from .amount_basis import amount_in_basis, use_gross_basis
+from .amount_basis import use_gross_basis
 from .base import BaseCheck
 from .deps import CheckServices, Requires
 from .errors import InsufficientCheckDataError
@@ -25,12 +25,12 @@ def _calculate_advance_line_amount(
     use_gross: bool,
 ) -> Decimal | None:
     if adv.total is not None:
-        total = amount_in_basis(adv.total, use_gross=use_gross)
+        total = adv.total.amount_in_basis(use_gross=use_gross)
         if total is not None:
             return total
     s: Decimal | None = None
     for p in adv.payments:
-        amount = amount_in_basis(p, use_gross=use_gross)
+        amount = p.amount_in_basis(use_gross=use_gross)
         if amount is None:
             continue
         s = (s or Decimal("0.00")) + amount
@@ -65,7 +65,7 @@ class CheckPaymentPercentValidation(BaseCheck):
                 group.extend(advance_payment.payments)
         use_gross = use_gross_basis(group)
 
-        total_amount = amount_in_basis(total_payment, use_gross=use_gross)
+        total_amount = total_payment.amount_in_basis(use_gross=use_gross)
 
         label = self.__class__.__name__
 
