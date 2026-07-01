@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from decimal import Decimal
 from typing import cast
 
@@ -10,12 +9,11 @@ from app.domain.entities.errors.checks import (
 from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
-    Payment,
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
 
-from .amount_basis import select_amount_basis
+from .amount_basis import amount_in_basis, use_gross_basis
 from .base import BaseCheck
 from .deps import CheckServices, Requires
 from .errors import InsufficientCheckDataError
@@ -23,15 +21,15 @@ from .errors import InsufficientCheckDataError
 
 def _calculate_advance_line_amount(
     adv: AdvancePayment,
-    basis: Callable[[Payment], Decimal | None],
+    use_gross: bool,
 ) -> Decimal | None:
     if adv.total is not None:
-        total = basis(adv.total)
+        total = amount_in_basis(adv.total, use_gross)
         if total is not None:
             return total
     s: Decimal | None = None
     for p in adv.payments:
-        amount = basis(p)
+        amount = amount_in_basis(p, use_gross)
         if amount is None:
             continue
         s = (s or Decimal("0.00")) + amount
@@ -57,13 +55,16 @@ class CheckPaymentPercentValidation(BaseCheck):
 
         group = [total_payment]
         for advance_payment in payments:
-            if advance_payment.total is not None:
+            if (
+                advance_payment.total is not None
+                and advance_payment.total.stated_amount is not None
+            ):
                 group.append(advance_payment.total)
             else:
                 group.extend(advance_payment.payments)
-        basis = select_amount_basis(group)
+        use_gross = use_gross_basis(group)
 
-        total_amount = basis(total_payment)
+        total_amount = amount_in_basis(total_payment, use_gross)
 
         label = self.__class__.__name__
 
@@ -86,7 +87,7 @@ class CheckPaymentPercentValidation(BaseCheck):
                 continue
 
             total_percent += advance_payment.percent
-            line_amount = _calculate_advance_line_amount(advance_payment, basis)
+            line_amount = _calculate_advance_line_amount(advance_payment, use_gross)
             if total_amount is None or line_amount is None:
                 continue
 
