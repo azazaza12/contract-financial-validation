@@ -13,8 +13,8 @@ if TYPE_CHECKING:
 
     from app.domain.entities.field import BaseField
     from app.domain.ports.checker import (
-        IPositionsComplianceService,
-        ITranscriptionComplianceService,
+        IPositionsCompliancer,
+        ITranscriptionCompliancer,
     )
 
 
@@ -105,5 +105,5 @@ class OptionalDep[T]:
 
 
 class CheckServices(Protocol):
-    check_position_compliance_service: IPositionsComplianceService
-    check_transcription_compliance_service: ITranscriptionComplianceService
+    check_position_compliancer: IPositionsCompliancer
+    check_transcription_compliancer: ITranscriptionCompliancer
