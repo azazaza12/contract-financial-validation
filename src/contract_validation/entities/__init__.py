@@ -1,7 +1,7 @@
 from .contract import BaseContract
 from .document import BaseDocument
 from .field import BaseField, FieldCollector
-from .merge_types import Source, ValueCandidate
+from .merge_types import Source, SourceHeader, ValueCandidate
 from .single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
@@ -28,6 +28,7 @@ __all__ = [
     "FieldCollector",
     "Payment",
     "Source",
+    "SourceHeader",
     "SpecPosition",
     "SpecPositionsField",
     "TotalAmount",
