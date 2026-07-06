@@ -51,30 +51,30 @@ class CheckPaymentPercentValidation(BaseCheck):
             )
 
         total_percent = Decimal("0.00")
-
         for advance_payment in advance_payments:
-            if advance_payment.percent is None:
-                continue
+            if advance_payment.percent is not None:
+                total_percent += advance_payment.percent
 
-            total_percent += advance_payment.percent
-            resolved = advance_payment.resolved_total
-            line_amount = resolved.amount_value if resolved is not None else None
-            if total_amount is None or line_amount is None:
-                continue
-
-            expected_amount = total_amount * advance_payment.percent / Decimal("100.00")
-            diff_amount = abs(line_amount - expected_amount)
-            if diff_amount <= self.tolerance:
-                continue
-
-            errors.append(
-                PaymentAmountPercentDiscrepancyError(
-                    amount=line_amount,
-                    expected_amount=expected_amount,
-                    percent=advance_payment.percent,
-                    contract_total_amount=total_amount,
-                ),
-            )
+        if total_amount is not None:
+            for advance_payment in advance_payments:
+                if advance_payment.percent is None:
+                    continue
+                resolved = advance_payment.resolved_total
+                line_amount = resolved.amount_value if resolved is not None else None
+                if line_amount is None:
+                    continue
+                expected_amount = (
+                    total_amount * advance_payment.percent / Decimal("100.00")
+                )
+                if abs(line_amount - expected_amount) > self.tolerance:
+                    errors.append(
+                        PaymentAmountPercentDiscrepancyError(
+                            amount=line_amount,
+                            expected_amount=expected_amount,
+                            percent=advance_payment.percent,
+                            contract_total_amount=total_amount,
+                        ),
+                    )
 
         if abs(total_percent - Decimal("100.00")) > self.tolerance:
             errors.append(
