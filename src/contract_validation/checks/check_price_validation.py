@@ -76,10 +76,7 @@ class CheckPriceValidation(BaseCheck):
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
 
         spec_positions = spec_positions_field.value
-        total_payment = total_amount_field.value.total
-        total_amount = (
-            total_payment.amount.value if total_payment.amount is not None else None
-        )
+        total_amount = total_amount_field.value.total.amount_value
         label = self.__class__.__name__
 
         if total_amount is None:
