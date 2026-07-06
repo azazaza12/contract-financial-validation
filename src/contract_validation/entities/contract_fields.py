@@ -71,7 +71,7 @@ class Payment:
         rate = self.vat.rate
         if amount is None or rate is None:
             return None
-        # TODO подумать над include_vat is None
+        # TODO: подумать над include_vat is None
         if self.include_vat:
             denominator = 100 + rate
             if denominator == 0:

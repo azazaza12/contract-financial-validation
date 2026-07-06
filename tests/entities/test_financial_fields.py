@@ -72,17 +72,17 @@ def test_expected_vat_amount_none_when_rate_missing():
 
 def test_expected_vat_amount_included_extracts_from_gross():
     payment = make_payment(amount="120.00", rate="20", include_vat=True)
-    assert payment.expected_vat_amount == Decimal("20")
+    assert payment.expected_vat_amount == Decimal(20)
 
 
 def test_expected_vat_amount_excluded_adds_on_top():
     payment = make_payment(amount="100.00", rate="20", include_vat=False)
-    assert payment.expected_vat_amount == Decimal("20")
+    assert payment.expected_vat_amount == Decimal(20)
 
 
 def test_expected_vat_amount_none_include_vat_uses_excluded_branch():
     payment = make_payment(amount="100.00", rate="20", include_vat=None)
-    assert payment.expected_vat_amount == Decimal("20")
+    assert payment.expected_vat_amount == Decimal(20)
 
 
 def test_expected_vat_amount_none_when_included_denominator_zero():
@@ -179,9 +179,7 @@ def test_total_amount_tax_payments_wraps_taxes():
     assert tax_payments.amount_value == Decimal("300.00")
 
 
-def make_advance(
-    *, total: Payment | None, payments: list[Payment]
-) -> AdvancePayment:
+def make_advance(*, total: Payment | None, payments: list[Payment]) -> AdvancePayment:
     return AdvancePayment(percent=None, total=total, payments=payments)
 
 
@@ -228,4 +226,3 @@ def test_resolved_total_keeps_total_when_lines_have_no_amount():
     total = make_payment(amount=None, rate="20.00")
     advance = make_advance(total=total, payments=[])
     assert advance.resolved_total is total
-
