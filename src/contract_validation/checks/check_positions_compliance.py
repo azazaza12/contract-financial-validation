@@ -47,7 +47,7 @@ class CheckPositionsCompliance(BaseCheck):
                 "no position names for compliance check",
             )
 
-        result = await check_services.check_position_compliance_service.evaluate(
+        result = await check_services.check_position_compliancer.evaluate(
             document_object,
             position_names,
         )

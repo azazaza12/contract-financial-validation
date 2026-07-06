@@ -319,6 +319,19 @@ async def test_flat_advances_differ_from_contract_failed() -> None:
     assert err.rate_two == Decimal(10)
 
 
+async def test_flat_advances_no_contract_rate_differ_success() -> None:
+    r = await _run(
+        total_rate=None,
+        tax_rates=[],
+        advances=[
+            _advance(total_rate=Decimal(20)),
+            _advance(total_rate=Decimal(10)),
+        ],
+    )
+    assert r.status == CheckStatus.success
+    assert r.errors == []
+
+
 async def test_flat_advances_skip_none_total_success() -> None:
     r = await _run(
         total_rate=Decimal(20),
