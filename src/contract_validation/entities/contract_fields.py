@@ -69,9 +69,8 @@ class Payment:
     def expected_vat_amount(self) -> Decimal | None:
         amount = self.amount_value
         rate = self.vat.rate
-        if amount is None or rate is None:
+        if amount is None or rate is None or self.include_vat is None:
             return None
-        # TODO подумать над include_vat is None
         if self.include_vat:
             denominator = 100 + rate
             if denominator == 0:
