@@ -11,49 +11,50 @@ def _candidate(source: Source) -> ValueCandidate:
 def test_different_documents_are_kept_separate() -> None:
     doc1, doc2 = uuid4(), uuid4()
     candidates = [
-        _candidate(Source(document_id=doc1, headers=(SourceHeader.BODY,))),
-        _candidate(Source(document_id=doc2, headers=(SourceHeader.IN_SPEC,))),
+        _candidate(Source(document_id=doc1, header=SourceHeader.BODY)),
+        _candidate(Source(document_id=doc2, header=SourceHeader.IN_SPEC)),
     ]
 
     result = combine_sources(candidates)
 
     assert result == [
-        Source(document_id=doc1, headers=(SourceHeader.BODY,)),
-        Source(document_id=doc2, headers=(SourceHeader.IN_SPEC,)),
+        Source(document_id=doc1, header=SourceHeader.BODY),
+        Source(document_id=doc2, header=SourceHeader.IN_SPEC),
     ]
 
 
-def test_same_document_different_headers_merge_into_one() -> None:
+def test_same_document_different_headers_are_kept_separate() -> None:
     doc = uuid4()
     candidates = [
-        _candidate(Source(document_id=doc, headers=(SourceHeader.BODY,))),
-        _candidate(Source(document_id=doc, headers=(SourceHeader.IN_SPEC,))),
+        _candidate(Source(document_id=doc, header=SourceHeader.BODY)),
+        _candidate(Source(document_id=doc, header=SourceHeader.IN_SPEC)),
     ]
 
     result = combine_sources(candidates)
 
     assert result == [
-        Source(document_id=doc, headers=(SourceHeader.BODY, SourceHeader.IN_SPEC)),
+        Source(document_id=doc, header=SourceHeader.BODY),
+        Source(document_id=doc, header=SourceHeader.IN_SPEC),
     ]
 
 
-def test_duplicate_headers_are_not_repeated() -> None:
+def test_duplicate_document_header_pairs_are_not_repeated() -> None:
     doc = uuid4()
     candidates = [
-        _candidate(Source(document_id=doc, headers=(SourceHeader.BODY,))),
-        _candidate(Source(document_id=doc, headers=(SourceHeader.BODY,))),
+        _candidate(Source(document_id=doc, header=SourceHeader.BODY)),
+        _candidate(Source(document_id=doc, header=SourceHeader.BODY)),
     ]
 
     result = combine_sources(candidates)
 
-    assert result == [Source(document_id=doc, headers=(SourceHeader.BODY,))]
+    assert result == [Source(document_id=doc, header=SourceHeader.BODY)]
 
 
-def test_document_order_is_preserved() -> None:
+def test_order_of_first_appearance_is_preserved() -> None:
     doc1, doc2 = uuid4(), uuid4()
     candidates = [
-        _candidate(Source(document_id=doc2, headers=(SourceHeader.AFTER_SPEC,))),
-        _candidate(Source(document_id=doc1, headers=(SourceHeader.BODY,))),
+        _candidate(Source(document_id=doc2, header=SourceHeader.AFTER_SPEC)),
+        _candidate(Source(document_id=doc1, header=SourceHeader.BODY)),
     ]
 
     result = combine_sources(candidates)

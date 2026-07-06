@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 from uuid import UUID
@@ -13,7 +13,7 @@ class SourceHeader(StrEnum):
 @dataclass(frozen=True)
 class Source:
     document_id: UUID
-    headers: tuple[SourceHeader, ...] = field(default_factory=tuple)
+    header: SourceHeader | None = None
 
 
 @dataclass(frozen=True)

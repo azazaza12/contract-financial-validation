@@ -14,20 +14,15 @@ if TYPE_CHECKING:
 
 
 def combine_sources(candidates: list[ValueCandidate]) -> list[Source]:
-    headers_by_document: dict[UUID, list[SourceHeader]] = {}
-    order: list[UUID] = []
+    result: list[Source] = []
+    seen: set[tuple[UUID, SourceHeader | None]] = set()
     for c in candidates:
         for s in c.sources:
-            if s.document_id not in headers_by_document:
-                headers_by_document[s.document_id] = []
-                order.append(s.document_id)
-            for header in s.headers:
-                if header not in headers_by_document[s.document_id]:
-                    headers_by_document[s.document_id].append(header)
-    return [
-        Source(document_id=document_id, headers=tuple(headers_by_document[document_id]))
-        for document_id in order
-    ]
+            key = (s.document_id, s.header)
+            if key not in seen:
+                seen.add(key)
+                result.append(s)
+    return result
 
 
 def all_equal(candidates: list[ValueCandidate]) -> bool:
