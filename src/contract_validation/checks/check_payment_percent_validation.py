@@ -7,7 +7,6 @@ from app.domain.entities.errors.checks import (
     PaymentPercentSumDiscrepancyError,
 )
 from app.domain.entities.single_supplier_fields import (
-    AdvancePayment,
     AdvancePaymentsField,
     TotalAmountField,
 )
@@ -16,21 +15,6 @@ from app.domain.entities.validation import CheckExecutionResult
 from .base import BaseCheck
 from .deps import CheckServices, Requires
 from .errors import InsufficientCheckDataError
-
-
-def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
-    if (
-        adv.total is not None
-        and adv.total.amount is not None
-        and adv.total.amount.value is not None
-    ):
-        return adv.total.amount.value
-    s: Decimal | None = None
-    for p in adv.payments:
-        if p.amount is None or p.amount.value is None:
-            continue
-        s = (s or Decimal("0.00")) + p.amount.value
-    return s
 
 
 class CheckPaymentPercentValidation(BaseCheck):
@@ -47,21 +31,20 @@ class CheckPaymentPercentValidation(BaseCheck):
         )
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
         errors: list[BaseCheckError] = []
-        payments = advance_payments_field.value
-        total_payment = total_amount_field.value.total
-        total_amount = (
-            total_payment.amount.value if total_payment.amount is not None else None
-        )
+        advance_payments = advance_payments_field.value
+        total_amount = total_amount_field.value.total.amount_value
 
         label = self.__class__.__name__
 
-        if not payments:
+        if not advance_payments:
             raise InsufficientCheckDataError(
                 label,
                 "no advance payment records to validate",
             )
 
-        if not any(advance_payment.percent is not None for advance_payment in payments):
+        if not any(
+            advance_payment.percent is not None for advance_payment in advance_payments
+        ):
             raise InsufficientCheckDataError(
                 label,
                 "no advance payment percents to validate",
@@ -69,12 +52,13 @@ class CheckPaymentPercentValidation(BaseCheck):
 
         total_percent = Decimal("0.00")
 
-        for advance_payment in payments:
+        for advance_payment in advance_payments:
             if advance_payment.percent is None:
                 continue
 
             total_percent += advance_payment.percent
-            line_amount = _calculate_advance_line_amount(advance_payment)
+            resolved = advance_payment.resolved_total
+            line_amount = resolved.amount_value if resolved is not None else None
             if total_amount is None or line_amount is None:
                 continue
 
