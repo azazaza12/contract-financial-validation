@@ -80,9 +80,9 @@ def test_expected_vat_amount_excluded_adds_on_top():
     assert payment.expected_vat_amount == Decimal(20)
 
 
-def test_expected_vat_amount_none_include_vat_uses_excluded_branch():
+def test_expected_vat_amount_none_when_include_vat_unknown():
     payment = make_payment(amount="100.00", rate="20", include_vat=None)
-    assert payment.expected_vat_amount == Decimal(20)
+    assert payment.expected_vat_amount is None
 
 
 def test_expected_vat_amount_none_when_included_denominator_zero():
