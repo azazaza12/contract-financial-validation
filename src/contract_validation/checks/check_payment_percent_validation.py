@@ -7,6 +7,7 @@ from app.domain.entities.errors.checks import (
     PaymentPercentSumDiscrepancyError,
 )
 from app.domain.entities.single_supplier_fields import (
+    AdvancePayment,
     AdvancePaymentsField,
     TotalAmountField,
 )
@@ -57,27 +58,35 @@ class CheckPaymentPercentValidation(BaseCheck):
 
         if total_amount is not None:
             for advance_payment in advance_payments:
-                if advance_payment.percent is None:
-                    continue
-                resolved = advance_payment.resolved_total
-                line_amount = resolved.amount_value if resolved is not None else None
-                if line_amount is None:
-                    continue
-                expected_amount = (
-                    total_amount * advance_payment.percent / Decimal("100.00")
+                errors.extend(
+                    self._validate_advance_amount(advance_payment, total_amount)
                 )
-                if abs(line_amount - expected_amount) > self.tolerance:
-                    errors.append(
-                        PaymentAmountPercentDiscrepancyError(
-                            amount=line_amount,
-                            expected_amount=expected_amount,
-                            percent=advance_payment.percent,
-                            contract_total_amount=total_amount,
-                        ),
-                    )
 
         if abs(total_percent - Decimal("100.00")) > self.tolerance:
             errors.append(
                 PaymentPercentSumDiscrepancyError(total_percent=total_percent)
             )
         return self._result(errors)
+
+    def _validate_advance_amount(
+        self,
+        advance_payment: AdvancePayment,
+        total_amount: Decimal,
+    ) -> list[BaseCheckError]:
+        if advance_payment.percent is None:
+            return []
+        resolved = advance_payment.resolved_total
+        line_amount = resolved.amount_value if resolved is not None else None
+        if line_amount is None:
+            return []
+        expected_amount = total_amount * advance_payment.percent / Decimal("100.00")
+        if abs(line_amount - expected_amount) > self.tolerance:
+            return [
+                PaymentAmountPercentDiscrepancyError(
+                    amount=line_amount,
+                    expected_amount=expected_amount,
+                    percent=advance_payment.percent,
+                    contract_total_amount=total_amount,
+                )
+            ]
+        return []
