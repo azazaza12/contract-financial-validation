@@ -432,6 +432,45 @@ async def test_payment_percent_uses_advance_payments_for_basis_when_total_has_no
     assert result.errors == []
 
 
+async def test_payment_percent_basis_ignores_advance_payments_when_total_has_number() -> (  # noqa: E501
+    None
+):
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    total_payment = _vat_payment("100.00", rate="20.00", include_vat=False)
+    advance_total = _vat_payment("120.00", rate="20.00", include_vat=True)
+    non_grossable_line = Payment(
+        amount=Amount(value=Decimal("77.00"), transcription=None),
+        vat=Vat(amount=None, rate=None),
+        include_vat=False,
+    )
+    advances = [
+        AdvancePayment(
+            percent=Decimal("100.00"),
+            total=advance_total,
+            payments=[non_grossable_line],
+        ),
+    ]
+    fields = FieldCollector(
+        [
+            TotalAmountField(
+                value=TotalAmount(total=total_payment, taxes=[]),
+                sources=[Source(document_id=document.id)],
+            ),
+            AdvancePaymentsField(
+                value=advances,
+                sources=[Source(document_id=document.id)],
+            ),
+        ],
+    )
+    check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
+    check.prepare(fields)
+
+    result = await check.execute(STUB_CHECK_SERVICES)
+
+    assert result.status == CheckStatus.success
+    assert result.errors == []
+
+
 async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match() -> (
     None
 ):
