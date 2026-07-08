@@ -18,9 +18,7 @@ from .errors import InsufficientCheckDataError
 def _advance_has_any_vat_rate(adv: AdvancePayment) -> bool:
     if adv.total is not None and adv.total.vat.rate is not None:
         return True
-    if adv.payments:
-        return any(p.vat.rate is not None for p in adv.payments)
-    return False
+    return bool(adv.payment_lines.vat_rates)
 
 
 def _advances_field_has_any_vat_rate(
@@ -65,7 +63,7 @@ class CheckTaxRatesValidation(BaseCheck):
         aggregate: Payment | None,
         index: int | None = None,
     ) -> None:
-        if aggregate is None or aggregate.vat.rate is None:
+        if aggregate is None or aggregate.vat.rate is None or contract_rate is None:
             return
         adv_rate = aggregate.vat.rate
         if contract_rate == adv_rate:
@@ -82,7 +80,7 @@ class CheckTaxRatesValidation(BaseCheck):
         self,
         aggregate: Payment | None,
         contract_rate: Decimal | None,
-        tax_rates: set[Decimal | None],
+        tax_rates: set[Decimal],
         index: int | None = None,
     ) -> None:
         if aggregate is None or aggregate.vat.rate is None:
@@ -101,10 +99,9 @@ class CheckTaxRatesValidation(BaseCheck):
     def _collect_advance_rate_errors(
         self,
         contract_rate: Decimal | None,
-        valid_taxes: list[Payment],
+        tax_rates: set[Decimal],
         advance_payments: list[AdvancePayment],
     ) -> None:
-        tax_rates = {p.vat.rate for p in valid_taxes}
         for i, advance_payment in enumerate(advance_payments):
             if not advance_payment.payments:
                 self._append_aggregate_vs_reference(
@@ -160,7 +157,7 @@ class CheckTaxRatesValidation(BaseCheck):
 
         if not (
             ta.total.vat.rate is not None
-            or any(p.vat.rate is not None for p in taxes)
+            or ta.tax_payments.vat_rates
             or _advances_field_has_any_vat_rate(advance_payments_field)
         ):
             raise InsufficientCheckDataError(
@@ -181,6 +178,6 @@ class CheckTaxRatesValidation(BaseCheck):
 
         contract_rate = ta.total.vat.rate
         self._collect_advance_rate_errors(
-            contract_rate, valid_taxes, advance_payments_field.value
+            contract_rate, ta.tax_payments.vat_rates, advance_payments_field.value
         )
         return self._result(self.errors)

@@ -7,7 +7,7 @@ from uuid import UUID
 
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities.errors.merge import BaseMergeError, ValuesDiscrepancyError
-from app.domain.entities.merge_types import Source, ValueCandidate
+from app.domain.entities.merge_types import Source, SourceHeader, ValueCandidate
 
 
 if TYPE_CHECKING:
@@ -17,15 +17,15 @@ if TYPE_CHECKING:
 
 
 def combine_sources(candidates: list[ValueCandidate]) -> list[Source]:
-    sources = []
-    seen = set()
+    result: list[Source] = []
+    seen: set[tuple[UUID, SourceHeader | None]] = set()
     for c in candidates:
         for s in c.sources:
-            s_id = s.document_id
-            if s_id not in seen:
-                sources.append(s)
-                seen.add(s_id)
-    return sources
+            key = (s.document_id, s.header)
+            if key not in seen:
+                seen.add(key)
+                result.append(s)
+    return result
 
 
 def all_equal(candidates: list[ValueCandidate]) -> bool:

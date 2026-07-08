@@ -62,7 +62,7 @@ def test_merge_payment_assembles_most_complete_when_equivalent() -> None:
 
     assert errors == []
     assert result is not None
-    assert result.value.stated_amount == Decimal(100)
+    assert result.value.amount_value == Decimal(100)
     assert result.value.vat.rate == Decimal(20)
 
 
@@ -134,4 +134,4 @@ def test_merge_payment_falls_back_to_strict_when_net_unavailable() -> None:
 
     assert errors == []
     assert result is not None
-    assert result.value.stated_amount == Decimal(100)
+    assert result.value.amount_value == Decimal(100)

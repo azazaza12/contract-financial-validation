@@ -27,10 +27,6 @@ class CheckPriceValidation(BaseCheck):
         self.tolerance = tolerance
         self.errors: list[BaseCheckError] = []
 
-    @staticmethod
-    def _has_any_position_line_total(positions: list[SpecPosition]) -> bool:
-        return any(position.total_price is not None for position in positions)
-
     def _validate_position_lines_and_sum(
         self, spec_positions: list[SpecPosition]
     ) -> Decimal:
@@ -88,7 +84,7 @@ class CheckPriceValidation(BaseCheck):
             if candidate is not None
         ]
         if not candidate_totals:
-            raw_total = total_payment.stated_amount
+            raw_total = total_payment.amount_value
             if raw_total is not None:
                 candidate_totals = [raw_total]
 
@@ -100,7 +96,9 @@ class CheckPriceValidation(BaseCheck):
 
         positions_total = self._validate_position_lines_and_sum(spec_positions)
 
-        has_position_totals = self._has_any_position_line_total(spec_positions)
+        has_position_totals = any(
+            position.total_price is not None for position in spec_positions
+        )
 
         representative_total = candidate_totals[0]
         if representative_total <= 0:

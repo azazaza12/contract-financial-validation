@@ -75,7 +75,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
                 self.__class__.__name__,
                 "no amount-transcription pairs to validate",
             )
-        result = await check_services.check_transcription_compliance_service.evaluate(
+        result = await check_services.check_transcription_compliancer.evaluate(
             checkable_amounts,
         )
 
