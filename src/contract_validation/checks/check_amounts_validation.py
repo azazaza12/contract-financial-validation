@@ -4,7 +4,6 @@ from typing import cast
 from app.domain.entities.errors.checks import AmountDiscrepancyError, BaseCheckError
 from app.domain.entities.single_supplier_fields import (
     AdvancePaymentsField,
-    Payment,
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
@@ -39,39 +38,21 @@ class CheckTotalAmountsValidation(BaseCheck):
                     ),
                 )
 
-    def collect_sums_from_payments(
-        self,
-        payments: list[Payment],
-        *,
-        use_gross: bool,
-    ) -> Decimal | None:
-        total_amount_sum: Decimal | None = None
-        for payment in payments:
-            amount = payment.amount_in_basis(use_gross=use_gross)
-            if amount is None:
-                continue
-            total_amount_sum = (total_amount_sum or Decimal("0.00")) + amount
-        return total_amount_sum
-
     def _collect_total_amounts(
         self,
         total_amount_field: TotalAmountField,
         *,
         use_gross: bool,
     ) -> None:
-        total_amount_sum = self.collect_sums_from_payments(
-            [total_amount_field.value.total],
-            use_gross=use_gross,
-        )
-        if total_amount_sum is not None:
-            self.amounts_to_compare.append(total_amount_sum)
+        total_sum = total_amount_field.value.total.amount_in_basis(use_gross=use_gross)
+        if total_sum is not None:
+            self.amounts_to_compare.append(total_sum)
 
-        taxes_total_amount_sum = self.collect_sums_from_payments(
-            total_amount_field.value.taxes,
-            use_gross=use_gross,
+        taxes_sum = total_amount_field.value.tax_payments.amount_in_basis(
+            use_gross=use_gross
         )
-        if taxes_total_amount_sum is not None:
-            self.amounts_to_compare.append(taxes_total_amount_sum)
+        if taxes_sum is not None:
+            self.amounts_to_compare.append(taxes_sum)
 
     def _collect_advances_sum(
         self,
@@ -82,14 +63,12 @@ class CheckTotalAmountsValidation(BaseCheck):
         advances_sum: Decimal | None = None
         for advance_payment in advance_payments_field.value:
             total_amount = (
-                self.collect_sums_from_payments(
-                    [advance_payment.total], use_gross=use_gross
-                )
+                advance_payment.total.amount_in_basis(use_gross=use_gross)
                 if advance_payment.total is not None
                 else None
             )
-            payments_sum = self.collect_sums_from_payments(
-                advance_payment.payments, use_gross=use_gross
+            payments_sum = advance_payment.payment_lines.amount_in_basis(
+                use_gross=use_gross
             )
 
             if total_amount is not None and payments_sum is not None:

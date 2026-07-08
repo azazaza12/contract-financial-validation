@@ -147,6 +147,15 @@ class PaymentList:
             total = (total or Decimal("0.00")) + value
         return total
 
+    def amount_in_basis(self, *, use_gross: bool) -> Decimal | None:
+        total: Decimal | None = None
+        for payment in self._payments:
+            value = payment.amount_in_basis(use_gross=use_gross)
+            if value is None:
+                continue
+            total = (total or Decimal("0.00")) + value
+        return total
+
     @property
     def _vat_amount_value(self) -> Decimal | None:
         total: Decimal | None = None
@@ -256,6 +265,13 @@ class AdvancePayment:
             return base
         fallback = self.payment_lines.combined
         return fallback if fallback is not None else base
+
+    def amount_in_basis(self, *, use_gross: bool) -> Decimal | None:
+        if self.total is not None:
+            total = self.total.amount_in_basis(use_gross=use_gross)
+            if total is not None:
+                return total
+        return self.payment_lines.amount_in_basis(use_gross=use_gross)
 
 
 @dataclass(kw_only=True, frozen=True)

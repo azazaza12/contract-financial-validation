@@ -7,7 +7,6 @@ from app.domain.entities.errors.checks import (
     PaymentPercentSumDiscrepancyError,
 )
 from app.domain.entities.single_supplier_fields import (
-    AdvancePayment,
     AdvancePaymentsField,
     TotalAmountField,
 )
@@ -17,24 +16,6 @@ from .amount_basis import use_gross_basis
 from .base import BaseCheck
 from .deps import CheckServices, Requires
 from .errors import InsufficientCheckDataError
-
-
-def _calculate_advance_line_amount(
-    adv: AdvancePayment,
-    *,
-    use_gross: bool,
-) -> Decimal | None:
-    if adv.total is not None:
-        total = adv.total.amount_in_basis(use_gross=use_gross)
-        if total is not None:
-            return total
-    s: Decimal | None = None
-    for p in adv.payments:
-        amount = p.amount_in_basis(use_gross=use_gross)
-        if amount is None:
-            continue
-        s = (s or Decimal("0.00")) + amount
-    return s
 
 
 class CheckPaymentPercentValidation(BaseCheck):
@@ -92,9 +73,7 @@ class CheckPaymentPercentValidation(BaseCheck):
             for advance_payment in advance_payments:
                 if advance_payment.percent is None:
                     continue
-                line_amount = _calculate_advance_line_amount(
-                    advance_payment, use_gross=use_gross
-                )
+                line_amount = advance_payment.amount_in_basis(use_gross=use_gross)
                 if line_amount is None:
                     continue
                 expected_amount = (
