@@ -13,19 +13,24 @@ from app.domain.entities.single_supplier_fields import (
 )
 from app.domain.entities.validation import CheckExecutionResult
 
+from .amount_basis import use_gross_basis
 from .base import BaseCheck
 from .deps import CheckServices, Requires
 from .errors import InsufficientCheckDataError
 
 
-def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
+def _calculate_advance_line_amount(
+    adv: AdvancePayment,
+    *,
+    use_gross: bool,
+) -> Decimal | None:
     if adv.total is not None:
-        total = adv.total.amount_including_vat_or_stated
+        total = adv.total.amount_in_basis(use_gross=use_gross)
         if total is not None:
             return total
     s: Decimal | None = None
     for p in adv.payments:
-        amount = p.amount_including_vat_or_stated
+        amount = p.amount_in_basis(use_gross=use_gross)
         if amount is None:
             continue
         s = (s or Decimal("0.00")) + amount
@@ -48,7 +53,19 @@ class CheckPaymentPercentValidation(BaseCheck):
         errors: list[BaseCheckError] = []
         payments = advance_payments_field.value
         total_payment = total_amount_field.value.total
-        total_amount = total_payment.amount_including_vat_or_stated
+
+        group = [total_payment]
+        for advance_payment in payments:
+            if (
+                advance_payment.total is not None
+                and advance_payment.total.stated_amount is not None
+            ):
+                group.append(advance_payment.total)
+            else:
+                group.extend(advance_payment.payments)
+        use_gross = use_gross_basis(group)
+
+        total_amount = total_payment.amount_in_basis(use_gross=use_gross)
 
         label = self.__class__.__name__
 
@@ -71,7 +88,9 @@ class CheckPaymentPercentValidation(BaseCheck):
                 continue
 
             total_percent += advance_payment.percent
-            line_amount = _calculate_advance_line_amount(advance_payment)
+            line_amount = _calculate_advance_line_amount(
+                advance_payment, use_gross=use_gross
+            )
             if total_amount is None or line_amount is None:
                 continue
 
