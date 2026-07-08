@@ -4,7 +4,6 @@ from typing import cast
 from app.domain.entities.errors.checks import (
     AmountNotPositiveError,
     BaseCheckError,
-    VatAmountCalculationDiscrepancyError,
     VatAmountDiscrepancyError,
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
@@ -22,7 +21,7 @@ from .deps import CheckServices, OptionalDep, Requires
 from .errors import InsufficientCheckDataError
 
 
-class CheckTaxesValidation(BaseCheck):
+class CheckVatConsistency(BaseCheck):
     total_amount_field = Requires(TotalAmountField)
     advance_payments_field = OptionalDep(AdvancePaymentsField)
 
@@ -47,20 +46,20 @@ class CheckTaxesValidation(BaseCheck):
                 )
 
     def _collect_total_amount_vat(self, total_amount_field: TotalAmountField) -> None:
-        total_row_vat = self._validate_payment(total_amount_field.value.total)
+        total_row_vat = self._valid_vat(total_amount_field.value.total)
         if total_row_vat is not None:
             self.vat_amounts.append(total_row_vat)
 
-        taxes_vat = self._validate_payments_and_sum_vat(total_amount_field.value.taxes)
+        taxes_vat = self._sum_valid_vat(total_amount_field.value.taxes)
         if taxes_vat is not None:
             self.vat_amounts.append(taxes_vat)
 
     def _process_advance(self, advance_payment: AdvancePayment) -> Decimal | None:
         aggregate_vat: Decimal | None = None
         if advance_payment.total is not None:
-            aggregate_vat = self._validate_payment(advance_payment.total)
+            aggregate_vat = self._valid_vat(advance_payment.total)
 
-        lines_vat = self._validate_payments_and_sum_vat(advance_payment.payments)
+        lines_vat = self._sum_valid_vat(advance_payment.payments)
 
         if aggregate_vat is not None and lines_vat is not None:
             diff = abs(aggregate_vat - lines_vat)
@@ -88,12 +87,10 @@ class CheckTaxesValidation(BaseCheck):
         if advances_vat_total is not None:
             self.vat_amounts.append(advances_vat_total)
 
-    def _validate_payment(self, payment: Payment) -> Decimal | None:
-        amount = payment.amount.value if payment.amount is not None else None
-        vat_amount = (
-            payment.vat.amount.value if payment.vat.amount is not None else None
-        )
-        vat_rate = payment.vat.rate
+    def _valid_vat(self, payment: Payment) -> Decimal | None:
+        amount = payment.amount_value
+        vat_amount = payment.vat_amount_value
+        vat_rate = payment.vat_rate
 
         if amount is not None and amount <= 0:
             self.errors.append(AmountNotPositiveError(value=amount))
@@ -102,38 +99,14 @@ class CheckTaxesValidation(BaseCheck):
         if vat_rate is not None and vat_rate < 0:
             self.errors.append(VatRateNotPositiveError(value=vat_rate))
 
-        if (
-            amount is not None
-            and amount > 0
-            and vat_amount is not None
-            and vat_amount >= 0
-            and vat_rate is not None
-            and vat_rate >= 0
-        ):
-            if payment.include_vat:
-                expected = amount * vat_rate / (100 + vat_rate)
-            else:
-                expected = amount * vat_rate / 100
-            diff = abs(vat_amount - expected)
-            if diff > self.tolerance:
-                self.errors.append(
-                    VatAmountCalculationDiscrepancyError(
-                        expected_vat_amount=expected,
-                        vat_amount=vat_amount,
-                        difference=diff,
-                    )
-                )
-
         return vat_amount if (vat_amount is not None and vat_amount >= 0) else None
 
-    def _validate_payments_and_sum_vat(
-        self, payments: list[Payment] | None
-    ) -> Decimal | None:
+    def _sum_valid_vat(self, payments: list[Payment] | None) -> Decimal | None:
         if not payments:
             return None
         vat_sum: Decimal | None = None
         for payment in payments:
-            vat_amount = self._validate_payment(payment)
+            vat_amount = self._valid_vat(payment)
             if vat_amount is not None:
                 vat_sum = (vat_sum or Decimal("0.00")) + vat_amount
         return vat_sum
