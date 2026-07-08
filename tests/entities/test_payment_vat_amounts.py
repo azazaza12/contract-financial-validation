@@ -15,7 +15,7 @@ def _payment(value: str, *, rate: str, include_vat: bool) -> Payment:
 def test_zero_rate_is_valid_and_computes() -> None:
     payment = _payment("100.00", rate="0", include_vat=True)
 
-    assert payment.calculated_vat_amount == Decimal("0.00")
+    assert payment.expected_vat_amount == Decimal("0.00")
     assert payment.amount_excluding_vat == Decimal("100.00")
     assert payment.amount_including_vat == Decimal("100.00")
 
@@ -23,14 +23,14 @@ def test_zero_rate_is_valid_and_computes() -> None:
 def test_rate_minus_hundred_returns_none_instead_of_dividing_by_zero() -> None:
     payment = _payment("120.00", rate="-100", include_vat=True)
 
-    assert payment.calculated_vat_amount is None
+    assert payment.expected_vat_amount is None
     assert payment.amount_excluding_vat is None
 
 
 def test_rate_below_minus_hundred_returns_none() -> None:
     payment = _payment("120.00", rate="-150", include_vat=True)
 
-    assert payment.calculated_vat_amount is None
+    assert payment.expected_vat_amount is None
     assert payment.amount_excluding_vat is None
 
 

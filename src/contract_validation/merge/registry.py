@@ -8,6 +8,7 @@ from app.domain.entities.merge_types import ValueCandidate
 from app.domain.exceptions import UnknownHandlerTypeError
 
 from .handlers import (
+    combine_sources,
     is_scalar,
     merge_dataclass_default,
     merge_list_strict,
@@ -42,14 +43,7 @@ class MergeRegistry:
         path: str,
         errors: list[BaseMergeError],
     ) -> ValueCandidate | None:
-        all_sources = []
-        seen = set()
-        for c in candidates:
-            for s in c.sources:
-                s_id = s.document_id
-                if s_id not in seen:
-                    all_sources.append(s)
-                    seen.add(s_id)
+        all_sources = combine_sources(candidates)
 
         defined_candidates = [c for c in candidates if c.value is not None]
 
