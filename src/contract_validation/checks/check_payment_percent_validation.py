@@ -18,21 +18,6 @@ from .deps import CheckServices, Requires
 from .errors import InsufficientCheckDataError
 
 
-def _calculate_advance_line_amount(adv: AdvancePayment) -> Decimal | None:
-    if (
-        adv.total is not None
-        and adv.total.amount is not None
-        and adv.total.amount.value is not None
-    ):
-        return adv.total.amount.value
-    s: Decimal | None = None
-    for p in adv.payments:
-        if p.amount is None or p.amount.value is None:
-            continue
-        s = (s or Decimal("0.00")) + p.amount.value
-    return s
-
-
 class CheckPaymentPercentValidation(BaseCheck):
     advance_payments_field = Requires(AdvancePaymentsField)
     total_amount_field = Requires(TotalAmountField)
@@ -47,53 +32,61 @@ class CheckPaymentPercentValidation(BaseCheck):
         )
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
         errors: list[BaseCheckError] = []
-        payments = advance_payments_field.value
-        total_payment = total_amount_field.value.total
-        total_amount = (
-            total_payment.amount.value if total_payment.amount is not None else None
-        )
+        advance_payments = advance_payments_field.value
+        total_amount = total_amount_field.value.total.amount_value
 
         label = self.__class__.__name__
 
-        if not payments:
+        if not advance_payments:
             raise InsufficientCheckDataError(
                 label,
                 "no advance payment records to validate",
             )
 
-        if not any(advance_payment.percent is not None for advance_payment in payments):
+        if not any(
+            advance_payment.percent is not None for advance_payment in advance_payments
+        ):
             raise InsufficientCheckDataError(
                 label,
                 "no advance payment percents to validate",
             )
 
         total_percent = Decimal("0.00")
+        for advance_payment in advance_payments:
+            if advance_payment.percent is not None:
+                total_percent += advance_payment.percent
 
-        for advance_payment in payments:
-            if advance_payment.percent is None:
-                continue
-
-            total_percent += advance_payment.percent
-            line_amount = _calculate_advance_line_amount(advance_payment)
-            if total_amount is None or line_amount is None:
-                continue
-
-            expected_amount = total_amount * advance_payment.percent / Decimal("100.00")
-            diff_amount = abs(line_amount - expected_amount)
-            if diff_amount <= self.tolerance:
-                continue
-
-            errors.append(
-                PaymentAmountPercentDiscrepancyError(
-                    amount=line_amount,
-                    expected_amount=expected_amount,
-                    percent=advance_payment.percent,
-                    contract_total_amount=total_amount,
-                ),
-            )
+        if total_amount is not None:
+            for advance_payment in advance_payments:
+                errors.extend(
+                    self._validate_advance_amount(advance_payment, total_amount)
+                )
 
         if abs(total_percent - Decimal("100.00")) > self.tolerance:
             errors.append(
                 PaymentPercentSumDiscrepancyError(total_percent=total_percent)
             )
         return self._result(errors)
+
+    def _validate_advance_amount(
+        self,
+        advance_payment: AdvancePayment,
+        total_amount: Decimal,
+    ) -> list[BaseCheckError]:
+        if advance_payment.percent is None:
+            return []
+        resolved = advance_payment.resolved_total
+        line_amount = resolved.amount_value if resolved is not None else None
+        if line_amount is None:
+            return []
+        expected_amount = total_amount * advance_payment.percent / Decimal("100.00")
+        if abs(line_amount - expected_amount) > self.tolerance:
+            return [
+                PaymentAmountPercentDiscrepancyError(
+                    amount=line_amount,
+                    expected_amount=expected_amount,
+                    percent=advance_payment.percent,
+                    contract_total_amount=total_amount,
+                )
+            ]
+        return []

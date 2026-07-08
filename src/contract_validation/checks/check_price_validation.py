@@ -27,10 +27,6 @@ class CheckPriceValidation(BaseCheck):
         self.tolerance = tolerance
         self.errors: list[BaseCheckError] = []
 
-    @staticmethod
-    def _has_any_position_line_total(positions: list[SpecPosition]) -> bool:
-        return any(position.total_price is not None for position in positions)
-
     def _validate_position_lines_and_sum(
         self, spec_positions: list[SpecPosition]
     ) -> Decimal:
@@ -76,10 +72,7 @@ class CheckPriceValidation(BaseCheck):
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
 
         spec_positions = spec_positions_field.value
-        total_payment = total_amount_field.value.total
-        total_amount = (
-            total_payment.amount.value if total_payment.amount is not None else None
-        )
+        total_amount = total_amount_field.value.total.amount_value
         label = self.__class__.__name__
 
         if total_amount is None:
@@ -90,11 +83,11 @@ class CheckPriceValidation(BaseCheck):
 
         positions_total = self._validate_position_lines_and_sum(spec_positions)
 
-        has_position_totals = self._has_any_position_line_total(spec_positions)
-
         if total_amount <= 0:
             self.errors.append(AmountNotPositiveError(value=total_amount))
-        elif positions_total == 0 and not has_position_totals:
+        elif positions_total == 0 and not any(
+            position.total_price is not None for position in spec_positions
+        ):
             raise InsufficientCheckDataError(
                 label,
                 "cannot calculate positions total for comparison",
