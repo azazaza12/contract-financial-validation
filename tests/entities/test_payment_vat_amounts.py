@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import Amount, Basis, Payment, Vat
 
 
@@ -38,7 +39,7 @@ def test_is_equivalent_to_does_not_crash_on_rate_minus_hundred() -> None:
     payment = _payment("120.00", rate="-100", include_vat=True)
     other = _payment("120.00", rate="-100", include_vat=True)
 
-    assert payment.is_equivalent_to(other) is True
+    assert payment.is_equivalent_to(other, tolerance=AMOUNT_TOLERANCE) is True
 
 
 def test_stated_net_keeps_amount_excluding_and_adds_vat_for_including() -> None:

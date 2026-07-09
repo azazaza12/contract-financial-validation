@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum
 
-from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.merge.defaults import STRICT_REGISTRY
 from app.domain.merge.handlers import merge_payment
 from app.domain.ports.nomenclature_classifier import NomenclatureArticle
@@ -121,16 +120,12 @@ class Payment:
             return self.amount_excluding_vat
         return self.amount_value
 
-    @staticmethod
-    def _differ_beyond_tolerance(a: Decimal | None, b: Decimal | None) -> bool:
-        return a is not None and b is not None and abs(a - b) > AMOUNT_TOLERANCE
-
-    def is_equivalent_to(self, other: Payment) -> bool:
+    def is_equivalent_to(self, other: Payment, *, tolerance: Decimal) -> bool:
         for basis in (Basis.EXCLUDING_VAT, Basis.INCLUDING_VAT):
             self_amount = self.amount_in_basis(basis)
             other_amount = other.amount_in_basis(basis)
             if self_amount is not None and other_amount is not None:
-                return not self._differ_beyond_tolerance(self_amount, other_amount)
+                return abs(self_amount - other_amount) <= tolerance
         return False
 
 
