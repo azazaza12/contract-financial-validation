@@ -259,7 +259,10 @@ def merge_payment(
         return merge_dataclass_default(candidates, path, errors, registry)
 
     payments = [c.value for c in candidates]
-    if not all(payments[0].is_equivalent_to(other) for other in payments[1:]):
+    if not all(
+        payments[0].is_equivalent_to(other, tolerance=AMOUNT_TOLERANCE)
+        for other in payments[1:]
+    ):
         return merge_dataclass_default(candidates, path, errors, registry)
 
     rates = {p.vat.rate for p in payments if p.vat.rate is not None}

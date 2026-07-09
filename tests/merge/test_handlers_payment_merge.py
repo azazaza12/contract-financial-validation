@@ -1,6 +1,7 @@
 from decimal import Decimal
 from uuid import uuid4
 
+from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import Source, ValueCandidate
 from app.domain.entities.errors import ValuesDiscrepancyError
 from app.domain.entities.single_supplier_fields import Amount, Payment, Vat
@@ -36,19 +37,19 @@ def _candidate(payment: Payment) -> ValueCandidate:
 def test_is_equivalent_to_true_for_same_net() -> None:
     p1 = _payment(amount=Decimal(100), include_vat=False)
     p2 = _payment(amount=Decimal(100), include_vat=False)
-    assert p1.is_equivalent_to(p2) is True
+    assert p1.is_equivalent_to(p2, tolerance=AMOUNT_TOLERANCE) is True
 
 
 def test_is_equivalent_to_false_for_different_net() -> None:
     p1 = _payment(amount=Decimal(100), include_vat=False)
     p2 = _payment(amount=Decimal(200), include_vat=False)
-    assert p1.is_equivalent_to(p2) is False
+    assert p1.is_equivalent_to(p2, tolerance=AMOUNT_TOLERANCE) is False
 
 
 def test_is_equivalent_to_false_when_net_unavailable() -> None:
     p1 = _payment(amount=Decimal(100), include_vat=None)
     p2 = _payment(amount=Decimal(100), include_vat=None)
-    assert p1.is_equivalent_to(p2) is False
+    assert p1.is_equivalent_to(p2, tolerance=AMOUNT_TOLERANCE) is False
 
 
 def test_merge_payment_assembles_most_complete_when_equivalent() -> None:
@@ -141,7 +142,10 @@ def test_is_equivalent_to_true_via_gross_when_net_unavailable() -> None:
     net_stated = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
     gross_without_rate = _payment(amount=Decimal(120), include_vat=True, rate=None)
 
-    assert net_stated.is_equivalent_to(gross_without_rate) is True
+    assert (
+        net_stated.is_equivalent_to(gross_without_rate, tolerance=AMOUNT_TOLERANCE)
+        is True
+    )
 
 
 def test_merge_payment_assembles_via_gross_when_net_unavailable() -> None:
