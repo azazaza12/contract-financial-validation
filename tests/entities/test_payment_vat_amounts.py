@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from app.domain.entities import Amount, Payment, Vat
+from app.domain.entities import Amount, Basis, Payment, Vat
 
 
 def _payment(value: str, *, rate: str, include_vat: bool) -> Payment:
@@ -39,3 +39,33 @@ def test_is_equivalent_to_does_not_crash_on_rate_minus_hundred() -> None:
     other = _payment("120.00", rate="-100", include_vat=True)
 
     assert payment.is_equivalent_to(other) is False
+
+
+def test_stated_net_keeps_amount_excluding_and_adds_vat_for_including() -> None:
+    payment = _payment("100.00", rate="20", include_vat=False)
+
+    assert payment.amount_excluding_vat == Decimal("100.00")
+    assert payment.amount_including_vat == Decimal("120.00")
+
+
+def test_stated_gross_keeps_amount_including_and_strips_vat_for_excluding() -> None:
+    payment = _payment("120.00", rate="20", include_vat=True)
+
+    assert payment.amount_including_vat == Decimal("120.00")
+    assert payment.amount_excluding_vat == Decimal("100.00")
+
+
+def test_amount_in_basis_covers_all_three_bases_for_net_payment() -> None:
+    payment = _payment("100.00", rate="20", include_vat=False)
+
+    assert payment.amount_in_basis(Basis.INCLUDING_VAT) == Decimal("120.00")
+    assert payment.amount_in_basis(Basis.EXCLUDING_VAT) == Decimal("100.00")
+    assert payment.amount_in_basis(Basis.RAW) == Decimal("100.00")
+
+
+def test_amount_in_basis_covers_all_three_bases_for_gross_payment() -> None:
+    payment = _payment("120.00", rate="20", include_vat=True)
+
+    assert payment.amount_in_basis(Basis.INCLUDING_VAT) == Decimal("120.00")
+    assert payment.amount_in_basis(Basis.EXCLUDING_VAT) == Decimal("100.00")
+    assert payment.amount_in_basis(Basis.RAW) == Decimal("120.00")

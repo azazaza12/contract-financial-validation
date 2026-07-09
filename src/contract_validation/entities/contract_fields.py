@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
 from decimal import Decimal
+from enum import StrEnum
 
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.merge.defaults import STRICT_REGISTRY
@@ -8,6 +9,12 @@ from app.domain.merge.handlers import merge_payment
 from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
 from .field import BaseField
+
+
+class Basis(StrEnum):
+    INCLUDING_VAT = "including_vat"
+    EXCLUDING_VAT = "excluding_vat"
+    RAW = "raw"
 
 
 class DocumentObjectField(BaseField[str]):
@@ -107,8 +114,12 @@ class Payment:
             return None
         return stated * (Decimal(100) + self.vat.rate) / Decimal(100)
 
-    def amount_in_basis(self, *, use_gross: bool) -> Decimal | None:
-        return self.amount_including_vat if use_gross else self.amount_value
+    def amount_in_basis(self, basis: Basis) -> Decimal | None:
+        if basis is Basis.INCLUDING_VAT:
+            return self.amount_including_vat
+        if basis is Basis.EXCLUDING_VAT:
+            return self.amount_excluding_vat
+        return self.amount_value
 
     @staticmethod
     def _differ_beyond_tolerance(a: Decimal | None, b: Decimal | None) -> bool:
@@ -145,10 +156,10 @@ class PaymentList:
             total = (total or Decimal("0.00")) + value
         return total
 
-    def amount_in_basis(self, *, use_gross: bool) -> Decimal | None:
+    def amount_in_basis(self, basis: Basis) -> Decimal | None:
         total: Decimal | None = None
         for payment in self._payments:
-            value = payment.amount_in_basis(use_gross=use_gross)
+            value = payment.amount_in_basis(basis)
             if value is None:
                 continue
             total = (total or Decimal("0.00")) + value
@@ -264,12 +275,12 @@ class AdvancePayment:
         fallback = self.payment_lines.combined
         return fallback if fallback is not None else base
 
-    def amount_in_basis(self, *, use_gross: bool) -> Decimal | None:
+    def amount_in_basis(self, basis: Basis) -> Decimal | None:
         if self.total is not None:
-            total = self.total.amount_in_basis(use_gross=use_gross)
+            total = self.total.amount_in_basis(basis)
             if total is not None:
                 return total
-        return self.payment_lines.amount_in_basis(use_gross=use_gross)
+        return self.payment_lines.amount_in_basis(basis)
 
 
 @dataclass(kw_only=True, frozen=True)

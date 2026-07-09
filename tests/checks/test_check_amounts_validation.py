@@ -402,3 +402,26 @@ async def test_total_amounts_fails_when_grossed_amounts_differ() -> None:
 
     assert result.status == CheckStatus.failed
     assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
+
+
+async def test_total_amounts_uses_excluding_vat_when_gross_unavailable() -> None:
+    check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
+    check.total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=_make_vat_payment("120.00", rate="20.00", include_vat=True),
+            taxes=[
+                Payment(
+                    amount=Amount(value=Decimal("100.00"), transcription=None),
+                    vat=Vat(amount=None, rate=None),
+                    include_vat=False,
+                )
+            ],
+        ),
+        sources=[],
+    )
+    check.advance_payments_field = None
+
+    result = await check.execute(STUB_CHECK_SERVICES)
+
+    assert result.status == CheckStatus.success
+    assert result.errors == []

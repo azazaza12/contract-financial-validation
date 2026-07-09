@@ -9,12 +9,13 @@ from app.domain.entities.errors.checks import (
 from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
+    Basis,
     Payment,
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
 
-from .amount_basis import use_gross_basis
+from .amount_basis import select_basis
 from .base import BaseCheck
 from .deps import CheckServices, Requires
 from .errors import InsufficientCheckDataError
@@ -29,7 +30,7 @@ class CheckPaymentPercentValidation(BaseCheck):
 
     def _select_basis(
         self, total_payment: Payment, advance_payments: list[AdvancePayment]
-    ) -> bool:
+    ) -> Basis:
         group = [total_payment]
         for advance_payment in advance_payments:
             if (
@@ -39,19 +40,19 @@ class CheckPaymentPercentValidation(BaseCheck):
                 group.append(advance_payment.total)
             else:
                 group.extend(advance_payment.payments)
-        return use_gross_basis(group)
+        return select_basis(group)
 
     def _validate_advance_amount(
         self,
         advance_payment: AdvancePayment,
         total_payment: Payment,
         *,
-        use_gross: bool,
+        basis: Basis,
     ) -> BaseCheckError | None:
         if advance_payment.percent is None:
             return None
-        total_amount = total_payment.amount_in_basis(use_gross=use_gross)
-        line_amount = advance_payment.amount_in_basis(use_gross=use_gross)
+        total_amount = total_payment.amount_in_basis(basis)
+        line_amount = advance_payment.amount_in_basis(basis)
         if total_amount is None or line_amount is None:
             return None
         expected_amount = total_amount * advance_payment.percent / Decimal("100.00")
@@ -88,12 +89,12 @@ class CheckPaymentPercentValidation(BaseCheck):
                 "no advance payment percents to validate",
             )
 
-        use_gross = self._select_basis(total_payment, advance_payments)
+        basis = self._select_basis(total_payment, advance_payments)
 
         errors: list[BaseCheckError] = []
         for advance_payment in advance_payments:
             error = self._validate_advance_amount(
-                advance_payment, total_payment, use_gross=use_gross
+                advance_payment, total_payment, basis=basis
             )
             if error is not None:
                 errors.append(error)
