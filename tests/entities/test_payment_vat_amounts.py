@@ -35,11 +35,11 @@ def test_rate_below_minus_hundred_returns_none() -> None:
     assert payment.amount_excluding_vat is None
 
 
-def test_is_equivalent_to_does_not_crash_on_rate_minus_hundred() -> None:
+def test_same_footing_rate_minus_hundred_does_not_merge_economically() -> None:
     payment = _payment("120.00", rate="-100", include_vat=True)
     other = _payment("120.00", rate="-100", include_vat=True)
 
-    assert payment.is_equivalent_to(other, tolerance=AMOUNT_TOLERANCE) is True
+    assert payment.should_merge_economically(other, tolerance=AMOUNT_TOLERANCE) is False
 
 
 def test_stated_net_keeps_amount_excluding_and_adds_vat_for_including() -> None:

@@ -12,10 +12,10 @@ from app.domain.entities.single_supplier_fields import (
     Basis,
     Payment,
     TotalAmountField,
+    select_basis,
 )
 from app.domain.entities.validation import CheckExecutionResult
 
-from .amount_basis import select_basis
 from .base import BaseCheck
 from .deps import CheckServices, Requires
 from .errors import InsufficientCheckDataError

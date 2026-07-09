@@ -34,25 +34,41 @@ def _candidate(payment: Payment) -> ValueCandidate:
     return ValueCandidate(value=payment, sources=[Source(document_id=uuid4())])
 
 
-def test_is_equivalent_to_true_for_same_net() -> None:
+def test_same_footing_does_not_merge_economically() -> None:
     p1 = _payment(amount=Decimal(100), include_vat=False)
     p2 = _payment(amount=Decimal(100), include_vat=False)
-    assert p1.is_equivalent_to(p2, tolerance=AMOUNT_TOLERANCE) is True
+    assert p1.should_merge_economically(p2, tolerance=AMOUNT_TOLERANCE) is False
 
 
-def test_is_equivalent_to_false_for_different_net() -> None:
-    p1 = _payment(amount=Decimal(100), include_vat=False)
-    p2 = _payment(amount=Decimal(200), include_vat=False)
-    assert p1.is_equivalent_to(p2, tolerance=AMOUNT_TOLERANCE) is False
-
-
-def test_is_equivalent_to_false_when_net_unavailable() -> None:
+def test_unknown_footing_does_not_merge_economically() -> None:
     p1 = _payment(amount=Decimal(100), include_vat=None)
     p2 = _payment(amount=Decimal(100), include_vat=None)
-    assert p1.is_equivalent_to(p2, tolerance=AMOUNT_TOLERANCE) is False
+    assert p1.should_merge_economically(p2, tolerance=AMOUNT_TOLERANCE) is False
 
 
-def test_merge_payment_assembles_most_complete_when_equivalent() -> None:
+def test_merges_economically_via_gross_when_net_unavailable() -> None:
+    net_stated = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
+    gross_without_rate = _payment(amount=Decimal(120), include_vat=True, rate=None)
+
+    assert (
+        net_stated.should_merge_economically(
+            gross_without_rate, tolerance=AMOUNT_TOLERANCE
+        )
+        is True
+    )
+
+
+def test_does_not_merge_economically_when_converted_amounts_differ() -> None:
+    net_stated = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
+    gross_stated = _payment(amount=Decimal(200), include_vat=True, rate=Decimal(20))
+
+    assert (
+        net_stated.should_merge_economically(gross_stated, tolerance=AMOUNT_TOLERANCE)
+        is False
+    )
+
+
+def test_merge_payment_fills_missing_rate_for_same_footing() -> None:
     errors: list = []
     complete = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
     partial = _payment(amount=Decimal(100), include_vat=False, rate=None)
@@ -65,87 +81,6 @@ def test_merge_payment_assembles_most_complete_when_equivalent() -> None:
     assert result is not None
     assert result.value.amount_value == Decimal(100)
     assert result.value.vat.rate == Decimal(20)
-
-
-def test_merge_payment_rate_conflict_reports_targeted_error_and_returns_none() -> None:
-    errors: list = []
-    p1 = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
-    p2 = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(10))
-
-    result = merge_payment(
-        [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
-    )
-
-    assert result is None
-    assert len(errors) == 1
-    assert isinstance(errors[0], ValuesDiscrepancyError)
-    assert errors[0].path == "total.vat.rate"
-    assert {c.value for c in errors[0].candidates} == {Decimal(20), Decimal(10)}
-
-
-def test_merge_payment_vat_amount_conflict_reports_error_and_returns_none() -> None:
-    errors: list = []
-    p1 = _payment(
-        amount=Decimal(100),
-        include_vat=False,
-        rate=Decimal(20),
-        vat_amount=Decimal(20),
-    )
-    p2 = _payment(
-        amount=Decimal(100),
-        include_vat=False,
-        rate=Decimal(20),
-        vat_amount=Decimal(18),
-    )
-
-    result = merge_payment(
-        [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
-    )
-
-    assert result is None
-    assert len(errors) == 1
-    assert isinstance(errors[0], ValuesDiscrepancyError)
-    assert errors[0].path == "total.vat.amount"
-
-
-def test_merge_payment_falls_back_to_strict_when_net_differs() -> None:
-    errors: list = []
-    p1 = _payment(amount=Decimal(100), include_vat=False)
-    p2 = _payment(amount=Decimal(200), include_vat=False)
-
-    result = merge_payment(
-        [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
-    )
-
-    assert any(
-        isinstance(e, ValuesDiscrepancyError) and e.path == "total.amount.value"
-        for e in errors
-    )
-    assert result is not None
-
-
-def test_merge_payment_falls_back_to_strict_when_net_unavailable() -> None:
-    errors: list = []
-    p1 = _payment(amount=Decimal(100), include_vat=None)
-    p2 = _payment(amount=Decimal(100), include_vat=None)
-
-    result = merge_payment(
-        [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
-    )
-
-    assert errors == []
-    assert result is not None
-    assert result.value.amount_value == Decimal(100)
-
-
-def test_is_equivalent_to_true_via_gross_when_net_unavailable() -> None:
-    net_stated = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
-    gross_without_rate = _payment(amount=Decimal(120), include_vat=True, rate=None)
-
-    assert (
-        net_stated.is_equivalent_to(gross_without_rate, tolerance=AMOUNT_TOLERANCE)
-        is True
-    )
 
 
 def test_merge_payment_assembles_via_gross_when_net_unavailable() -> None:
@@ -164,8 +99,89 @@ def test_merge_payment_assembles_via_gross_when_net_unavailable() -> None:
     assert result is not None
 
 
-def test_is_equivalent_to_compares_stated_amounts_for_same_gross_footing() -> None:
+def test_merge_payment_same_footing_rate_conflict_reports_field_error() -> None:
+    errors: list = []
+    p1 = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
+    p2 = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(10))
+
+    result = merge_payment(
+        [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
+    )
+
+    assert result is not None
+    assert any(
+        isinstance(e, ValuesDiscrepancyError) and e.path == "total.vat.rate"
+        for e in errors
+    )
+
+
+def test_merge_payment_same_footing_vat_amount_conflict_reports_field_error() -> None:
+    errors: list = []
+    p1 = _payment(
+        amount=Decimal(100),
+        include_vat=False,
+        rate=Decimal(20),
+        vat_amount=Decimal(20),
+    )
+    p2 = _payment(
+        amount=Decimal(100),
+        include_vat=False,
+        rate=Decimal(20),
+        vat_amount=Decimal(18),
+    )
+
+    result = merge_payment(
+        [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
+    )
+
+    assert result is not None
+    assert any(
+        isinstance(e, ValuesDiscrepancyError) and e.path == "total.vat.amount.value"
+        for e in errors
+    )
+
+
+def test_merge_payment_flags_same_gross_footing_beyond_tolerance() -> None:
+    errors: list = []
     p1 = _payment(amount=Decimal("120.00"), include_vat=True, rate=Decimal(20))
     p2 = _payment(amount=Decimal("121.08"), include_vat=True, rate=Decimal(20))
 
-    assert p1.is_equivalent_to(p2, tolerance=AMOUNT_TOLERANCE) is False
+    result = merge_payment(
+        [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
+    )
+
+    assert any(
+        isinstance(e, ValuesDiscrepancyError) and e.path == "total.amount.value"
+        for e in errors
+    )
+    assert result is not None
+
+
+def test_merge_payment_falls_back_to_strict_when_amounts_differ() -> None:
+    errors: list = []
+    p1 = _payment(amount=Decimal(100), include_vat=False)
+    p2 = _payment(amount=Decimal(200), include_vat=False)
+
+    result = merge_payment(
+        [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
+    )
+
+    assert any(
+        isinstance(e, ValuesDiscrepancyError) and e.path == "total.amount.value"
+        for e in errors
+    )
+    assert result is not None
+
+
+def test_merge_payment_strict_merges_equal_amounts_when_footing_unknown() -> None:
+    errors: list = []
+    p1 = _payment(amount=Decimal(100), include_vat=None)
+    p2 = _payment(amount=Decimal(100), include_vat=None)
+
+    result = merge_payment(
+        [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
+    )
+
+    assert errors == []
+    assert result is not None
+    assert result.value.amount_value == Decimal(100)
