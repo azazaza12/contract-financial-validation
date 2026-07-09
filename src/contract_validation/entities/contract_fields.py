@@ -126,11 +126,12 @@ class Payment:
         return a is not None and b is not None and abs(a - b) > AMOUNT_TOLERANCE
 
     def is_equivalent_to(self, other: Payment) -> bool:
-        self_net = self.amount_excluding_vat
-        other_net = other.amount_excluding_vat
-        if self_net is None or other_net is None:
-            return False
-        return not self._differ_beyond_tolerance(self_net, other_net)
+        for basis in (Basis.EXCLUDING_VAT, Basis.INCLUDING_VAT):
+            self_amount = self.amount_in_basis(basis)
+            other_amount = other.amount_in_basis(basis)
+            if self_amount is not None and other_amount is not None:
+                return not self._differ_beyond_tolerance(self_amount, other_amount)
+        return False
 
 
 class PaymentList:

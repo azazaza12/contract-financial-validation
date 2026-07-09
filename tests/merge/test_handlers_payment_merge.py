@@ -135,3 +135,26 @@ def test_merge_payment_falls_back_to_strict_when_net_unavailable() -> None:
     assert errors == []
     assert result is not None
     assert result.value.amount_value == Decimal(100)
+
+
+def test_is_equivalent_to_true_via_gross_when_net_unavailable() -> None:
+    net_stated = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
+    gross_without_rate = _payment(amount=Decimal(120), include_vat=True, rate=None)
+
+    assert net_stated.is_equivalent_to(gross_without_rate) is True
+
+
+def test_merge_payment_assembles_via_gross_when_net_unavailable() -> None:
+    errors: list = []
+    net_stated = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
+    gross_without_rate = _payment(amount=Decimal(120), include_vat=True, rate=None)
+
+    result = merge_payment(
+        [_candidate(net_stated), _candidate(gross_without_rate)],
+        "total",
+        errors,
+        STRICT_REGISTRY,
+    )
+
+    assert errors == []
+    assert result is not None
