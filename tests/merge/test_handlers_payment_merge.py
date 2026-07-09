@@ -162,3 +162,10 @@ def test_merge_payment_assembles_via_gross_when_net_unavailable() -> None:
 
     assert errors == []
     assert result is not None
+
+
+def test_is_equivalent_to_compares_stated_amounts_for_same_gross_footing() -> None:
+    p1 = _payment(amount=Decimal("120.00"), include_vat=True, rate=Decimal(20))
+    p2 = _payment(amount=Decimal("121.08"), include_vat=True, rate=Decimal(20))
+
+    assert p1.is_equivalent_to(p2, tolerance=AMOUNT_TOLERANCE) is False

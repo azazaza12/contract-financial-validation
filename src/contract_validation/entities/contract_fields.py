@@ -121,7 +121,15 @@ class Payment:
         return self.amount_value
 
     def is_equivalent_to(self, other: Payment, *, tolerance: Decimal) -> bool:
-        for basis in (Basis.EXCLUDING_VAT, Basis.INCLUDING_VAT):
+        same_known_footing = (
+            self.include_vat is not None and self.include_vat == other.include_vat
+        )
+        order = (
+            (Basis.RAW,)
+            if same_known_footing
+            else (Basis.EXCLUDING_VAT, Basis.INCLUDING_VAT)
+        )
+        for basis in order:
             self_amount = self.amount_in_basis(basis)
             other_amount = other.amount_in_basis(basis)
             if self_amount is not None and other_amount is not None:
