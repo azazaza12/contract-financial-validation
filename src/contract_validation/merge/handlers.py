@@ -249,6 +249,24 @@ def _assemble_most_complete_payment(payments: list[Payment]) -> Payment:
     return replace(base, vat=replace(base.vat, rate=rate, amount=vat_amount))
 
 
+def _with_transcription_of(payment: Payment, reference: Payment) -> Payment:
+    amount = payment.amount
+    if amount is not None:
+        transcription = (
+            reference.amount.transcription if reference.amount is not None else None
+        )
+        amount = replace(amount, transcription=transcription)
+    vat_amount = payment.vat.amount
+    if vat_amount is not None:
+        vat_transcription = (
+            reference.vat.amount.transcription
+            if reference.vat.amount is not None
+            else None
+        )
+        vat_amount = replace(vat_amount, transcription=vat_transcription)
+    return replace(payment, amount=amount, vat=replace(payment.vat, amount=vat_amount))
+
+
 def merge_payment(
     candidates: list[ValueCandidate],
     path: str,
@@ -260,9 +278,17 @@ def merge_payment(
 
     payments = [c.value for c in candidates]
     if not all(
-        payments[0].is_equivalent_to(other, tolerance=AMOUNT_TOLERANCE)
+        payments[0].should_merge_economically(other, tolerance=AMOUNT_TOLERANCE)
         for other in payments[1:]
     ):
+        if len({payment.include_vat for payment in payments}) == 1:
+            candidates = [
+                ValueCandidate(
+                    value=_with_transcription_of(candidate.value, candidates[0].value),
+                    sources=candidate.sources,
+                )
+                for candidate in candidates
+            ]
         return merge_dataclass_default(candidates, path, errors, registry)
 
     rates = {p.vat.rate for p in payments if p.vat.rate is not None}

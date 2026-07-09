@@ -120,21 +120,32 @@ class Payment:
             return self.amount_excluding_vat
         return self.amount_value
 
-    def is_equivalent_to(self, other: Payment, *, tolerance: Decimal) -> bool:
-        same_known_footing = (
-            self.include_vat is not None and self.include_vat == other.include_vat
+    def should_merge_economically(
+        self, other: Payment, *, tolerance: Decimal
+    ) -> bool:
+        basis = select_basis([self, other])
+        if basis is Basis.RAW:
+            return False
+        self_amount = self.amount_in_basis(basis)
+        other_amount = other.amount_in_basis(basis)
+        return (
+            self_amount is not None
+            and other_amount is not None
+            and abs(self_amount - other_amount) <= tolerance
         )
-        order = (
-            (Basis.RAW,)
-            if same_known_footing
-            else (Basis.EXCLUDING_VAT, Basis.INCLUDING_VAT)
-        )
-        for basis in order:
-            self_amount = self.amount_in_basis(basis)
-            other_amount = other.amount_in_basis(basis)
-            if self_amount is not None and other_amount is not None:
-                return abs(self_amount - other_amount) <= tolerance
-        return False
+
+
+def select_basis(payments: list[Payment]) -> Basis:
+    numbered = [p for p in payments if p.amount_value is not None]
+    if not numbered:
+        return Basis.RAW
+    if len({p.include_vat for p in numbered}) == 1:
+        return Basis.RAW
+    if all(p.amount_including_vat is not None for p in numbered):
+        return Basis.INCLUDING_VAT
+    if all(p.amount_excluding_vat is not None for p in numbered):
+        return Basis.EXCLUDING_VAT
+    return Basis.RAW
 
 
 class PaymentList:
