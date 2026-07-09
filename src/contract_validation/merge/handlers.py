@@ -240,9 +240,9 @@ def _assemble_most_complete_payment(payments: list[Payment]) -> Payment:
         rate = next((p.vat.rate for p in payments if p.vat.rate is not None), None)
 
     vat_amount = base.vat.amount
-    if base.vat.stated_amount is None:
+    if base.vat.amount_value is None:
         vat_amount = next(
-            (p.vat.amount for p in payments if p.vat.stated_amount is not None),
+            (p.vat.amount for p in payments if p.vat.amount_value is not None),
             base.vat.amount,
         )
 
@@ -266,7 +266,7 @@ def merge_payment(
     rate_conflict = len(rates) > 1
 
     vat_amounts = [
-        p.vat.stated_amount for p in payments if p.vat.stated_amount is not None
+        p.vat.amount_value for p in payments if p.vat.amount_value is not None
     ]
     amount_conflict = any(
         abs(a - vat_amounts[0]) > AMOUNT_TOLERANCE for a in vat_amounts[1:]
