@@ -268,7 +268,7 @@ def merge_payment(
     vat_amounts = [
         p.vat.amount_value for p in payments if p.vat.amount_value is not None
     ]
-    amount_conflict = any(
+    vat_amount_conflict = any(
         abs(a - vat_amounts[0]) > AMOUNT_TOLERANCE for a in vat_amounts[1:]
     )
 
@@ -282,7 +282,7 @@ def merge_payment(
                 path=f"{path}.vat.rate",
             )
         )
-    if amount_conflict:
+    if vat_amount_conflict:
         errors.append(
             ValuesDiscrepancyError(
                 candidates=[
@@ -292,7 +292,7 @@ def merge_payment(
                 path=f"{path}.vat.amount",
             )
         )
-    if rate_conflict or amount_conflict:
+    if rate_conflict or vat_amount_conflict:
         return None
 
     merged = _assemble_most_complete_payment(payments)
