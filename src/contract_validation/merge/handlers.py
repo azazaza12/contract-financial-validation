@@ -11,7 +11,7 @@ from app.domain.entities.merge_types import Source, SourceHeader, ValueCandidate
 
 
 if TYPE_CHECKING:
-    from app.domain.entities.single_supplier_fields import Payment
+    from app.domain.entities.single_supplier_fields import Amount, Payment
 
     from .registry import MergeRegistry
 
@@ -249,20 +249,32 @@ def _assemble_most_complete_payment(payments: list[Payment]) -> Payment:
     return replace(base, vat=replace(base.vat, rate=rate, amount=vat_amount))
 
 
-def _with_transcription_of(payment: Payment, reference: Payment) -> Payment:
+def _reference_transcription(amounts: list[Amount | None]) -> str | None:
+    value_bearer = next(
+        (
+            amount
+            for amount in amounts
+            if amount is not None and amount.value is not None
+        ),
+        None,
+    )
+    if value_bearer is not None:
+        return value_bearer.transcription
+    present = next((amount for amount in amounts if amount is not None), None)
+    return present.transcription if present is not None else None
+
+
+def _with_reference_transcriptions(
+    payment: Payment,
+    *,
+    amount_transcription: str | None,
+    vat_transcription: str | None,
+) -> Payment:
     amount = payment.amount
     if amount is not None:
-        transcription = (
-            reference.amount.transcription if reference.amount is not None else None
-        )
-        amount = replace(amount, transcription=transcription)
+        amount = replace(amount, transcription=amount_transcription)
     vat_amount = payment.vat.amount
     if vat_amount is not None:
-        vat_transcription = (
-            reference.vat.amount.transcription
-            if reference.vat.amount is not None
-            else None
-        )
         vat_amount = replace(vat_amount, transcription=vat_transcription)
     return replace(payment, amount=amount, vat=replace(payment.vat, amount=vat_amount))
 
@@ -282,9 +294,19 @@ def merge_payment(
         for other in payments[1:]
     ):
         if len({payment.include_vat for payment in payments}) == 1:
+            amount_transcription = _reference_transcription(
+                [payment.amount for payment in payments]
+            )
+            vat_transcription = _reference_transcription(
+                [payment.vat.amount for payment in payments]
+            )
             candidates = [
                 ValueCandidate(
-                    value=_with_transcription_of(candidate.value, candidates[0].value),
+                    value=_with_reference_transcriptions(
+                        candidate.value,
+                        amount_transcription=amount_transcription,
+                        vat_transcription=vat_transcription,
+                    ),
                     sources=candidate.sources,
                 )
                 for candidate in candidates
