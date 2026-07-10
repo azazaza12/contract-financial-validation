@@ -120,9 +120,7 @@ class Payment:
             return self.amount_excluding_vat
         return self.amount_value
 
-    def should_merge_economically(
-        self, other: Payment, *, tolerance: Decimal
-    ) -> bool:
+    def should_merge_economically(self, other: Payment, *, tolerance: Decimal) -> bool:
         basis = select_basis([self, other])
         if basis is Basis.RAW:
             return False
