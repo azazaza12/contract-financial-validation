@@ -185,3 +185,55 @@ def test_merge_payment_strict_merges_equal_amounts_when_footing_unknown() -> Non
     assert errors == []
     assert result is not None
     assert result.value.amount_value == Decimal(100)
+
+
+def test_merge_payment_pairs_transcription_with_value_bearing_payment() -> None:
+    errors: list = []
+    words_only = Payment(
+        amount=Amount(value=None, transcription="сто рублей"),
+        vat=Vat(amount=None, rate=None),
+        include_vat=False,
+    )
+    number_only = Payment(
+        amount=Amount(value=Decimal(100), transcription=None),
+        vat=Vat(amount=None, rate=None),
+        include_vat=False,
+    )
+
+    result = merge_payment(
+        [_candidate(words_only), _candidate(number_only)],
+        "total",
+        errors,
+        STRICT_REGISTRY,
+    )
+
+    assert errors == []
+    assert result is not None
+    assert result.value.amount.value == Decimal(100)
+    assert result.value.amount.transcription is None
+
+
+def test_merge_payment_keeps_value_bearers_own_transcription() -> None:
+    errors: list = []
+    stray_words = Payment(
+        amount=Amount(value=None, transcription="сто"),
+        vat=Vat(amount=None, rate=None),
+        include_vat=False,
+    )
+    full = Payment(
+        amount=Amount(value=Decimal(100), transcription="сто рублей"),
+        vat=Vat(amount=None, rate=None),
+        include_vat=False,
+    )
+
+    result = merge_payment(
+        [_candidate(stray_words), _candidate(full)],
+        "total",
+        errors,
+        STRICT_REGISTRY,
+    )
+
+    assert errors == []
+    assert result is not None
+    assert result.value.amount.value == Decimal(100)
+    assert result.value.amount.transcription == "сто рублей"
