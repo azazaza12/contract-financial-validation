@@ -15,12 +15,18 @@ class EvaluateResult:
     error: str | None = None
 
 
+@dataclass(frozen=True)
+class NumberedPosition:
+    number: int
+    name: str
+
+
 class IPositionsCompliancer(ABC):
     @abstractmethod
     async def evaluate(
         self,
         document_object: str,
-        position_names: list[str],
+        positions: list[NumberedPosition],
     ) -> EvaluateResult: ...
 
 

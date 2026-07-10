@@ -16,7 +16,7 @@ from app.domain.entities import (
 from app.domain.entities.single_supplier import SingleSupplierDocument
 from app.domain.pipeline import TaskStatus
 from app.domain.pipeline.task import CheckTask
-from app.domain.ports.checker import EvaluateResult
+from app.domain.ports.checker import EvaluateResult, NumberedPosition
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
@@ -111,7 +111,7 @@ async def test_skips_when_position_list_is_empty() -> None:
     contract_repo.save_errors.assert_not_awaited()
 
 
-async def test_passes_stripped_position_names_to_compliancer() -> None:
+async def test_passes_stripped_numbered_positions_to_compliancer() -> None:
     position_service = AsyncMock()
     position_service.evaluate.return_value = EvaluateResult(
         success=True,
@@ -139,6 +139,13 @@ async def test_passes_stripped_position_names_to_compliancer() -> None:
                 total_price=None,
                 unit_of_measurement=None,
             ),
+            SpecPosition(
+                name="Позиция 3",
+                quantity=None,
+                unit_price=None,
+                total_price=None,
+                unit_of_measurement=None,
+            ),
         ],
         sources=[],
     )
@@ -147,7 +154,10 @@ async def test_passes_stripped_position_names_to_compliancer() -> None:
 
     position_service.evaluate.assert_awaited_once_with(
         "Поставка оборудования",
-        ["Позиция 1"],
+        [
+            NumberedPosition(number=1, name="Позиция 1"),
+            NumberedPosition(number=3, name="Позиция 3"),
+        ],
     )
 
 
