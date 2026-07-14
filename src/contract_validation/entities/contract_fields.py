@@ -120,17 +120,20 @@ class Payment:
             return self.amount_excluding_vat
         return self.amount_value
 
-    def should_merge_economically(self, other: Payment, *, tolerance: Decimal) -> bool:
-        basis = select_basis([self, other])
+    def should_merge_economically(
+        self, others: list[Payment], *, tolerance: Decimal
+    ) -> bool:
+        group = [self, *others]
+        basis = select_basis(group)
         if basis is Basis.RAW:
             return False
-        self_amount = self.amount_in_basis(basis)
-        other_amount = other.amount_in_basis(basis)
-        return (
-            self_amount is not None
-            and other_amount is not None
-            and abs(self_amount - other_amount) <= tolerance
-        )
+        amounts: list[Decimal] = []
+        for payment in group:
+            amount = payment.amount_in_basis(basis)
+            if amount is None:
+                return False
+            amounts.append(amount)
+        return all(abs(amount - amounts[0]) <= tolerance for amount in amounts[1:])
 
 
 def select_basis(payments: list[Payment]) -> Basis:

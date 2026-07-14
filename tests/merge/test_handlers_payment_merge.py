@@ -37,13 +37,13 @@ def _candidate(payment: Payment) -> ValueCandidate:
 def test_same_footing_does_not_merge_economically() -> None:
     p1 = _payment(amount=Decimal(100), include_vat=False)
     p2 = _payment(amount=Decimal(100), include_vat=False)
-    assert p1.should_merge_economically(p2, tolerance=AMOUNT_TOLERANCE) is False
+    assert p1.should_merge_economically([p2], tolerance=AMOUNT_TOLERANCE) is False
 
 
 def test_unknown_footing_does_not_merge_economically() -> None:
     p1 = _payment(amount=Decimal(100), include_vat=None)
     p2 = _payment(amount=Decimal(100), include_vat=None)
-    assert p1.should_merge_economically(p2, tolerance=AMOUNT_TOLERANCE) is False
+    assert p1.should_merge_economically([p2], tolerance=AMOUNT_TOLERANCE) is False
 
 
 def test_merges_economically_via_gross_when_net_unavailable() -> None:
@@ -52,7 +52,7 @@ def test_merges_economically_via_gross_when_net_unavailable() -> None:
 
     assert (
         net_stated.should_merge_economically(
-            gross_without_rate, tolerance=AMOUNT_TOLERANCE
+            [gross_without_rate], tolerance=AMOUNT_TOLERANCE
         )
         is True
     )
@@ -63,7 +63,7 @@ def test_does_not_merge_economically_when_converted_amounts_differ() -> None:
     gross_stated = _payment(amount=Decimal(200), include_vat=True, rate=Decimal(20))
 
     assert (
-        net_stated.should_merge_economically(gross_stated, tolerance=AMOUNT_TOLERANCE)
+        net_stated.should_merge_economically([gross_stated], tolerance=AMOUNT_TOLERANCE)
         is False
     )
 
@@ -263,3 +263,38 @@ def test_merge_payment_keeps_filled_transcription_when_first_bearer_lacks_it() -
     assert result is not None
     assert result.value.amount.value == Decimal(100000)
     assert result.value.amount.transcription == "сто тысяч рублей"
+
+
+def test_group_mixing_shared_and_converted_basis_is_economically_mergeable() -> None:
+    shared = _payment(amount=Decimal(120), include_vat=True)
+    same_footing = _payment(amount=Decimal(120), include_vat=True)
+    converted = _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
+
+    assert (
+        shared.should_merge_economically(
+            [same_footing, converted], tolerance=AMOUNT_TOLERANCE
+        )
+        is True
+    )
+
+
+def test_merge_payment_merges_group_mixing_shared_and_converted_basis() -> None:
+    errors: list = []
+    result = merge_payment(
+        [
+            _candidate(_payment(amount=Decimal(120), include_vat=True)),
+            _candidate(_payment(amount=Decimal(120), include_vat=True)),
+            _candidate(
+                _payment(amount=Decimal(100), include_vat=False, rate=Decimal(20))
+            ),
+        ],
+        "total",
+        errors,
+        STRICT_REGISTRY,
+    )
+
+    assert errors == []
+    assert result is not None
+    assert result.value.amount.value == Decimal(120)
+    assert result.value.include_vat is True
+    assert result.value.vat.rate == Decimal(20)

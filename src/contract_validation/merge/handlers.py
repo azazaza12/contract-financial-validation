@@ -287,9 +287,8 @@ def merge_payment(
         return merge_dataclass_default(candidates, path, errors, registry)
 
     payments = [c.value for c in candidates]
-    if not all(
-        payments[0].should_merge_economically(other, tolerance=AMOUNT_TOLERANCE)
-        for other in payments[1:]
+    if not payments[0].should_merge_economically(
+        payments[1:], tolerance=AMOUNT_TOLERANCE
     ):
         if len({payment.include_vat for payment in payments}) == 1:
             amount_transcription = _reference_transcription(
