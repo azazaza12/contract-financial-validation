@@ -39,7 +39,9 @@ def test_same_footing_rate_minus_hundred_does_not_merge_economically() -> None:
     payment = _payment("120.00", rate="-100", include_vat=True)
     other = _payment("120.00", rate="-100", include_vat=True)
 
-    assert payment.should_merge_economically([other], tolerance=AMOUNT_TOLERANCE) is False
+    assert (
+        payment.should_merge_economically([other], tolerance=AMOUNT_TOLERANCE) is False
+    )
 
 
 def test_stated_net_keeps_amount_excluding_and_adds_vat_for_including() -> None:
