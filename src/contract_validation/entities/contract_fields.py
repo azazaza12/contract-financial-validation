@@ -1,11 +1,19 @@
 from collections.abc import Iterator
 from dataclasses import dataclass
 from decimal import Decimal
+from enum import StrEnum
 
 from app.domain.merge.defaults import STRICT_REGISTRY
+from app.domain.merge.handlers import merge_payment
 from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
 from .field import BaseField
+
+
+class Basis(StrEnum):
+    INCLUDING_VAT = "including_vat"
+    EXCLUDING_VAT = "excluding_vat"
+    RAW = "raw"
 
 
 class DocumentObjectField(BaseField[str]):
@@ -30,6 +38,10 @@ class Amount:
 class Vat:
     amount: Amount | None
     rate: Decimal | None
+
+    @property
+    def amount_value(self) -> Decimal | None:
+        return self.amount.value if self.amount is not None else None
 
     def has_data(self) -> bool:
         if self.amount is not None and self.amount.has_data():
@@ -57,9 +69,7 @@ class Payment:
 
     @property
     def vat_amount_value(self) -> Decimal | None:
-        if self.vat.amount is None:
-            return None
-        return self.vat.amount.value
+        return self.vat.amount_value
 
     @property
     def vat_rate(self) -> Decimal | None:
@@ -73,10 +83,70 @@ class Payment:
             return None
         if self.include_vat:
             denominator = 100 + rate
-            if denominator == 0:
+            if denominator <= 0:
                 return None
             return amount * rate / denominator
         return amount * rate / 100
+
+    @property
+    def amount_excluding_vat(self) -> Decimal | None:
+        stated = self.amount_value
+        if stated is None or self.include_vat is None:
+            return None
+        if not self.include_vat:
+            return stated
+        if self.vat.rate is None:
+            return None
+        gross_percent = Decimal(100) + self.vat.rate
+        if gross_percent <= 0:
+            return None
+        return stated * Decimal(100) / gross_percent
+
+    @property
+    def amount_including_vat(self) -> Decimal | None:
+        stated = self.amount_value
+        if stated is None or self.include_vat is None:
+            return None
+        if self.include_vat:
+            return stated
+        if self.vat.rate is None:
+            return None
+        return stated * (Decimal(100) + self.vat.rate) / Decimal(100)
+
+    def amount_in_basis(self, basis: Basis) -> Decimal | None:
+        if basis is Basis.INCLUDING_VAT:
+            return self.amount_including_vat
+        if basis is Basis.EXCLUDING_VAT:
+            return self.amount_excluding_vat
+        return self.amount_value
+
+    def should_merge_economically(
+        self, others: list[Payment], *, tolerance: Decimal
+    ) -> bool:
+        group = [self, *others]
+        basis = select_basis(group)
+        if basis is Basis.RAW:
+            return False
+        amounts: list[Decimal] = []
+        for payment in group:
+            amount = payment.amount_in_basis(basis)
+            if amount is None:
+                return False
+            amounts.append(amount)
+        return all(abs(amount - amounts[0]) <= tolerance for amount in amounts[1:])
+
+
+def select_basis(payments: list[Payment]) -> Basis:
+    numbered = [p for p in payments if p.amount_value is not None]
+    if not numbered:
+        return Basis.RAW
+    if len({p.include_vat for p in numbered}) == 1:
+        return Basis.RAW
+    if all(p.amount_including_vat is not None for p in numbered):
+        return Basis.INCLUDING_VAT
+    if all(p.amount_excluding_vat is not None for p in numbered):
+        return Basis.EXCLUDING_VAT
+    return Basis.RAW
 
 
 class PaymentList:
@@ -97,6 +167,15 @@ class PaymentList:
         total: Decimal | None = None
         for payment in self._payments:
             value = payment.amount_value
+            if value is None:
+                continue
+            total = (total or Decimal("0.00")) + value
+        return total
+
+    def amount_in_basis(self, basis: Basis) -> Decimal | None:
+        total: Decimal | None = None
+        for payment in self._payments:
+            value = payment.amount_in_basis(basis)
             if value is None:
                 continue
             total = (total or Decimal("0.00")) + value
@@ -212,6 +291,13 @@ class AdvancePayment:
         fallback = self.payment_lines.combined
         return fallback if fallback is not None else base
 
+    def amount_in_basis(self, basis: Basis) -> Decimal | None:
+        if self.total is not None:
+            total = self.total.amount_in_basis(basis)
+            if total is not None:
+                return total
+        return self.payment_lines.amount_in_basis(basis)
+
 
 @dataclass(kw_only=True, frozen=True)
 class AdvancePaymentsField(BaseField[list[AdvancePayment]]):
@@ -256,3 +342,6 @@ class NomenclatureClassification:
 @dataclass(kw_only=True, frozen=True)
 class NomenclatureClassificationsField(BaseField[list[NomenclatureClassification]]):
     merge_registry = STRICT_REGISTRY
+
+
+STRICT_REGISTRY.register_type(Payment, merge_payment)

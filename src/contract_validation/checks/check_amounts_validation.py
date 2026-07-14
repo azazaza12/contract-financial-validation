@@ -4,7 +4,9 @@ from typing import cast
 from app.domain.entities.errors.checks import AmountDiscrepancyError, BaseCheckError
 from app.domain.entities.single_supplier_fields import (
     AdvancePaymentsField,
+    Basis,
     TotalAmountField,
+    select_basis,
 )
 from app.domain.entities.validation import CheckExecutionResult
 
@@ -37,28 +39,34 @@ class CheckTotalAmountsValidation(BaseCheck):
                     ),
                 )
 
-    def _collect_total_amounts(self, total_amount_field: TotalAmountField) -> None:
-        total_amount = total_amount_field.value
-        total_sum = total_amount.total.amount_value
+    def _collect_total_amounts(
+        self,
+        total_amount_field: TotalAmountField,
+        *,
+        basis: Basis,
+    ) -> None:
+        total_sum = total_amount_field.value.total.amount_in_basis(basis)
         if total_sum is not None:
             self.amounts_to_compare.append(total_sum)
 
-        taxes_sum = total_amount.tax_payments.amount_value
+        taxes_sum = total_amount_field.value.tax_payments.amount_in_basis(basis)
         if taxes_sum is not None:
             self.amounts_to_compare.append(taxes_sum)
 
     def _collect_advances_sum(
         self,
         advance_payments_field: AdvancePaymentsField,
+        *,
+        basis: Basis,
     ) -> None:
         advances_sum: Decimal | None = None
         for advance_payment in advance_payments_field.value:
             total_amount = (
-                advance_payment.total.amount_value
+                advance_payment.total.amount_in_basis(basis)
                 if advance_payment.total is not None
                 else None
             )
-            payments_sum = advance_payment.payment_lines.amount_value
+            payments_sum = advance_payment.payment_lines.amount_in_basis(basis)
 
             if total_amount is not None and payments_sum is not None:
                 diff = abs(total_amount - payments_sum)
@@ -88,9 +96,17 @@ class CheckTotalAmountsValidation(BaseCheck):
             self.advance_payments_field,
         )
 
-        self._collect_total_amounts(total_amount_field)
+        group = [total_amount_field.value.total, *total_amount_field.value.taxes]
         if advance_payments_field is not None:
-            self._collect_advances_sum(advance_payments_field)
+            for advance_payment in advance_payments_field.value:
+                if advance_payment.total is not None:
+                    group.append(advance_payment.total)
+                group.extend(advance_payment.payments)
+        basis = select_basis(group)
+
+        self._collect_total_amounts(total_amount_field, basis=basis)
+        if advance_payments_field is not None:
+            self._collect_advances_sum(advance_payments_field, basis=basis)
 
         if not self.amounts_to_compare:
             raise InsufficientCheckDataError(

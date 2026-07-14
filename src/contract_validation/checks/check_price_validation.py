@@ -72,10 +72,23 @@ class CheckPriceValidation(BaseCheck):
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
 
         spec_positions = spec_positions_field.value
-        total_amount = total_amount_field.value.total.amount_value
+        total_payment = total_amount_field.value.total
         label = self.__class__.__name__
 
-        if total_amount is None:
+        candidate_totals = [
+            candidate
+            for candidate in (
+                total_payment.amount_including_vat,
+                total_payment.amount_excluding_vat,
+            )
+            if candidate is not None
+        ]
+        if not candidate_totals:
+            raw_total = total_payment.amount_value
+            if raw_total is not None:
+                candidate_totals = [raw_total]
+
+        if not candidate_totals:
             raise InsufficientCheckDataError(
                 label,
                 "no contract total amount for comparison",
@@ -83,21 +96,28 @@ class CheckPriceValidation(BaseCheck):
 
         positions_total = self._validate_position_lines_and_sum(spec_positions)
 
-        if total_amount <= 0:
-            self.errors.append(AmountNotPositiveError(value=total_amount))
-        elif positions_total == 0 and not any(
+        has_position_totals = any(
             position.total_price is not None for position in spec_positions
-        ):
+        )
+
+        representative_total = candidate_totals[0]
+        if representative_total <= 0:
+            self.errors.append(AmountNotPositiveError(value=representative_total))
+        elif positions_total == 0 and not has_position_totals:
             raise InsufficientCheckDataError(
                 label,
                 "cannot calculate positions total for comparison",
             )
         else:
-            difference = abs(positions_total - total_amount)
+            closest_total = min(
+                candidate_totals,
+                key=lambda candidate: abs(positions_total - candidate),
+            )
+            difference = abs(positions_total - closest_total)
             if difference > self.tolerance:
                 self.errors.append(
                     AmountDiscrepancyError(
-                        reference_value=total_amount,
+                        reference_value=closest_total,
                         value=positions_total,
                         difference=difference,
                     ),

@@ -343,3 +343,85 @@ async def test_within_advance_and_cross_source_errors_both_collected() -> None:
     assert result.status == CheckStatus.failed
     assert len(result.errors) == TWO_ERRORS
     assert all(isinstance(err, AmountDiscrepancyError) for err in result.errors)
+
+
+def _make_vat_payment(value: str, *, rate: str, include_vat: bool) -> Payment:
+    return Payment(
+        amount=Amount(value=Decimal(value), transcription=None),
+        vat=Vat(amount=None, rate=Decimal(rate)),
+        include_vat=include_vat,
+    )
+
+
+async def test_total_amounts_succeeds_when_total_gross_and_tax_net_match() -> None:
+    check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
+    check.total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=_make_vat_payment("120.00", rate="20.00", include_vat=True),
+            taxes=[_make_vat_payment("100.00", rate="20.00", include_vat=False)],
+        ),
+        sources=[],
+    )
+    check.advance_payments_field = None
+
+    result = await check.execute(STUB_CHECK_SERVICES)
+
+    assert result.status == CheckStatus.success
+    assert result.errors == []
+
+
+async def test_total_amounts_falls_back_to_raw_when_tax_lacks_rate() -> None:
+    check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
+    check.total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=_make_vat_payment("100.00", rate="20.00", include_vat=False),
+            taxes=[_make_payment("100.00")],
+        ),
+        sources=[],
+    )
+    check.advance_payments_field = None
+
+    result = await check.execute(STUB_CHECK_SERVICES)
+
+    assert result.status == CheckStatus.success
+    assert result.errors == []
+
+
+async def test_total_amounts_fails_when_grossed_amounts_differ() -> None:
+    check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
+    check.total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=_make_vat_payment("120.00", rate="20.00", include_vat=True),
+            taxes=[_make_vat_payment("120.00", rate="20.00", include_vat=False)],
+        ),
+        sources=[],
+    )
+    check.advance_payments_field = None
+
+    result = await check.execute(STUB_CHECK_SERVICES)
+
+    assert result.status == CheckStatus.failed
+    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
+
+
+async def test_total_amounts_uses_excluding_vat_when_gross_unavailable() -> None:
+    check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
+    check.total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=_make_vat_payment("120.00", rate="20.00", include_vat=True),
+            taxes=[
+                Payment(
+                    amount=Amount(value=Decimal("100.00"), transcription=None),
+                    vat=Vat(amount=None, rate=None),
+                    include_vat=False,
+                )
+            ],
+        ),
+        sources=[],
+    )
+    check.advance_payments_field = None
+
+    result = await check.execute(STUB_CHECK_SERVICES)
+
+    assert result.status == CheckStatus.success
+    assert result.errors == []
