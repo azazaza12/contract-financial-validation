@@ -7,21 +7,24 @@ from app.domain.entities.single_supplier_fields import (
     SpecPositionsField,
 )
 from app.domain.entities.validation import CheckExecutionResult
+from app.domain.ports.checker import NumberedPosition
 
 from .base import BaseCheck
 from .deps import CheckServices, Requires
 from .errors import InsufficientCheckDataError
 
 
-def _non_empty_position_names(spec_positions: list[SpecPosition]) -> list[str]:
-    names: list[str] = []
-    for position in spec_positions:
+def _numbered_non_empty_positions(
+    spec_positions: list[SpecPosition],
+) -> list[NumberedPosition]:
+    positions: list[NumberedPosition] = []
+    for number, position in enumerate(spec_positions, 1):
         if position.name is None:
             continue
         stripped = position.name.strip()
         if stripped:
-            names.append(stripped)
-    return names
+            positions.append(NumberedPosition(number=number, name=stripped))
+    return positions
 
 
 class CheckPositionsCompliance(BaseCheck):
@@ -40,8 +43,8 @@ class CheckPositionsCompliance(BaseCheck):
         errors: list[BaseCheckError] = []
         label = self.__class__.__name__
         document_object = document_object_field.value.strip()
-        position_names = _non_empty_position_names(spec_positions_field.value)
-        if not position_names:
+        positions = _numbered_non_empty_positions(spec_positions_field.value)
+        if not positions:
             raise InsufficientCheckDataError(
                 label,
                 "no position names for compliance check",
@@ -49,7 +52,7 @@ class CheckPositionsCompliance(BaseCheck):
 
         result = await check_services.check_position_compliancer.evaluate(
             document_object,
-            position_names,
+            positions,
         )
 
         if result.success:
