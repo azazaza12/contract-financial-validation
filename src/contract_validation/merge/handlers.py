@@ -251,9 +251,7 @@ def _assemble_most_complete_payment(payments: list[Payment]) -> Payment:
 
 def _reference_transcription(amounts: list[Amount | None]) -> str | None:
     value_bearers = [a for a in amounts if a is not None and a.value is not None]
-    transcribed = next(
-        (a for a in value_bearers if a.transcription is not None), None
-    )
+    transcribed = next((a for a in value_bearers if a.transcription is not None), None)
     if transcribed is not None:
         return transcribed.transcription
     if value_bearers:
