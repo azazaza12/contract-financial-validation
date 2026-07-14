@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-logger = structlog.get_logger()
+logger = structlog.get_logger(__name__)
 
 
 class MergeRegistry:
