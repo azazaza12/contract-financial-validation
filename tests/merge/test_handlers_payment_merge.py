@@ -237,3 +237,29 @@ def test_merge_payment_keeps_value_bearers_own_transcription() -> None:
     assert result is not None
     assert result.value.amount.value == Decimal(100)
     assert result.value.amount.transcription == "сто рублей"
+
+
+def test_merge_payment_keeps_filled_transcription_when_first_bearer_lacks_it() -> None:
+    errors: list = []
+    number_only = Payment(
+        amount=Amount(value=Decimal(100000), transcription=None),
+        vat=Vat(amount=None, rate=None),
+        include_vat=True,
+    )
+    number_with_words = Payment(
+        amount=Amount(value=Decimal(100000), transcription="сто тысяч рублей"),
+        vat=Vat(amount=None, rate=None),
+        include_vat=True,
+    )
+
+    result = merge_payment(
+        [_candidate(number_only), _candidate(number_with_words)],
+        "total",
+        errors,
+        STRICT_REGISTRY,
+    )
+
+    assert errors == []
+    assert result is not None
+    assert result.value.amount.value == Decimal(100000)
+    assert result.value.amount.transcription == "сто тысяч рублей"
