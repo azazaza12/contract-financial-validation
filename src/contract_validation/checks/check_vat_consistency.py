@@ -94,10 +94,13 @@ class CheckVatConsistency(BaseCheck):
 
         if amount is not None and amount <= 0:
             self.errors.append(AmountNotPositiveError(value=amount))
+            amount = None
         if vat_amount is not None and vat_amount < 0:
             self.errors.append(VatAmountNotPositiveError(value=vat_amount))
+            vat_amount = None
         if vat_rate is not None and vat_rate < 0:
             self.errors.append(VatRateNotPositiveError(value=vat_rate))
+            vat_rate = None
 
         return vat_amount if (vat_amount is not None and vat_amount >= 0) else None
 

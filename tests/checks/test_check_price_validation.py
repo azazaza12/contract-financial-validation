@@ -391,3 +391,84 @@ async def test_check_price_validation_succeeds_when_within_tolerance() -> None:
 
     called_errors = contract_repo.save_errors.call_args.args[1]
     assert called_errors == []
+
+
+def _make_vat_total_amount_field(
+    value: str,
+    *,
+    rate: str,
+    include_vat: bool,
+    document: SingleSupplierDocument,
+) -> TotalAmountField:
+    total = Payment(
+        amount=Amount(value=Decimal(value), transcription=None),
+        vat=Vat(amount=None, rate=Decimal(rate)),
+        include_vat=include_vat,
+    )
+    return TotalAmountField(
+        value=TotalAmount(total=total, taxes=[]),
+        sources=[Source(document_id=document.id)],
+    )
+
+
+async def _run_price_check(fields: FieldCollector) -> list:
+    check = CheckPriceValidation(tolerance=AMOUNT_TOLERANCE)
+    check.prepare(fields)
+    result = await check.execute(STUB_CHECK_SERVICES)
+    return result.errors
+
+
+async def test_check_price_validation_succeeds_when_positions_match_net_total() -> None:
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            SpecPositionsField(
+                value=[
+                    SpecPosition(
+                        name="Позиция 1",
+                        quantity=Decimal("1.0"),
+                        unit_price=Decimal("100.00"),
+                        total_price=Decimal("100.00"),
+                        unit_of_measurement="шт",
+                    ),
+                ],
+                sources=[Source(document_id=document.id)],
+            ),
+            _make_vat_total_amount_field(
+                "120.00", rate="20.00", include_vat=True, document=document
+            ),
+        ],
+    )
+
+    errors = await _run_price_check(fields)
+
+    assert errors == []
+
+
+async def test_check_price_validation_succeeds_when_positions_match_gross_total() -> (
+    None
+):
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            SpecPositionsField(
+                value=[
+                    SpecPosition(
+                        name="Позиция 1",
+                        quantity=Decimal("1.0"),
+                        unit_price=Decimal("120.00"),
+                        total_price=Decimal("120.00"),
+                        unit_of_measurement="шт",
+                    ),
+                ],
+                sources=[Source(document_id=document.id)],
+            ),
+            _make_vat_total_amount_field(
+                "100.00", rate="20.00", include_vat=False, document=document
+            ),
+        ],
+    )
+
+    errors = await _run_price_check(fields)
+
+    assert errors == []
