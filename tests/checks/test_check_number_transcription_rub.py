@@ -1,13 +1,10 @@
 from decimal import Decimal
-from types import SimpleNamespace
-from typing import cast
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 
 from app.domain.checks.check_number_transcription_rub import CheckNumberTranscriptionRub
-from app.domain.checks.deps import CheckServices
 from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.entities import (
     AdvancePayment,
@@ -23,16 +20,6 @@ from app.domain.entities.errors import NumberTranscriptionError
 from app.domain.entities.single_supplier import SingleSupplierDocument
 from app.domain.entities.validation import CheckStatus
 from app.domain.ports.checker import TranscriptionCheckIssue, TranscriptionCheckResult
-
-
-def _check_services(transcription_service: AsyncMock) -> CheckServices:
-    return cast(
-        "CheckServices",
-        SimpleNamespace(
-            check_transcription_compliancer=transcription_service,
-            check_position_compliancer=MagicMock(),
-        ),
-    )
 
 
 def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmountField:
@@ -53,7 +40,7 @@ def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmou
 async def test_check_14_succeeds_when_no_transcription_issues() -> None:
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
-    check = CheckNumberTranscriptionRub()
+    check = CheckNumberTranscriptionRub(transcription_compliancer=service_mock)
     check.total_amount_fields = [
         _make_total_amount_field(
             value="100.00",
@@ -62,9 +49,9 @@ async def test_check_14_succeeds_when_no_transcription_issues() -> None:
     ]
     check.advance_payments_fields = []
 
-    result = await check.execute(_check_services(service_mock))
+    result = await check.execute()
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
     service_mock.evaluate.assert_awaited_once()
 
@@ -87,7 +74,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
             ),
         ],
     )
-    check = CheckNumberTranscriptionRub()
+    check = CheckNumberTranscriptionRub(transcription_compliancer=service_mock)
     check.total_amount_fields = [
         _make_total_amount_field(
             value="100.00",
@@ -96,9 +83,9 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
     ]
     check.advance_payments_fields = []
 
-    result = await check.execute(_check_services(service_mock))
+    result = await check.execute()
 
-    assert result.status == CheckStatus.failed
+    assert result.status == CheckStatus.FAILED
     assert len(result.errors) == 2  # noqa: PLR2004
     assert all(isinstance(error, NumberTranscriptionError) for error in result.errors)
     first = result.errors[0]
@@ -117,7 +104,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
 async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
-    check = CheckNumberTranscriptionRub()
+    check = CheckNumberTranscriptionRub(transcription_compliancer=service_mock)
 
     document = SingleSupplierDocument(id=uuid4(), file_name="contract.pdf")
     total_amount_field = TotalAmountField(
@@ -192,9 +179,9 @@ async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
     check.total_amount_fields = [total_amount_field]
     check.advance_payments_fields = [advance_payments_field]
 
-    result = await check.execute(_check_services(service_mock))
+    result = await check.execute()
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     service_mock.evaluate.assert_awaited_once()
     passed_amounts = service_mock.evaluate.await_args.args[0]
 
@@ -222,7 +209,7 @@ async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
 
 async def test_check_14_skips_when_no_amount_transcription_pairs() -> None:
     service_mock = AsyncMock()
-    check = CheckNumberTranscriptionRub()
+    check = CheckNumberTranscriptionRub(transcription_compliancer=service_mock)
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     check.total_amount_fields = [
         TotalAmountField(
@@ -240,6 +227,6 @@ async def test_check_14_skips_when_no_amount_transcription_pairs() -> None:
     check.advance_payments_fields = []
 
     with pytest.raises(InsufficientCheckDataError):
-        await check.execute(_check_services(service_mock))
+        await check.execute()
 
     service_mock.evaluate.assert_not_awaited()

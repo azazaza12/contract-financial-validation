@@ -17,7 +17,7 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 
 from .base import BaseCheck
-from .deps import CheckServices, OptionalDep, Requires
+from .deps import OptionalDep, Requires
 from .errors import InsufficientCheckDataError
 
 
@@ -114,14 +114,13 @@ class CheckVatConsistency(BaseCheck):
                 vat_sum = (vat_sum or Decimal("0.00")) + vat_amount
         return vat_sum
 
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:  # noqa: ARG002
+    async def execute(self) -> CheckExecutionResult:
         self.errors = []
         self.vat_amounts = []
 
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
         advance_payments_field = cast(
-            "AdvancePaymentsField | None",
-            self.advance_payments_field,
+            "AdvancePaymentsField | None", self.advance_payments_field
         )
 
         self._collect_total_amount_vat(total_amount_field)

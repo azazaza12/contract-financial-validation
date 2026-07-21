@@ -7,10 +7,10 @@ from app.domain.entities.single_supplier_fields import (
     SpecPositionsField,
 )
 from app.domain.entities.validation import CheckExecutionResult
-from app.domain.ports.checker import NumberedPosition
+from app.domain.ports.checker import IPositionsCompliancer, NumberedPosition
 
 from .base import BaseCheck
-from .deps import CheckServices, Requires
+from .deps import Requires
 from .errors import InsufficientCheckDataError
 
 
@@ -31,15 +31,12 @@ class CheckPositionsCompliance(BaseCheck):
     document_object_field = Requires(DocumentObjectField)
     spec_positions_field = Requires(SpecPositionsField)
 
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:
-        document_object_field = cast(
-            "DocumentObjectField",
-            self.document_object_field,
-        )
-        spec_positions_field = cast(
-            "SpecPositionsField",
-            self.spec_positions_field,
-        )
+    def __init__(self, position_compliancer: IPositionsCompliancer) -> None:
+        self.position_compliancer = position_compliancer
+
+    async def execute(self) -> CheckExecutionResult:
+        document_object_field = cast("DocumentObjectField", self.document_object_field)
+        spec_positions_field = cast("SpecPositionsField", self.spec_positions_field)
         errors: list[BaseCheckError] = []
         label = self.__class__.__name__
         document_object = document_object_field.value.strip()
@@ -50,7 +47,7 @@ class CheckPositionsCompliance(BaseCheck):
                 "no position names for compliance check",
             )
 
-        result = await check_services.check_position_compliancer.evaluate(
+        result = await self.position_compliancer.evaluate(
             document_object,
             positions,
         )
