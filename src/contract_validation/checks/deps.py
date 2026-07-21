@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol, cast, get_args, get_origin
+from typing import TYPE_CHECKING, cast, get_args, get_origin
 
 from .errors import (
     InvalidCheckSignatureError,
@@ -12,10 +12,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from app.domain.entities.field import BaseField
-    from app.domain.ports.checker import (
-        IPositionsCompliancer,
-        ITranscriptionCompliancer,
-    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,8 +98,3 @@ class OptionalDep[T]:
         if len(matches) == 0:
             return cast("T", [])
         return cast("T", matches)
-
-
-class CheckServices(Protocol):
-    check_position_compliancer: IPositionsCompliancer
-    check_transcription_compliancer: ITranscriptionCompliancer

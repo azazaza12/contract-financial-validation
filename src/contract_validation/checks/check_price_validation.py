@@ -15,7 +15,7 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 
 from .base import BaseCheck
-from .deps import CheckServices, Requires
+from .deps import Requires
 from .errors import InsufficientCheckDataError
 
 
@@ -65,7 +65,7 @@ class CheckPriceValidation(BaseCheck):
                 )
         return total_calculated
 
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:  # noqa: ARG002
+    async def execute(self) -> CheckExecutionResult:
         self.errors = []
 
         spec_positions_field = cast("SpecPositionsField", self.spec_positions_field)

@@ -6,10 +6,10 @@ from .errors.checks import BaseCheckError
 
 
 class CheckStatus(StrEnum):
-    success = "SUCCESS"
-    failed = "FAILED"
-    progress = "PROGRESS"
-    pending = "PENDING"
+    SUCCESS = "success"
+    FAILED = "failed"
+    PROGRESS = "progress"
+    PENDING = "pending"
 
 
 @dataclass(kw_only=True)
