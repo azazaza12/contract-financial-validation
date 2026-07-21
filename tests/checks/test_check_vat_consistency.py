@@ -18,7 +18,6 @@ from app.domain.entities.errors import (
     VatRateNotPositiveError,
 )
 from app.domain.entities.validation import CheckStatus
-from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 
 
 def _pay(
@@ -67,7 +66,7 @@ async def _run(
         if advances is not None
         else None
     )
-    return await check.execute(STUB_CHECK_SERVICES)
+    return await check.execute()
 
 
 async def test_vat_consistency_succeeds_when_sums_are_valid() -> None:
@@ -87,7 +86,7 @@ async def test_vat_consistency_succeeds_when_sums_are_valid() -> None:
             ),
         ],
     )
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert r.errors == []
 
 
@@ -96,7 +95,7 @@ async def test_vat_consistency_fails_when_total_and_taxes_sums_differ() -> None:
         total=_pay(amount="120.00", vat_amount="20.00"),
         taxes=[_pay(amount="60.00", vat_amount="10.00")],
     )
-    assert r.status == CheckStatus.failed
+    assert r.status == CheckStatus.FAILED
     assert any(isinstance(e, VatAmountDiscrepancyError) for e in r.errors)
 
 
@@ -112,25 +111,25 @@ async def test_vat_consistency_compares_sums_when_amount_missing() -> None:
             ),
         ],
     )
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert r.errors == []
 
 
 async def test_vat_consistency_fails_when_amount_not_positive() -> None:
     r = await _run(total=_pay(amount="0.00", vat_amount="20.00"))
-    assert r.status == CheckStatus.failed
+    assert r.status == CheckStatus.FAILED
     assert any(isinstance(e, AmountNotPositiveError) for e in r.errors)
 
 
 async def test_vat_consistency_allows_zero_vat_amount() -> None:
     r = await _run(total=_pay(amount=None, vat_amount="0.00"))
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert r.errors == []
 
 
 async def test_vat_consistency_ignores_empty_taxes_list() -> None:
     r = await _run(total=_pay(amount="120.00", vat_amount="20.00"), taxes=[])
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert not any(isinstance(e, VatAmountDiscrepancyError) for e in r.errors)
 
 
@@ -142,19 +141,19 @@ async def test_vat_consistency_ignores_advances_without_totals_and_payments() ->
             AdvancePayment(percent=Decimal("50.00"), total=None, payments=[]),
         ],
     )
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert not any(isinstance(e, VatAmountDiscrepancyError) for e in r.errors)
 
 
 async def test_vat_consistency_negative_vat_amount_fails() -> None:
     r = await _run(total=_pay(vat_amount="-5.00"))
-    assert r.status == CheckStatus.failed
+    assert r.status == CheckStatus.FAILED
     assert any(isinstance(e, VatAmountNotPositiveError) for e in r.errors)
 
 
 async def test_vat_consistency_negative_vat_rate_fails() -> None:
     r = await _run(total=_pay(vat_rate="-20.00"))
-    assert r.status == CheckStatus.failed
+    assert r.status == CheckStatus.FAILED
     assert any(isinstance(e, VatRateNotPositiveError) for e in r.errors)
 
 
@@ -163,7 +162,7 @@ async def test_vat_consistency_negative_vat_excluded_from_sum() -> None:
         total=_pay(amount=None, vat_amount="20.00"),
         taxes=[_pay(amount=None, vat_amount="-5.00")],
     )
-    assert r.status == CheckStatus.failed
+    assert r.status == CheckStatus.FAILED
     assert any(isinstance(e, VatAmountNotPositiveError) for e in r.errors)
     assert not any(isinstance(e, VatAmountDiscrepancyError) for e in r.errors)
 
@@ -182,7 +181,7 @@ async def test_vat_consistency_advance_aggregate_vs_payments_discrepancy() -> No
             ),
         ],
     )
-    assert r.status == CheckStatus.failed
+    assert r.status == CheckStatus.FAILED
     assert any(isinstance(e, VatAmountDiscrepancyError) for e in r.errors)
 
 
@@ -200,7 +199,7 @@ async def test_vat_consistency_advance_without_total_matches() -> None:
             ),
         ],
     )
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert r.errors == []
 
 
@@ -218,7 +217,7 @@ async def test_vat_consistency_advance_without_total_differs_fails() -> None:
             ),
         ],
     )
-    assert r.status == CheckStatus.failed
+    assert r.status == CheckStatus.FAILED
     assert any(isinstance(e, VatAmountDiscrepancyError) for e in r.errors)
 
 
@@ -234,7 +233,7 @@ async def test_vat_consistency_multiple_advance_totals_summed() -> None:
             ),
         ],
     )
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert r.errors == []
 
 
@@ -247,5 +246,5 @@ async def test_vat_consistency_advance_total_differs_from_contract_fails() -> No
             ),
         ],
     )
-    assert r.status == CheckStatus.failed
+    assert r.status == CheckStatus.FAILED
     assert any(isinstance(e, VatAmountDiscrepancyError) for e in r.errors)

@@ -17,7 +17,7 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 
 from .base import BaseCheck
-from .deps import CheckServices, Requires
+from .deps import Requires
 from .errors import InsufficientCheckDataError
 
 
@@ -65,10 +65,9 @@ class CheckPaymentPercentValidation(BaseCheck):
             contract_total_amount=total_amount,
         )
 
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:  # noqa: ARG002
+    async def execute(self) -> CheckExecutionResult:
         advance_payments_field = cast(
-            "AdvancePaymentsField",
-            self.advance_payments_field,
+            "AdvancePaymentsField", self.advance_payments_field
         )
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
         advance_payments = advance_payments_field.value

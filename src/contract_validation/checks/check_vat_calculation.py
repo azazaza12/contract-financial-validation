@@ -13,7 +13,7 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 
 from .base import BaseCheck
-from .deps import CheckServices, OptionalDep, Requires
+from .deps import OptionalDep, Requires
 from .errors import InsufficientCheckDataError
 
 
@@ -73,7 +73,7 @@ class CheckVatCalculation(BaseCheck):
                     )
                 )
 
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:  # noqa: ARG002
+    async def execute(self) -> CheckExecutionResult:
         self.errors = []
 
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
