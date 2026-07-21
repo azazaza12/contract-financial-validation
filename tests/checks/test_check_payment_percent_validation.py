@@ -25,7 +25,6 @@ from app.domain.entities.single_supplier import SingleSupplierDocument
 from app.domain.entities.validation import CheckStatus
 from app.domain.pipeline import TaskStatus
 from app.domain.pipeline.task import CheckTask
-from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
@@ -380,9 +379,9 @@ async def test_payment_percent_falls_back_to_raw_when_advance_lacks_rate() -> No
     check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
     check.prepare(fields)
 
-    result = await check.execute(STUB_CHECK_SERVICES)
+    result = await check.execute()
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -426,9 +425,9 @@ async def test_payment_percent_uses_advance_payments_for_basis_when_total_has_no
     check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
     check.prepare(fields)
 
-    result = await check.execute(STUB_CHECK_SERVICES)
+    result = await check.execute()
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -465,9 +464,9 @@ async def test_payment_percent_basis_ignores_advance_payments_when_total_has_num
     check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
     check.prepare(fields)
 
-    result = await check.execute(STUB_CHECK_SERVICES)
+    result = await check.execute()
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -503,7 +502,7 @@ async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match(
     check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
     check.prepare(fields)
 
-    result = await check.execute(STUB_CHECK_SERVICES)
+    result = await check.execute()
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
