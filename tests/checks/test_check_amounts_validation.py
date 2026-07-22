@@ -16,7 +16,6 @@ from app.domain.entities import (
 )
 from app.domain.entities.errors import AmountDiscrepancyError
 from app.domain.entities.validation import CheckStatus
-from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 
 
 pytestmark = pytest.mark.asyncio
@@ -68,7 +67,7 @@ async def _run_check(
         if advances is not None
         else None
     )
-    return await check.execute(STUB_CHECK_SERVICES)
+    return await check.execute()
 
 
 async def test_total_amounts_succeeds_when_total_taxes_and_advances_match() -> None:
@@ -89,7 +88,7 @@ async def test_total_amounts_succeeds_when_total_taxes_and_advances_match() -> N
         ],
     )
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -100,7 +99,7 @@ async def test_total_amounts_fails_when_total_and_taxes_differ() -> None:
         advances=None,
     )
 
-    assert result.status == CheckStatus.failed
+    assert result.status == CheckStatus.FAILED
     assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
@@ -117,7 +116,7 @@ async def test_total_amounts_fails_when_advance_total_and_payments_differ() -> N
         ],
     )
 
-    assert result.status == CheckStatus.failed
+    assert result.status == CheckStatus.FAILED
     assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
@@ -143,7 +142,7 @@ async def test_total_amounts_tolerance_allows_difference_within_one_ruble() -> N
         advances=None,
     )
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -154,7 +153,7 @@ async def test_total_amounts_fails_when_tolerance_exceeded() -> None:
         advances=None,
     )
 
-    assert result.status == CheckStatus.failed
+    assert result.status == CheckStatus.FAILED
     assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
@@ -165,7 +164,7 @@ async def test_total_amounts_succeeds_with_only_total_amount() -> None:
         advances=None,
     )
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -176,7 +175,7 @@ async def test_total_amounts_succeeds_when_taxes_list_is_empty() -> None:
         advances=None,
     )
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -189,7 +188,7 @@ async def test_total_amounts_succeeds_with_multiple_taxes_when_sum_matches_total
         advances=None,
     )
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -213,7 +212,7 @@ async def test_total_amounts_succeeds_with_multiple_advances_and_nested_payments
         ],
     )
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -228,7 +227,7 @@ async def test_advance_with_only_total_matches_contract_success() -> None:
             AdvancePayment(percent=None, total=_make_payment("100.00"), payments=[]),
         ],
     )
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -240,7 +239,7 @@ async def test_advance_with_only_total_differs_from_contract_fails() -> None:
             AdvancePayment(percent=None, total=_make_payment("90.00"), payments=[]),
         ],
     )
-    assert result.status == CheckStatus.failed
+    assert result.status == CheckStatus.FAILED
     assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
@@ -259,7 +258,7 @@ async def test_advance_with_only_payments_matches_contract_success() -> None:
             ),
         ],
     )
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -275,7 +274,7 @@ async def test_advance_with_only_payments_differs_from_contract_fails() -> None:
             ),
         ],
     )
-    assert result.status == CheckStatus.failed
+    assert result.status == CheckStatus.FAILED
     assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
@@ -295,7 +294,7 @@ async def test_mixed_advances_total_only_and_payments_only_success() -> None:
             ),
         ],
     )
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -308,7 +307,7 @@ async def test_taxes_with_none_amount_skipped_in_sum() -> None:
         taxes_amounts=[None, "100.00"],
         advances=None,
     )
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -323,7 +322,7 @@ async def test_errors_collected_from_multiple_sources() -> None:
             AdvancePayment(percent=None, total=_make_payment("80.00"), payments=[]),
         ],
     )
-    assert result.status == CheckStatus.failed
+    assert result.status == CheckStatus.FAILED
     assert len(result.errors) == TWO_ERRORS
     assert all(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
@@ -340,7 +339,7 @@ async def test_within_advance_and_cross_source_errors_both_collected() -> None:
             ),
         ],
     )
-    assert result.status == CheckStatus.failed
+    assert result.status == CheckStatus.FAILED
     assert len(result.errors) == TWO_ERRORS
     assert all(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
@@ -364,9 +363,9 @@ async def test_total_amounts_succeeds_when_total_gross_and_tax_net_match() -> No
     )
     check.advance_payments_field = None
 
-    result = await check.execute(STUB_CHECK_SERVICES)
+    result = await check.execute()
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -381,9 +380,9 @@ async def test_total_amounts_falls_back_to_raw_when_tax_lacks_rate() -> None:
     )
     check.advance_payments_field = None
 
-    result = await check.execute(STUB_CHECK_SERVICES)
+    result = await check.execute()
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
 
 
@@ -398,9 +397,9 @@ async def test_total_amounts_fails_when_grossed_amounts_differ() -> None:
     )
     check.advance_payments_field = None
 
-    result = await check.execute(STUB_CHECK_SERVICES)
+    result = await check.execute()
 
-    assert result.status == CheckStatus.failed
+    assert result.status == CheckStatus.FAILED
     assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
@@ -421,7 +420,7 @@ async def test_total_amounts_uses_excluding_vat_when_gross_unavailable() -> None
     )
     check.advance_payments_field = None
 
-    result = await check.execute(STUB_CHECK_SERVICES)
+    result = await check.execute()
 
-    assert result.status == CheckStatus.success
+    assert result.status == CheckStatus.SUCCESS
     assert result.errors == []

@@ -11,7 +11,7 @@ from app.domain.entities.single_supplier_fields import (
 from app.domain.entities.validation import CheckExecutionResult
 
 from .base import BaseCheck
-from .deps import CheckServices, OptionalDep, Requires
+from .deps import OptionalDep, Requires
 from .errors import InsufficientCheckDataError
 
 
@@ -86,14 +86,13 @@ class CheckTotalAmountsValidation(BaseCheck):
         if advances_sum is not None:
             self.amounts_to_compare.append(advances_sum)
 
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:  # noqa: ARG002
+    async def execute(self) -> CheckExecutionResult:
         self.errors = []
         self.amounts_to_compare = []
 
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
         advance_payments_field = cast(
-            "AdvancePaymentsField | None",
-            self.advance_payments_field,
+            "AdvancePaymentsField | None", self.advance_payments_field
         )
 
         group = [total_amount_field.value.total, *total_amount_field.value.taxes]

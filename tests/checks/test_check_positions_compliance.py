@@ -1,11 +1,8 @@
 from decimal import Decimal
-from types import SimpleNamespace
-from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 from app.domain.checks.check_positions_compliance import CheckPositionsCompliance
-from app.domain.checks.deps import CheckServices
 from app.domain.entities import (
     DocumentObjectField,
     FieldCollector,
@@ -18,16 +15,6 @@ from app.domain.pipeline import TaskStatus
 from app.domain.pipeline.task import CheckTask
 from app.domain.ports.checker import EvaluateResult, NumberedPosition
 from tests.domain.pipeline.conftest import DummyContract, create_context
-
-
-def _check_services(position_service: AsyncMock) -> CheckServices:
-    return cast(
-        "CheckServices",
-        SimpleNamespace(
-            check_position_compliancer=position_service,
-            check_transcription_compliancer=MagicMock(),
-        ),
-    )
 
 
 async def _run_check_task(
@@ -57,12 +44,10 @@ async def _run_check_task(
     )
     position_service = AsyncMock()
     contract_repo = MagicMock()
-    ctx = create_context(
-        contract=contract,
-        contract_repo=contract_repo,
-        check_position_compliancer=position_service,
-    )
-    await CheckTask(check=CheckPositionsCompliance()).run(ctx)
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
+    await CheckTask(
+        check=CheckPositionsCompliance(position_compliancer=position_service)
+    ).run(ctx)
     run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
     return contract_repo, run
 
@@ -118,7 +103,7 @@ async def test_passes_stripped_numbered_positions_to_compliancer() -> None:
         text=None,
         error=None,
     )
-    check = CheckPositionsCompliance()
+    check = CheckPositionsCompliance(position_compliancer=position_service)
     check.document_object_field = DocumentObjectField(
         value="  Поставка оборудования  ",
         sources=[],
@@ -150,7 +135,7 @@ async def test_passes_stripped_numbered_positions_to_compliancer() -> None:
         sources=[],
     )
 
-    await check.execute(_check_services(position_service))
+    await check.execute()
 
     position_service.evaluate.assert_awaited_once_with(
         "Поставка оборудования",
@@ -199,12 +184,8 @@ async def test_check1_can_run_as_task_and_save_result() -> None:
         error=None,
     )
     contract_repo = MagicMock()
-    ctx = create_context(
-        contract=contract,
-        contract_repo=contract_repo,
-        check_position_compliancer=position_service,
-    )
-    check = CheckPositionsCompliance()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
+    check = CheckPositionsCompliance(position_compliancer=position_service)
 
     await CheckTask(check=check).run(ctx)
 
@@ -239,12 +220,8 @@ async def test_check1_raises_when_required_field_is_missing() -> None:
 
     position_service = AsyncMock()
     contract_repo = MagicMock()
-    ctx = create_context(
-        contract=contract,
-        contract_repo=contract_repo,
-        check_position_compliancer=position_service,
-    )
-    check = CheckPositionsCompliance()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
+    check = CheckPositionsCompliance(position_compliancer=position_service)
 
     await CheckTask(check=check).run(ctx)
 
@@ -300,12 +277,8 @@ async def test_check1_raises_when_required_field_has_collision() -> None:
 
     position_service = AsyncMock()
     contract_repo = MagicMock()
-    ctx = create_context(
-        contract=contract,
-        contract_repo=contract_repo,
-        check_position_compliancer=position_service,
-    )
-    check = CheckPositionsCompliance()
+    ctx = create_context(contract=contract, contract_repo=contract_repo)
+    check = CheckPositionsCompliance(position_compliancer=position_service)
 
     await CheckTask(check=check).run(ctx)
 

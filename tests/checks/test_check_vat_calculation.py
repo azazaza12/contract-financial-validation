@@ -16,7 +16,6 @@ from app.domain.entities import (
 )
 from app.domain.entities.errors import VatAmountCalculationDiscrepancyError
 from app.domain.entities.validation import CheckStatus
-from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 
 
 def _pay(
@@ -65,7 +64,7 @@ async def _run(
         if advances is not None
         else None
     )
-    return await check.execute(STUB_CHECK_SERVICES)
+    return await check.execute()
 
 
 async def test_vat_calculation_succeeds_when_amount_includes_vat() -> None:
@@ -79,7 +78,7 @@ async def test_vat_calculation_succeeds_when_amount_includes_vat() -> None:
             )
         ],
     )
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert r.errors == []
 
 
@@ -89,7 +88,7 @@ async def test_vat_calculation_succeeds_when_amount_excludes_vat() -> None:
             amount="100.00", vat_amount="20.00", vat_rate="20.00", include_vat=False
         ),
     )
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert r.errors == []
 
 
@@ -100,7 +99,7 @@ async def test_vat_calculation_fails_when_formula_is_incorrect() -> None:
             amount="120.00", vat_amount=bad_vat, vat_rate="20.00", include_vat=True
         ),
     )
-    assert r.status == CheckStatus.failed
+    assert r.status == CheckStatus.FAILED
     assert any(isinstance(e, VatAmountCalculationDiscrepancyError) for e in r.errors)
 
 
@@ -111,7 +110,7 @@ async def test_vat_calculation_tolerance_allows_difference_within_one_ruble() ->
             amount="120.00", vat_amount=within, vat_rate="20.00", include_vat=True
         ),
     )
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert not any(
         isinstance(e, VatAmountCalculationDiscrepancyError) for e in r.errors
     )
@@ -126,7 +125,7 @@ async def test_vat_calculation_tolerance_fails_when_difference_exceeds_one_ruble
             amount="120.00", vat_amount=over, vat_rate="20.00", include_vat=True
         ),
     )
-    assert r.status == CheckStatus.failed
+    assert r.status == CheckStatus.FAILED
     assert any(isinstance(e, VatAmountCalculationDiscrepancyError) for e in r.errors)
 
 
@@ -136,7 +135,7 @@ async def test_vat_calculation_allows_zero_vat_rate() -> None:
             amount="120.00", vat_amount="0.00", vat_rate="0.00", include_vat=True
         ),
     )
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert r.errors == []
 
 
@@ -161,7 +160,7 @@ async def test_vat_calculation_verifies_advance_line_payments() -> None:
             ),
         ],
     )
-    assert r.status == CheckStatus.failed
+    assert r.status == CheckStatus.FAILED
     assert any(isinstance(e, VatAmountCalculationDiscrepancyError) for e in r.errors)
 
 
@@ -172,7 +171,7 @@ async def test_vat_calculation_skipped_when_no_amount_vat_rate_data() -> None:
     )
     check.advance_payments_field = None
     with pytest.raises(InsufficientCheckDataError):
-        await check.execute(STUB_CHECK_SERVICES)
+        await check.execute()
 
 
 async def test_vat_calculation_skips_non_positive_amount_without_error() -> None:
@@ -181,5 +180,5 @@ async def test_vat_calculation_skips_non_positive_amount_without_error() -> None
             amount="0.00", vat_amount="20.00", vat_rate="20.00", include_vat=True
         ),
     )
-    assert r.status == CheckStatus.success
+    assert r.status == CheckStatus.SUCCESS
     assert r.errors == []
