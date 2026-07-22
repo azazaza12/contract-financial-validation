@@ -9,7 +9,7 @@ from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
     AdvancePayment,
     AdvancePaymentsField,
-    Amount,
+    Money,
     FieldCollector,
     Payment,
     Source,
@@ -29,7 +29,7 @@ from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
 def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:
-    amount = Amount(value=Decimal(value), transcription=None)
+    amount = Money(value=Decimal(value), transcription=None)
     return Payment(
         amount=amount,
         vat=Vat(amount=amount, rate=Decimal(vat_rate)),
@@ -344,7 +344,7 @@ async def test_payment_percent_sum_fails_without_total_when_not_100() -> None:
 
 def _vat_payment(value: str, *, rate: str, include_vat: bool) -> Payment:
     return Payment(
-        amount=Amount(value=Decimal(value), transcription=None),
+        amount=Money(value=Decimal(value), transcription=None),
         vat=Vat(amount=None, rate=Decimal(rate)),
         include_vat=include_vat,
     )
@@ -357,7 +357,7 @@ async def test_payment_percent_falls_back_to_raw_when_advance_lacks_rate() -> No
         AdvancePayment(
             percent=Decimal("100.00"),
             total=Payment(
-                amount=Amount(value=Decimal("100.00"), transcription=None),
+                amount=Money(value=Decimal("100.00"), transcription=None),
                 vat=Vat(amount=None, rate=None),
                 include_vat=False,
             ),
@@ -396,7 +396,7 @@ async def test_payment_percent_uses_advance_payments_for_basis_when_total_has_no
         include_vat=False,
     )
     non_grossable_line = Payment(
-        amount=Amount(value=Decimal("50.00"), transcription=None),
+        amount=Money(value=Decimal("50.00"), transcription=None),
         vat=Vat(amount=None, rate=None),
         include_vat=False,
     )
@@ -438,7 +438,7 @@ async def test_payment_percent_basis_ignores_advance_payments_when_total_has_num
     total_payment = _vat_payment("100.00", rate="20.00", include_vat=False)
     advance_total = _vat_payment("120.00", rate="20.00", include_vat=True)
     non_grossable_line = Payment(
-        amount=Amount(value=Decimal("77.00"), transcription=None),
+        amount=Money(value=Decimal("77.00"), transcription=None),
         vat=Vat(amount=None, rate=None),
         include_vat=False,
     )

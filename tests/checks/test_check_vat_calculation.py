@@ -8,7 +8,7 @@ from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
     AdvancePayment,
     AdvancePaymentsField,
-    Amount,
+    Money,
     Payment,
     TotalAmount,
     TotalAmountField,
@@ -26,11 +26,11 @@ def _pay(
     include_vat: bool,
 ) -> Payment:
     return Payment(
-        amount=Amount(value=Decimal(amount), transcription=None)
+        amount=Money(value=Decimal(amount), transcription=None)
         if amount is not None
         else None,
         vat=Vat(
-            amount=Amount(value=Decimal(vat_amount), transcription=None)
+            amount=Money(value=Decimal(vat_amount), transcription=None)
             if vat_amount is not None
             else None,
             rate=Decimal(vat_rate) if vat_rate is not None else None,

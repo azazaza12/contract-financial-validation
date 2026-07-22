@@ -1,11 +1,11 @@
 from decimal import Decimal
 
 from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities import Amount, Basis, Payment, Vat
+from app.domain.entities import Money, Basis, Payment, Vat
 
 
 def _payment(value: str, *, rate: str, include_vat: bool) -> Payment:
-    amount = Amount(value=Decimal(value), transcription=None)
+    amount = Money(value=Decimal(value), transcription=None)
     return Payment(
         amount=amount,
         vat=Vat(amount=None, rate=Decimal(rate)),

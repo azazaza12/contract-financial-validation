@@ -7,7 +7,7 @@ from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.entities import (
     AdvancePayment,
     AdvancePaymentsField,
-    Amount,
+    Money,
     Payment,
     TotalAmount,
     TotalAmountField,
@@ -23,7 +23,7 @@ TWO_ERRORS = 2
 
 def _payment(*, vat_rate: Decimal | None) -> Payment:
     return Payment(
-        amount=Amount(value=Decimal("100.00"), transcription=None),
+        amount=Money(value=Decimal("100.00"), transcription=None),
         vat=Vat(amount=None, rate=vat_rate),
         include_vat=False,
     )

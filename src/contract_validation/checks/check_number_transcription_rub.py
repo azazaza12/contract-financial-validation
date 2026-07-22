@@ -3,7 +3,7 @@ from typing import cast
 from app.domain.entities.errors.checks import NumberTranscriptionError
 from app.domain.entities.single_supplier_fields import (
     AdvancePaymentsField,
-    Amount,
+    Money,
     Payment,
     TotalAmountField,
 )
@@ -23,7 +23,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
         self.transcription_compliancer = transcription_compliancer
 
     @staticmethod
-    def _amounts_with_transcription(amounts: list[Amount]) -> list[Amount]:
+    def _amounts_with_transcription(amounts: list[Money]) -> list[Money]:
         return [
             amount
             for amount in amounts
@@ -33,8 +33,8 @@ class CheckNumberTranscriptionRub(BaseCheck):
         ]
 
     @staticmethod
-    def _amounts_from_payment(payment: Payment) -> list[Amount]:
-        out: list[Amount] = []
+    def _amounts_from_payment(payment: Payment) -> list[Money]:
+        out: list[Money] = []
         if payment.amount is not None and payment.amount.value is not None:
             out.append(payment.amount)
         if payment.vat.amount is not None and payment.vat.amount.value is not None:
@@ -44,8 +44,8 @@ class CheckNumberTranscriptionRub(BaseCheck):
     def _extract_amounts_from_fields(
         self,
         fields: list[TotalAmountField | AdvancePaymentsField],
-    ) -> list[Amount]:
-        amounts: list[Amount] = []
+    ) -> list[Money]:
+        amounts: list[Money] = []
         for field in fields:
             if isinstance(field, TotalAmountField):
                 total_amount = field.value

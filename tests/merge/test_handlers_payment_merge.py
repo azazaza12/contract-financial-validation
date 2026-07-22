@@ -4,7 +4,7 @@ from uuid import uuid4
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import Source, ValueCandidate
 from app.domain.entities.errors import ValuesDiscrepancyError
-from app.domain.entities.single_supplier_fields import Amount, Payment, Vat
+from app.domain.entities.single_supplier_fields import Money, Payment, Vat
 from app.domain.merge import STRICT_REGISTRY
 from app.domain.merge.handlers import merge_payment
 
@@ -17,10 +17,10 @@ def _payment(
     vat_amount: Decimal | None = None,
 ) -> Payment:
     return Payment(
-        amount=Amount(value=amount, transcription=None),
+        amount=Money(value=amount, transcription=None),
         vat=Vat(
             amount=(
-                Amount(value=vat_amount, transcription=None)
+                Money(value=vat_amount, transcription=None)
                 if vat_amount is not None
                 else None
             ),
@@ -190,12 +190,12 @@ def test_merge_payment_strict_merges_equal_amounts_when_footing_unknown() -> Non
 def test_merge_payment_pairs_transcription_with_value_bearing_payment() -> None:
     errors: list = []
     words_only = Payment(
-        amount=Amount(value=None, transcription="сто рублей"),
+        amount=Money(value=None, transcription="сто рублей"),
         vat=Vat(amount=None, rate=None),
         include_vat=False,
     )
     number_only = Payment(
-        amount=Amount(value=Decimal(100), transcription=None),
+        amount=Money(value=Decimal(100), transcription=None),
         vat=Vat(amount=None, rate=None),
         include_vat=False,
     )
@@ -216,12 +216,12 @@ def test_merge_payment_pairs_transcription_with_value_bearing_payment() -> None:
 def test_merge_payment_keeps_value_bearers_own_transcription() -> None:
     errors: list = []
     stray_words = Payment(
-        amount=Amount(value=None, transcription="сто"),
+        amount=Money(value=None, transcription="сто"),
         vat=Vat(amount=None, rate=None),
         include_vat=False,
     )
     full = Payment(
-        amount=Amount(value=Decimal(100), transcription="сто рублей"),
+        amount=Money(value=Decimal(100), transcription="сто рублей"),
         vat=Vat(amount=None, rate=None),
         include_vat=False,
     )
@@ -242,12 +242,12 @@ def test_merge_payment_keeps_value_bearers_own_transcription() -> None:
 def test_merge_payment_keeps_filled_transcription_when_first_bearer_lacks_it() -> None:
     errors: list = []
     number_only = Payment(
-        amount=Amount(value=Decimal(100000), transcription=None),
+        amount=Money(value=Decimal(100000), transcription=None),
         vat=Vat(amount=None, rate=None),
         include_vat=True,
     )
     number_with_words = Payment(
-        amount=Amount(value=Decimal(100000), transcription="сто тысяч рублей"),
+        amount=Money(value=Decimal(100000), transcription="сто тысяч рублей"),
         vat=Vat(amount=None, rate=None),
         include_vat=True,
     )

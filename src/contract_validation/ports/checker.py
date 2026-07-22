@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from app.domain.entities.single_supplier_fields import Amount
+    from app.domain.entities.single_supplier_fields import Money
 
 
 @dataclass
@@ -45,4 +45,4 @@ class TranscriptionCheckResult:
 
 class ITranscriptionCompliancer(ABC):
     @abstractmethod
-    async def evaluate(self, amounts: list[Amount]) -> TranscriptionCheckResult: ...
+    async def evaluate(self, amounts: list[Money]) -> TranscriptionCheckResult: ...

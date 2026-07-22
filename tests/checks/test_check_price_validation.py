@@ -8,7 +8,7 @@ from app.domain.checks.check_price_validation import CheckPriceValidation
 from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
-    Amount,
+    Money,
     FieldCollector,
     Payment,
     Source,
@@ -30,7 +30,7 @@ from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
 def _make_payment(value: str) -> Payment:
-    amount = Amount(value=Decimal(value), transcription=None)
+    amount = Money(value=Decimal(value), transcription=None)
     return Payment(
         amount=amount,
         vat=Vat(amount=None, rate=None),
@@ -400,7 +400,7 @@ def _make_vat_total_amount_field(
     document: SingleSupplierDocument,
 ) -> TotalAmountField:
     total = Payment(
-        amount=Amount(value=Decimal(value), transcription=None),
+        amount=Money(value=Decimal(value), transcription=None),
         vat=Vat(amount=None, rate=Decimal(rate)),
         include_vat=include_vat,
     )
