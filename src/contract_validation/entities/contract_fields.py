@@ -24,7 +24,7 @@ class DocumentObjectField(BaseField[str]):
 
 
 @dataclass(kw_only=True, frozen=True)
-class Amount:
+class Money:
     value: Decimal | None
     transcription: str | None
 
@@ -36,7 +36,7 @@ class Amount:
 
 @dataclass(kw_only=True, frozen=True)
 class Vat:
-    amount: Amount | None
+    amount: Money | None
     rate: Decimal | None
 
     @property
@@ -51,7 +51,7 @@ class Vat:
 
 @dataclass(kw_only=True, frozen=True)
 class Payment:
-    amount: Amount | None
+    amount: Money | None
     vat: Vat
     include_vat: bool | None
 
@@ -225,12 +225,12 @@ class PaymentList:
         if amount_value is None and vat_amount_value is None and rate is None:
             return None
         amount = (
-            Amount(value=amount_value, transcription=None)
+            Money(value=amount_value, transcription=None)
             if amount_value is not None
             else None
         )
         vat_amount = (
-            Amount(value=vat_amount_value, transcription=None)
+            Money(value=vat_amount_value, transcription=None)
             if vat_amount_value is not None
             else None
         )

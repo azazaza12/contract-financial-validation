@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from app.domain.entities import (
     AdvancePayment,
-    Amount,
+    Money,
     Payment,
     PaymentList,
     TotalAmount,
@@ -19,13 +19,13 @@ def make_payment(
 ) -> Payment:
     return Payment(
         amount=(
-            Amount(value=Decimal(amount), transcription=None)
+            Money(value=Decimal(amount), transcription=None)
             if amount is not None
             else None
         ),
         vat=Vat(
             amount=(
-                Amount(value=Decimal(vat_amount), transcription=None)
+                Money(value=Decimal(vat_amount), transcription=None)
                 if vat_amount is not None
                 else None
             ),

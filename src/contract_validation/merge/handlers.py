@@ -11,7 +11,7 @@ from app.domain.entities.merge_types import Source, SourceHeader, ValueCandidate
 
 
 if TYPE_CHECKING:
-    from app.domain.entities.single_supplier_fields import Amount, Payment
+    from app.domain.entities.single_supplier_fields import Money, Payment
 
     from .registry import MergeRegistry
 
@@ -249,7 +249,7 @@ def _assemble_most_complete_payment(payments: list[Payment]) -> Payment:
     return replace(base, vat=replace(base.vat, rate=rate, amount=vat_amount))
 
 
-def _reference_transcription(amounts: list[Amount | None]) -> str | None:
+def _reference_transcription(amounts: list[Money | None]) -> str | None:
     value_bearers = [a for a in amounts if a is not None and a.value is not None]
     transcribed = next((a for a in value_bearers if a.transcription is not None), None)
     if transcribed is not None:

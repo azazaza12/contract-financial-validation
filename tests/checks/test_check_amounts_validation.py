@@ -8,7 +8,7 @@ from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
     AdvancePayment,
     AdvancePaymentsField,
-    Amount,
+    Money,
     Payment,
     TotalAmount,
     TotalAmountField,
@@ -25,7 +25,7 @@ TWO_ERRORS = 2
 
 def _make_payment(amount_value: str | None) -> Payment:
     amount = (
-        Amount(value=Decimal(amount_value), transcription=None)
+        Money(value=Decimal(amount_value), transcription=None)
         if amount_value is not None
         else None
     )
@@ -346,7 +346,7 @@ async def test_within_advance_and_cross_source_errors_both_collected() -> None:
 
 def _make_vat_payment(value: str, *, rate: str, include_vat: bool) -> Payment:
     return Payment(
-        amount=Amount(value=Decimal(value), transcription=None),
+        amount=Money(value=Decimal(value), transcription=None),
         vat=Vat(amount=None, rate=Decimal(rate)),
         include_vat=include_vat,
     )
@@ -410,7 +410,7 @@ async def test_total_amounts_uses_excluding_vat_when_gross_unavailable() -> None
             total=_make_vat_payment("120.00", rate="20.00", include_vat=True),
             taxes=[
                 Payment(
-                    amount=Amount(value=Decimal("100.00"), transcription=None),
+                    amount=Money(value=Decimal("100.00"), transcription=None),
                     vat=Vat(amount=None, rate=None),
                     include_vat=False,
                 )
