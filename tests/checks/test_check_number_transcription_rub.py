@@ -19,7 +19,7 @@ from app.domain.entities import (
 from app.domain.entities.errors import NumberTranscriptionError
 from app.domain.entities.single_supplier import SingleSupplierDocument
 from app.domain.entities.validation import CheckStatus
-from app.domain.ports.checker import TranscriptionCheckIssue, TranscriptionCheckResult
+from app.domain.ports.checker import TranscriptionCheckIssue
 
 
 def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmountField:
@@ -39,7 +39,7 @@ def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmou
 
 async def test_check_14_succeeds_when_no_transcription_issues() -> None:
     service_mock = AsyncMock()
-    service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
+    service_mock.evaluate.return_value = None
     check = CheckNumberTranscriptionRub(transcription_compliancer=service_mock)
     check.total_amount_fields = [
         _make_total_amount_field(
@@ -58,27 +58,38 @@ async def test_check_14_succeeds_when_no_transcription_issues() -> None:
 
 async def test_check_14_maps_each_issue_to_validation_error() -> None:
     service_mock = AsyncMock()
-    service_mock.evaluate.return_value = TranscriptionCheckResult(
-        issues=[
-            TranscriptionCheckIssue(
-                index=1,
-                value=Decimal("100.00"),
-                transcription="Сто один",
-                expected_transcription="Сто",
-            ),
-            TranscriptionCheckIssue(
-                index=2,
-                value=Decimal("200.00"),
-                transcription="Двести один",
-                expected_transcription="Двести",
-            ),
-        ],
-    )
-    check = CheckNumberTranscriptionRub(transcription_compliancer=service_mock)
-    check.total_amount_fields = [
-        _make_total_amount_field(
-            value="100.00",
+    service_mock.evaluate.side_effect = [
+        TranscriptionCheckIssue(
+            value=Decimal("100.00"),
             transcription="Сто один",
+            expected_transcription="Сто",
+        ),
+        TranscriptionCheckIssue(
+            value=Decimal("20.00"),
+            transcription="Двадцать один",
+            expected_transcription="Двадцать",
+        ),
+    ]
+
+    check = CheckNumberTranscriptionRub(
+        transcription_compliancer=service_mock,
+    )
+    check.total_amount_fields = [
+        TotalAmountField(
+            value=TotalAmount(
+                total=Payment(
+                    amount=Amount(value=Decimal("100.00"), transcription="Сто один"),
+                    vat=Vat(
+                        amount=Amount(
+                            value=Decimal("20.00"), transcription="Двадцать один"
+                        ),
+                        rate=Decimal("20.00"),
+                    ),
+                    include_vat=True,
+                ),
+                taxes=[],
+            ),
+            sources=[Source(document_id=uuid4())],
         )
     ]
     check.advance_payments_fields = []
@@ -87,24 +98,28 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
 
     assert result.status == CheckStatus.FAILED
     assert len(result.errors) == 2  # noqa: PLR2004
-    assert all(isinstance(error, NumberTranscriptionError) for error in result.errors)
     first = result.errors[0]
     second = result.errors[1]
     assert isinstance(first, NumberTranscriptionError)
     assert isinstance(second, NumberTranscriptionError)
-    assert first.index == 1
+    assert first.index == 0
     assert first.value == Decimal("100.00")
     assert first.transcription == "Сто один"
     assert first.expected_transcription == "Сто"
-    assert second.index == 2  # noqa: PLR2004
-    assert second.value == Decimal("200.00")
-    service_mock.evaluate.assert_awaited_once()
+    assert second.index == 1
+    assert second.value == Decimal("20.00")
+    assert second.transcription == "Двадцать один"
+    assert second.expected_transcription == "Двадцать"
+    assert service_mock.evaluate.await_count == 2  # noqa: PLR2004
 
 
-async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
+async def test_check_14_passes_each_nested_amount_to_service() -> None:
     service_mock = AsyncMock()
-    service_mock.evaluate.return_value = TranscriptionCheckResult(issues=[])
-    check = CheckNumberTranscriptionRub(transcription_compliancer=service_mock)
+    service_mock.evaluate.return_value = None
+
+    check = CheckNumberTranscriptionRub(
+        transcription_compliancer=service_mock,
+    )
 
     document = SingleSupplierDocument(id=uuid4(), file_name="contract.pdf")
     total_amount_field = TotalAmountField(
@@ -182,11 +197,11 @@ async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
     result = await check.execute()
 
     assert result.status == CheckStatus.SUCCESS
-    service_mock.evaluate.assert_awaited_once()
-    passed_amounts = service_mock.evaluate.await_args.args[0]
-
-    assert len(passed_amounts) == 6  # noqa: PLR2004
-    actual_pairs = {(amount.value, amount.transcription) for amount in passed_amounts}
+    assert service_mock.evaluate.await_count == 6  # noqa: PLR2004
+    passed_pairs = {
+        (call.args[0].value, call.args[0].transcription)
+        for call in service_mock.evaluate.await_args_list
+    }
     expected_pairs = {
         (
             Decimal("1217291.25"),
@@ -204,7 +219,7 @@ async def test_check_14_passes_realistic_nested_amounts_to_service() -> None:
         (Decimal("28161.45"), "Двадцать восемь тысяч сто шестьдесят один"),
         (Decimal("2560.13"), "Две тысячи пятьсот шестьдесят"),
     }
-    assert actual_pairs == expected_pairs
+    assert passed_pairs == expected_pairs
 
 
 async def test_check_14_skips_when_no_amount_transcription_pairs() -> None:
