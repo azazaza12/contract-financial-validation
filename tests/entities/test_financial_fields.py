@@ -7,6 +7,7 @@ from app.domain.entities import (
     PaymentList,
     TotalAmount,
     Vat,
+    VatInclusion,
 )
 
 
@@ -15,7 +16,7 @@ def make_payment(
     amount: str | None = None,
     vat_amount: str | None = None,
     rate: str | None = None,
-    include_vat: bool | None = False,
+    include_vat: VatInclusion = VatInclusion.EXCLUDED,
 ) -> Payment:
     return Payment(
         amount=(
@@ -71,22 +72,22 @@ def test_expected_vat_amount_none_when_rate_missing():
 
 
 def test_expected_vat_amount_included_extracts_from_gross():
-    payment = make_payment(amount="120.00", rate="20", include_vat=True)
+    payment = make_payment(amount="120.00", rate="20", include_vat=VatInclusion.INCLUDED)
     assert payment.expected_vat_amount == Decimal(20)
 
 
 def test_expected_vat_amount_excluded_adds_on_top():
-    payment = make_payment(amount="100.00", rate="20", include_vat=False)
+    payment = make_payment(amount="100.00", rate="20", include_vat=VatInclusion.EXCLUDED)
     assert payment.expected_vat_amount == Decimal(20)
 
 
 def test_expected_vat_amount_none_when_include_vat_unknown():
-    payment = make_payment(amount="100.00", rate="20", include_vat=None)
+    payment = make_payment(amount="100.00", rate="20", include_vat=VatInclusion.UNSPECIFIED)
     assert payment.expected_vat_amount is None
 
 
 def test_expected_vat_amount_none_when_included_denominator_zero():
-    payment = make_payment(amount="100.00", rate="-100", include_vat=True)
+    payment = make_payment(amount="100.00", rate="-100", include_vat=VatInclusion.INCLUDED)
     assert payment.expected_vat_amount is None
 
 
@@ -144,10 +145,10 @@ def test_payment_list_combined_sums_amounts_and_keeps_common_rate():
     payment_list = PaymentList(
         [
             make_payment(
-                amount="1000.00", vat_amount="166.67", rate="20.00", include_vat=True
+                amount="1000.00", vat_amount="166.67", rate="20.00", include_vat=VatInclusion.INCLUDED
             ),
             make_payment(
-                amount="2000.00", vat_amount="333.33", rate="20.00", include_vat=True
+                amount="2000.00", vat_amount="333.33", rate="20.00", include_vat=VatInclusion.INCLUDED
             ),
         ]
     )
@@ -156,7 +157,7 @@ def test_payment_list_combined_sums_amounts_and_keeps_common_rate():
     assert combined.amount_value == Decimal("3000.00")
     assert combined.vat_amount_value == Decimal("500.00")
     assert combined.vat_rate == Decimal("20.00")
-    assert combined.include_vat is True
+    assert combined.include_vat is VatInclusion.INCLUDED
 
 
 def test_payment_list_combined_drops_rate_when_rates_differ():

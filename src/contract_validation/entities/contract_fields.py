@@ -16,6 +16,13 @@ class Basis(StrEnum):
     RAW = "raw"
 
 
+class VatInclusion(StrEnum):
+    INCLUDED = "included"
+    EXCLUDED = "excluded"
+    UNSPECIFIED = "unspecified"
+    MIXED = "mixed"
+
+
 class DocumentObjectField(BaseField[str]):
     merge_registry = STRICT_REGISTRY
 
@@ -53,7 +60,7 @@ class Vat:
 class Payment:
     amount: Money | None
     vat: Vat
-    include_vat: bool | None
+    include_vat: VatInclusion
 
     def has_data(self) -> bool:
         # ignore include_vat data
@@ -79,9 +86,13 @@ class Payment:
     def expected_vat_amount(self) -> Decimal | None:
         amount = self.amount_value
         rate = self.vat.rate
-        if amount is None or rate is None or self.include_vat is None:
+        if (
+            amount is None
+            or rate is None
+            or self.include_vat is VatInclusion.UNSPECIFIED
+        ):
             return None
-        if self.include_vat:
+        if self.include_vat is VatInclusion.INCLUDED:
             denominator = 100 + rate
             if denominator <= 0:
                 return None
@@ -91,9 +102,9 @@ class Payment:
     @property
     def amount_excluding_vat(self) -> Decimal | None:
         stated = self.amount_value
-        if stated is None or self.include_vat is None:
+        if stated is None or self.include_vat is VatInclusion.UNSPECIFIED:
             return None
-        if not self.include_vat:
+        if self.include_vat is VatInclusion.EXCLUDED:
             return stated
         if self.vat.rate is None:
             return None
@@ -105,9 +116,9 @@ class Payment:
     @property
     def amount_including_vat(self) -> Decimal | None:
         stated = self.amount_value
-        if stated is None or self.include_vat is None:
+        if stated is None or self.include_vat is VatInclusion.UNSPECIFIED:
             return None
-        if self.include_vat:
+        if self.include_vat is VatInclusion.INCLUDED:
             return stated
         if self.vat.rate is None:
             return None
@@ -207,15 +218,18 @@ class PaymentList:
         return None
 
     @property
-    def _include_vat(self) -> bool | None:
+    def _include_vat(self) -> VatInclusion:
         values = {
             payment.include_vat
             for payment in self._payments
-            if payment.include_vat is not None
+            if payment.include_vat is not VatInclusion.UNSPECIFIED
         }
+
+        if not values:
+            return VatInclusion.UNSPECIFIED
         if len(values) == 1:
-            return next(iter(values))
-        return None
+            return values.pop()
+        return VatInclusion.MIXED
 
     @property
     def combined(self) -> Payment | None:
