@@ -79,17 +79,20 @@ class CheckNumberTranscriptionRub(BaseCheck):
                 self.__class__.__name__,
                 "no amount-transcription pairs to validate",
             )
-        result = await self.transcription_compliancer.evaluate(
-            checkable_amounts,
-        )
 
-        errors = [
-            NumberTranscriptionError(
-                index=issue.index,
-                value=issue.value,
-                transcription=issue.transcription,
-                expected_transcription=issue.expected_transcription,
+        errors: list[NumberTranscriptionError] = []
+        for index, amount in enumerate(checkable_amounts):
+            issue = await self.transcription_compliancer.evaluate(
+                amount,
             )
-            for issue in result.issues
-        ]
+            if issue is None:
+                continue
+            errors.append(
+                NumberTranscriptionError(
+                    index=index,
+                    value=issue.value,
+                    transcription=issue.transcription,
+                    expected_transcription=issue.expected_transcription,
+                )
+            )
         return self._result(errors)
