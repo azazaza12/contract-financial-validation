@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from app.domain.entities.validation import CheckExecutionResult, CheckStatus
 
-from .deps import CheckServices, OptionalDep, Requires
+from .deps import OptionalDep, Requires
 
 
 if TYPE_CHECKING:
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 class BaseCheck(ABC):
     @abstractmethod
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult: ...
+    async def execute(self) -> CheckExecutionResult: ...
 
     def prepare(self, fields: Iterable[BaseField]) -> None:
         attr_dict = type(self).__dict__
@@ -27,7 +27,7 @@ class BaseCheck(ABC):
                 setattr(self, attr_name, value)
 
     def _result(self, errors: Sequence[BaseCheckError]) -> CheckExecutionResult:
-        status = CheckStatus.failed if errors else CheckStatus.success
+        status = CheckStatus.FAILED if errors else CheckStatus.SUCCESS
         return CheckExecutionResult(
             label=self.__class__.__name__,
             status=status,

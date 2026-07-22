@@ -8,15 +8,19 @@ from app.domain.entities.single_supplier_fields import (
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
+from app.domain.ports.checker import ITranscriptionCompliancer
 
 from .base import BaseCheck
-from .deps import CheckServices, OptionalDep
+from .deps import OptionalDep
 from .errors import InsufficientCheckDataError
 
 
 class CheckNumberTranscriptionRub(BaseCheck):
     total_amount_fields = OptionalDep(list[TotalAmountField])
     advance_payments_fields = OptionalDep(list[AdvancePaymentsField])
+
+    def __init__(self, transcription_compliancer: ITranscriptionCompliancer) -> None:
+        self.transcription_compliancer = transcription_compliancer
 
     @staticmethod
     def _amounts_with_transcription(amounts: list[Amount]) -> list[Amount]:
@@ -57,7 +61,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
                     amounts.extend(self._amounts_from_payment(payment))
         return amounts
 
-    async def execute(self, check_services: CheckServices) -> CheckExecutionResult:
+    async def execute(self) -> CheckExecutionResult:
         total_amount_fields = cast(
             "list[TotalAmountField]",
             self.total_amount_fields,
@@ -75,7 +79,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
                 self.__class__.__name__,
                 "no amount-transcription pairs to validate",
             )
-        result = await check_services.check_transcription_compliancer.evaluate(
+        result = await self.transcription_compliancer.evaluate(
             checkable_amounts,
         )
 

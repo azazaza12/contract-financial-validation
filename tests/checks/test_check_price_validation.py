@@ -26,7 +26,6 @@ from app.domain.entities.errors import (
 from app.domain.entities.single_supplier import SingleSupplierDocument
 from app.domain.pipeline import TaskStatus
 from app.domain.pipeline.task import CheckTask
-from tests.domain.pipeline.check_services_stub import STUB_CHECK_SERVICES
 from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
@@ -318,7 +317,7 @@ async def test_check_price_validation_skips_when_no_amounts_at_all() -> None:
     check = CheckPriceValidation(tolerance=AMOUNT_TOLERANCE)
     check.prepare(fields)
     with pytest.raises(InsufficientCheckDataError):
-        await check.execute(STUB_CHECK_SERVICES)
+        await check.execute()
 
 
 async def test_check_price_validation_skips_when_contract_total_is_missing() -> None:
@@ -414,7 +413,7 @@ def _make_vat_total_amount_field(
 async def _run_price_check(fields: FieldCollector) -> list:
     check = CheckPriceValidation(tolerance=AMOUNT_TOLERANCE)
     check.prepare(fields)
-    result = await check.execute(STUB_CHECK_SERVICES)
+    result = await check.execute()
     return result.errors
 
 

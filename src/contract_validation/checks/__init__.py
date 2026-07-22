@@ -6,11 +6,13 @@ from .errors import (
     MissingRequiredFieldError,
     MultiplyRequiredFieldError,
 )
+from .services import CheckServices
 
 
 __all__ = [
     "BaseCheck",
     "CheckInputError",
+    "CheckServices",
     "InvalidCheckSignatureError",
     "MissingRequiredFieldError",
     "MultiplyRequiredFieldError",
