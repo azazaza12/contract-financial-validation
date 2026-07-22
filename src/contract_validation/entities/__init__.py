@@ -5,9 +5,9 @@ from .merge_types import Source, SourceHeader, ValueCandidate
 from .single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
-    Money,
     Basis,
     DocumentObjectField,
+    Money,
     Payment,
     PaymentList,
     SpecPosition,
@@ -15,6 +15,7 @@ from .single_supplier_fields import (
     TotalAmount,
     TotalAmountField,
     Vat,
+    VatInclusion,
 )
 from .user import User
 
@@ -22,13 +23,13 @@ from .user import User
 __all__ = [
     "AdvancePayment",
     "AdvancePaymentsField",
-    "Money",
     "BaseContract",
     "BaseDocument",
     "BaseField",
     "Basis",
     "DocumentObjectField",
     "FieldCollector",
+    "Money",
     "Payment",
     "PaymentList",
     "Source",
@@ -40,4 +41,5 @@ __all__ = [
     "User",
     "ValueCandidate",
     "Vat",
+    "VatInclusion",
 ]

@@ -8,8 +8,8 @@ from app.domain.checks.check_price_validation import CheckPriceValidation
 from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
-    Money,
     FieldCollector,
+    Money,
     Payment,
     Source,
     SpecPosition,
