@@ -32,17 +32,11 @@ class IPositionsCompliancer(ABC):
 
 @dataclass
 class TranscriptionCheckIssue:
-    index: int
     value: Decimal
     transcription: str
     expected_transcription: str
 
 
-@dataclass
-class TranscriptionCheckResult:
-    issues: list[TranscriptionCheckIssue]
-
-
 class ITranscriptionCompliancer(ABC):
     @abstractmethod
-    async def evaluate(self, amounts: list[Amount]) -> TranscriptionCheckResult: ...
+    async def evaluate(self, amount: Amount) -> TranscriptionCheckIssue | None: ...
