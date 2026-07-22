@@ -1,4 +1,5 @@
 from dataclasses import is_dataclass
+from enum import Enum
 from typing import TYPE_CHECKING
 
 import structlog
@@ -19,7 +20,6 @@ from .handlers import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-
 
 logger = structlog.get_logger(__name__)
 
@@ -82,7 +82,9 @@ class MergeRegistry:
         if value_type is str:
             return self.scalar_handler_str
 
-        if is_scalar(value_type):
+        if (isinstance(value_type, type) and issubclass(value_type, Enum)) or is_scalar(
+            value_type
+        ):
             return self.scalar_handler
 
         return None
