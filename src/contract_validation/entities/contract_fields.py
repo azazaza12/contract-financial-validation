@@ -291,16 +291,6 @@ class AdvancePayment:
     def payment_lines(self) -> PaymentList:
         return PaymentList(self.payments)
 
-    @property
-    def resolved_total(self) -> Payment | None:
-        base = self.total if self.total is not None else self.payment_lines.combined
-        if base is None:
-            return None
-        if base.amount_value is not None:
-            return base
-        fallback = self.payment_lines.combined
-        return fallback if fallback is not None else base
-
     def amount_in_basis(self, basis: Basis) -> Decimal | None:
         if self.total is not None:
             total = self.total.amount_in_basis(basis)
