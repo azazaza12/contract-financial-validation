@@ -7,9 +7,12 @@ from app.domain.merge.defaults import STRICT_REGISTRY
 from app.domain.merge.handlers import merge_payment
 from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
-from .field import BaseField
-from .errors.checks import AmountNotPositiveError, VatAmountNotPositiveError, VatRateNotPositiveError, BaseCheckError
 from .errors.base import BaseContractError
+from .errors.checks import (
+    AmountNotPositiveError,
+    VatRateNotPositiveError,
+)
+from .field import BaseField
 
 
 class Basis(StrEnum):
@@ -23,6 +26,11 @@ class VatInclusion(StrEnum):
     EXCLUDED = "excluded"
     UNSPECIFIED = "unspecified"
     MIXED = "mixed"
+
+
+class MoneyValidationMode(StrEnum):
+    POSITIVE = "positive"
+    NON_NEGATIVE = "non_negative"
 
 
 class DocumentObjectField(BaseField[str]):
@@ -42,15 +50,18 @@ class Money:
             return True
         return bool(self.transcription is not None and self.transcription.strip() != "")
 
-    def is_correct(self, include_zero: bool = False) -> list[BaseContractError]:
+    def validate(
+        self, mode: MoneyValidationMode = MoneyValidationMode.POSITIVE
+    ) -> list[BaseContractError]:
         if self.value is None:
             return []
 
-        if self.value < 0 or (not include_zero and self.value == Decimal('0')):
+        if self.value < 0:
+            return [AmountNotPositiveError(value=self.value)]
+
+        if mode is MoneyValidationMode.POSITIVE and self.value == Decimal(0):
             return [AmountNotPositiveError(value=self.value)]
         return []
-
-
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -67,15 +78,13 @@ class Vat:
             return True
         return self.rate is not None
 
-
-    def is_correct(self) -> list[BaseContractError]:
-        errors = []
+    def validate(self) -> list[BaseContractError]:
+        errors: list[BaseContractError] = []
         if self.rate is not None and self.rate < 0:
             errors.append(VatRateNotPositiveError(value=self.rate))
         if self.amount is not None:
-            errors.extend(self.amount.is_correct(include_zero=True))
+            errors.extend(self.amount.validate(MoneyValidationMode.NON_NEGATIVE))
         return errors
-
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -90,14 +99,13 @@ class Payment:
             self.amount is not None and self.amount.has_data()
         ) or self.vat.has_data()
 
-    def is_correct(self) -> list[BaseContractError]:
+    def validate(self) -> list[BaseContractError]:
         errors = []
         if self.amount is not None:
-            errors.extend(self.amount.is_correct())
+            errors.extend(self.amount.validate())
         if self.vat is not None:
-            errors.extend(self.vat.is_correct())
+            errors.extend(self.vat.validate())
         return errors
-
 
     @property
     def amount_value(self) -> Decimal | None:
@@ -204,11 +212,10 @@ class PaymentList:
     def __bool__(self) -> bool:
         return bool(self._payments)
 
-
-    def is_correct(self) -> list[BaseContractError]:
+    def validate(self) -> list[BaseContractError]:
         errors = []
         for payment in self._payments:
-            errors.extend(payment.is_correct())
+            errors.extend(payment.validate())
         return errors
 
     @property
@@ -303,12 +310,11 @@ class TotalAmount:
             return True
         return bool(any(payment.has_data() for payment in self.taxes))
 
-    def is_correct(self) -> list[BaseContractError]:
+    def validate(self) -> list[BaseContractError]:
         errors = []
-        errors.extend(self.total.is_correct())
-        errors.extend(self.taxes.is_correct())
+        errors.extend(self.total.validate())
+        errors.extend(self.taxes.validate())
         return errors
-
 
     def get_moneys(self) -> list[Money]:
         moneys: list[Money] = []
@@ -319,7 +325,6 @@ class TotalAmount:
         return moneys
 
 
-
 @dataclass(kw_only=True, frozen=True)
 class TotalAmountField(BaseField[TotalAmount]):
     merge_registry = STRICT_REGISTRY
@@ -327,15 +332,15 @@ class TotalAmountField(BaseField[TotalAmount]):
     def has_data(self) -> bool:
         return self.value.has_data()
 
-    def is_correct(self) -> list[BaseContractError]:
-        return self.value.is_correct()
+    def validate(self) -> list[BaseContractError]:
+        return self.value.validate()
 
 
 @dataclass(kw_only=True, frozen=True)
 class AdvancePayment:
     percent: Decimal | None
     total: Payment | None
-    payments: list[Payment]
+    payments: PaymentList
 
     def has_data(self) -> bool:
         if self.percent is not None:
@@ -344,16 +349,12 @@ class AdvancePayment:
             return True
         return bool(any(payment.has_data() for payment in self.payments))
 
-    @property
-    def payment_lines(self) -> PaymentList:
-        return PaymentList(self.payments)
-
     def amount_in_basis(self, basis: Basis) -> Decimal | None:
         if self.total is not None:
             total = self.total.amount_in_basis(basis)
             if total is not None:
                 return total
-        return self.payment_lines.amount_in_basis(basis)
+        return self.payments.amount_in_basis(basis)
 
 
 @dataclass(kw_only=True, frozen=True)
