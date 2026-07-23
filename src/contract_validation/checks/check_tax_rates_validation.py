@@ -19,7 +19,7 @@ from .errors import InsufficientCheckDataError
 def _advance_has_any_vat_rate(adv: AdvancePayment) -> bool:
     if adv.total is not None and adv.total.vat.rate is not None:
         return True
-    return bool(adv.payment_lines.vat_rates)
+    return bool(adv.payments.vat_rates)
 
 
 def _advances_field_has_any_vat_rate(

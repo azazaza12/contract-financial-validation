@@ -66,7 +66,7 @@ class CheckTotalAmountsValidation(BaseCheck):
                 if advance_payment.total is not None
                 else None
             )
-            payments_sum = advance_payment.payment_lines.amount_in_basis(basis)
+            payments_sum = advance_payment.payments.amount_in_basis(basis)
 
             if total_amount is not None and payments_sum is not None:
                 diff = abs(total_amount - payments_sum)
