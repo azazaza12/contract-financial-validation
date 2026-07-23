@@ -353,7 +353,9 @@ def _vat_payment(value: str, *, rate: str, include_vat: bool) -> Payment:
 
 async def test_payment_percent_falls_back_to_raw_when_advance_lacks_rate() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    total_payment = _vat_payment("100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED)
+    total_payment = _vat_payment(
+        "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
+    )
     advances = [
         AdvancePayment(
             percent=Decimal("100.00"),
@@ -390,7 +392,9 @@ async def test_payment_percent_uses_advance_payments_for_basis_when_total_has_no
     None
 ):
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    total_payment = _vat_payment("100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED)
+    total_payment = _vat_payment(
+        "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
+    )
     numberless_total = Payment(
         amount=None,
         vat=Vat(amount=None, rate=Decimal("20.00")),
@@ -436,8 +440,12 @@ async def test_payment_percent_basis_ignores_advance_payments_when_total_has_num
     None
 ):
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    total_payment = _vat_payment("100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED)
-    advance_total = _vat_payment("120.00", rate="20.00", include_vat=VatInclusion.INCLUDED)
+    total_payment = _vat_payment(
+        "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
+    )
+    advance_total = _vat_payment(
+        "120.00", rate="20.00", include_vat=VatInclusion.INCLUDED
+    )
     non_grossable_line = Payment(
         amount=Money(value=Decimal("77.00"), transcription=None),
         vat=Vat(amount=None, rate=None),
@@ -475,16 +483,22 @@ async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match(
     None
 ):
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    total_payment = _vat_payment("100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED)
+    total_payment = _vat_payment(
+        "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
+    )
     advances = [
         AdvancePayment(
             percent=Decimal("50.00"),
-            total=_vat_payment("60.00", rate="20.00", include_vat=VatInclusion.INCLUDED),
+            total=_vat_payment(
+                "60.00", rate="20.00", include_vat=VatInclusion.INCLUDED
+            ),
             payments=[],
         ),
         AdvancePayment(
             percent=Decimal("50.00"),
-            total=_vat_payment("60.00", rate="20.00", include_vat=VatInclusion.INCLUDED),
+            total=_vat_payment(
+                "60.00", rate="20.00", include_vat=VatInclusion.INCLUDED
+            ),
             payments=[],
         ),
     ]

@@ -49,7 +49,7 @@ class CheckTotalAmountsValidation(BaseCheck):
         if total_sum is not None:
             self.amounts_to_compare.append(total_sum)
 
-        taxes_sum = total_amount_field.value.tax_payments.amount_in_basis(basis)
+        taxes_sum = total_amount_field.value.taxes.amount_in_basis(basis)
         if taxes_sum is not None:
             self.amounts_to_compare.append(taxes_sum)
 
