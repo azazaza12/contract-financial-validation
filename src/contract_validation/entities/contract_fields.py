@@ -310,6 +310,16 @@ class TotalAmount:
         return errors
 
 
+    def get_moneys(self) -> list[Money]:
+        moneys: list[Money] = []
+        total_money = self.total.amount
+        if total_money is not None:
+            moneys.append(total_money)
+        moneys.extend(ta.amount for ta in self.taxes if ta.amount is not None)
+        return moneys
+
+
+
 @dataclass(kw_only=True, frozen=True)
 class TotalAmountField(BaseField[TotalAmount]):
     merge_registry = STRICT_REGISTRY
