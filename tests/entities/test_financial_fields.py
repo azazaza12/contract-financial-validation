@@ -318,3 +318,20 @@ def test_total_amount_is_correct_collects_errors_from_total_and_taxes():
     errors = total.is_correct()
 
     assert len(errors) == 3
+
+
+def test_total_amount_get_moneys_returns_total_and_tax_moneys():
+    total = make_payment(amount="1000")
+    tax1 = make_payment(amount="200")
+    tax2 = make_payment(amount="100")
+
+    total_amount = TotalAmount(
+        total=total,
+        taxes=PaymentList([tax1, tax2]),
+    )
+
+    assert total_amount.get_moneys() == [
+        total.amount,
+        tax1.amount,
+        tax2.amount,
+    ]
