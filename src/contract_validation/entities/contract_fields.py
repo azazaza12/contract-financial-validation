@@ -160,9 +160,9 @@ def select_basis(payments: list[Payment]) -> Basis:
     return Basis.RAW
 
 
+@dataclass(frozen=True)
 class PaymentList:
-    def __init__(self, payments: list[Payment]) -> None:
-        self._payments = payments
+    _payments: list[Payment]
 
     def __iter__(self) -> Iterator[Payment]:
         return iter(self._payments)
@@ -258,16 +258,12 @@ class PaymentList:
 @dataclass(kw_only=True, frozen=True)
 class TotalAmount:
     total: Payment
-    taxes: list[Payment]
+    taxes: PaymentList
 
     def has_data(self) -> bool:
         if self.total.has_data():
             return True
         return bool(any(payment.has_data() for payment in self.taxes))
-
-    @property
-    def tax_payments(self) -> PaymentList:
-        return PaymentList(self.taxes)
 
 
 @dataclass(kw_only=True, frozen=True)

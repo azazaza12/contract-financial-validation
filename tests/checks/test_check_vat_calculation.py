@@ -71,11 +71,17 @@ async def _run(
 async def test_vat_calculation_succeeds_when_amount_includes_vat() -> None:
     r = await _run(
         total=_pay(
-            amount="120.00", vat_amount="20.00", vat_rate="20.00", include_vat=VatInclusion.INCLUDED
+            amount="120.00",
+            vat_amount="20.00",
+            vat_rate="20.00",
+            include_vat=VatInclusion.INCLUDED,
         ),
         taxes=[
             _pay(
-                amount="120.00", vat_amount="20.00", vat_rate="20.00", include_vat=VatInclusion.INCLUDED
+                amount="120.00",
+                vat_amount="20.00",
+                vat_rate="20.00",
+                include_vat=VatInclusion.INCLUDED,
             )
         ],
     )
@@ -86,7 +92,10 @@ async def test_vat_calculation_succeeds_when_amount_includes_vat() -> None:
 async def test_vat_calculation_succeeds_when_amount_excludes_vat() -> None:
     r = await _run(
         total=_pay(
-            amount="100.00", vat_amount="20.00", vat_rate="20.00", include_vat=VatInclusion.EXCLUDED
+            amount="100.00",
+            vat_amount="20.00",
+            vat_rate="20.00",
+            include_vat=VatInclusion.EXCLUDED,
         ),
     )
     assert r.status == CheckStatus.SUCCESS
@@ -97,7 +106,10 @@ async def test_vat_calculation_fails_when_formula_is_incorrect() -> None:
     bad_vat = str(Decimal("20.00") + AMOUNT_TOLERANCE + Decimal("0.01"))
     r = await _run(
         total=_pay(
-            amount="120.00", vat_amount=bad_vat, vat_rate="20.00", include_vat=VatInclusion.INCLUDED
+            amount="120.00",
+            vat_amount=bad_vat,
+            vat_rate="20.00",
+            include_vat=VatInclusion.INCLUDED,
         ),
     )
     assert r.status == CheckStatus.FAILED
@@ -108,7 +120,10 @@ async def test_vat_calculation_tolerance_allows_difference_within_one_ruble() ->
     within = str(Decimal("20.00") + AMOUNT_TOLERANCE - Decimal("0.01"))
     r = await _run(
         total=_pay(
-            amount="120.00", vat_amount=within, vat_rate="20.00", include_vat=VatInclusion.INCLUDED
+            amount="120.00",
+            vat_amount=within,
+            vat_rate="20.00",
+            include_vat=VatInclusion.INCLUDED,
         ),
     )
     assert r.status == CheckStatus.SUCCESS
@@ -123,7 +138,10 @@ async def test_vat_calculation_tolerance_fails_when_difference_exceeds_one_ruble
     over = str(Decimal("20.00") + AMOUNT_TOLERANCE + Decimal("0.01"))
     r = await _run(
         total=_pay(
-            amount="120.00", vat_amount=over, vat_rate="20.00", include_vat=VatInclusion.INCLUDED
+            amount="120.00",
+            vat_amount=over,
+            vat_rate="20.00",
+            include_vat=VatInclusion.INCLUDED,
         ),
     )
     assert r.status == CheckStatus.FAILED
@@ -133,7 +151,10 @@ async def test_vat_calculation_tolerance_fails_when_difference_exceeds_one_ruble
 async def test_vat_calculation_allows_zero_vat_rate() -> None:
     r = await _run(
         total=_pay(
-            amount="120.00", vat_amount="0.00", vat_rate="0.00", include_vat=VatInclusion.INCLUDED
+            amount="120.00",
+            vat_amount="0.00",
+            vat_rate="0.00",
+            include_vat=VatInclusion.INCLUDED,
         ),
     )
     assert r.status == CheckStatus.SUCCESS
@@ -144,7 +165,10 @@ async def test_vat_calculation_verifies_advance_line_payments() -> None:
     bad_vat = str(Decimal("10.00") + AMOUNT_TOLERANCE + Decimal("0.01"))
     r = await _run(
         total=_pay(
-            amount="120.00", vat_amount="20.00", vat_rate="20.00", include_vat=VatInclusion.INCLUDED
+            amount="120.00",
+            vat_amount="20.00",
+            vat_rate="20.00",
+            include_vat=VatInclusion.INCLUDED,
         ),
         advances=[
             AdvancePayment(
@@ -168,7 +192,12 @@ async def test_vat_calculation_verifies_advance_line_payments() -> None:
 async def test_vat_calculation_skipped_when_no_amount_vat_rate_data() -> None:
     check = CheckVatCalculation(tolerance=AMOUNT_TOLERANCE)
     check.total_amount_field = _make_total_amount_field(
-        total=_pay(amount="120.00", vat_amount=None, vat_rate=None, include_vat=VatInclusion.INCLUDED),
+        total=_pay(
+            amount="120.00",
+            vat_amount=None,
+            vat_rate=None,
+            include_vat=VatInclusion.INCLUDED,
+        ),
     )
     check.advance_payments_field = None
     with pytest.raises(InsufficientCheckDataError):
@@ -178,7 +207,10 @@ async def test_vat_calculation_skipped_when_no_amount_vat_rate_data() -> None:
 async def test_vat_calculation_skips_non_positive_amount_without_error() -> None:
     r = await _run(
         total=_pay(
-            amount="0.00", vat_amount="20.00", vat_rate="20.00", include_vat=VatInclusion.INCLUDED
+            amount="0.00",
+            vat_amount="20.00",
+            vat_rate="20.00",
+            include_vat=VatInclusion.INCLUDED,
         ),
     )
     assert r.status == CheckStatus.SUCCESS

@@ -10,6 +10,7 @@ from app.domain.entities import (
     AdvancePaymentsField,
     Money,
     Payment,
+    PaymentList,
     TotalAmount,
     TotalAmountField,
     Vat,
@@ -42,7 +43,7 @@ def _make_total_amount_field(
     total_amount: str | None,
     taxes_amounts: list[str | None] | None,
 ) -> TotalAmountField:
-    taxes = [_make_payment(value) for value in taxes_amounts or []]
+    taxes = PaymentList([_make_payment(value) for value in taxes_amounts or []])
     return TotalAmountField(
         value=TotalAmount(
             total=_make_payment(total_amount),
@@ -74,7 +75,7 @@ async def _run_check(
 async def test_total_amounts_succeeds_when_total_taxes_and_advances_match() -> None:
     result = await _run_check(
         total_amount="100.00",
-        taxes_amounts=["100.00"],
+        taxes_amounts=PaymentList(["100.00"]),
         advances=[
             AdvancePayment(
                 percent=Decimal("50.00"),
@@ -96,7 +97,7 @@ async def test_total_amounts_succeeds_when_total_taxes_and_advances_match() -> N
 async def test_total_amounts_fails_when_total_and_taxes_differ() -> None:
     result = await _run_check(
         total_amount="100.00",
-        taxes_amounts=["90.00"],
+        taxes_amounts=PaymentList(["90.00"]),
         advances=None,
     )
 
@@ -357,8 +358,16 @@ async def test_total_amounts_succeeds_when_total_gross_and_tax_net_match() -> No
     check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
     check.total_amount_field = TotalAmountField(
         value=TotalAmount(
-            total=_make_vat_payment("120.00", rate="20.00", include_vat=VatInclusion.INCLUDED),
-            taxes=[_make_vat_payment("100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED)],
+            total=_make_vat_payment(
+                "120.00", rate="20.00", include_vat=VatInclusion.INCLUDED
+            ),
+            taxes=PaymentList(
+                [
+                    _make_vat_payment(
+                        "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
+                    )
+                ]
+            ),
         ),
         sources=[],
     )
@@ -374,8 +383,10 @@ async def test_total_amounts_falls_back_to_raw_when_tax_lacks_rate() -> None:
     check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
     check.total_amount_field = TotalAmountField(
         value=TotalAmount(
-            total=_make_vat_payment("100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED),
-            taxes=[_make_payment("100.00")],
+            total=_make_vat_payment(
+                "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
+            ),
+            taxes=PaymentList([_make_payment("100.00")]),
         ),
         sources=[],
     )
@@ -391,8 +402,16 @@ async def test_total_amounts_fails_when_grossed_amounts_differ() -> None:
     check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
     check.total_amount_field = TotalAmountField(
         value=TotalAmount(
-            total=_make_vat_payment("120.00", rate="20.00", include_vat=VatInclusion.INCLUDED),
-            taxes=[_make_vat_payment("120.00", rate="20.00", include_vat=VatInclusion.EXCLUDED)],
+            total=_make_vat_payment(
+                "120.00", rate="20.00", include_vat=VatInclusion.INCLUDED
+            ),
+            taxes=PaymentList(
+                [
+                    _make_vat_payment(
+                        "120.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
+                    )
+                ]
+            ),
         ),
         sources=[],
     )
@@ -408,14 +427,18 @@ async def test_total_amounts_uses_excluding_vat_when_gross_unavailable() -> None
     check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
     check.total_amount_field = TotalAmountField(
         value=TotalAmount(
-            total=_make_vat_payment("120.00", rate="20.00", include_vat=VatInclusion.INCLUDED),
-            taxes=[
-                Payment(
-                    amount=Money(value=Decimal("100.00"), transcription=None),
-                    vat=Vat(amount=None, rate=None),
-                    include_vat=VatInclusion.EXCLUDED,
-                )
-            ],
+            total=_make_vat_payment(
+                "120.00", rate="20.00", include_vat=VatInclusion.INCLUDED
+            ),
+            taxes=PaymentList(
+                [
+                    Payment(
+                        amount=Money(value=Decimal("100.00"), transcription=None),
+                        vat=Vat(amount=None, rate=None),
+                        include_vat=VatInclusion.EXCLUDED,
+                    )
+                ]
+            ),
         ),
         sources=[],
     )

@@ -72,22 +72,30 @@ def test_expected_vat_amount_none_when_rate_missing():
 
 
 def test_expected_vat_amount_included_extracts_from_gross():
-    payment = make_payment(amount="120.00", rate="20", include_vat=VatInclusion.INCLUDED)
+    payment = make_payment(
+        amount="120.00", rate="20", include_vat=VatInclusion.INCLUDED
+    )
     assert payment.expected_vat_amount == Decimal(20)
 
 
 def test_expected_vat_amount_excluded_adds_on_top():
-    payment = make_payment(amount="100.00", rate="20", include_vat=VatInclusion.EXCLUDED)
+    payment = make_payment(
+        amount="100.00", rate="20", include_vat=VatInclusion.EXCLUDED
+    )
     assert payment.expected_vat_amount == Decimal(20)
 
 
 def test_expected_vat_amount_none_when_include_vat_unknown():
-    payment = make_payment(amount="100.00", rate="20", include_vat=VatInclusion.UNSPECIFIED)
+    payment = make_payment(
+        amount="100.00", rate="20", include_vat=VatInclusion.UNSPECIFIED
+    )
     assert payment.expected_vat_amount is None
 
 
 def test_expected_vat_amount_none_when_included_denominator_zero():
-    payment = make_payment(amount="100.00", rate="-100", include_vat=VatInclusion.INCLUDED)
+    payment = make_payment(
+        amount="100.00", rate="-100", include_vat=VatInclusion.INCLUDED
+    )
     assert payment.expected_vat_amount is None
 
 
@@ -145,10 +153,16 @@ def test_payment_list_combined_sums_amounts_and_keeps_common_rate():
     payment_list = PaymentList(
         [
             make_payment(
-                amount="1000.00", vat_amount="166.67", rate="20.00", include_vat=VatInclusion.INCLUDED
+                amount="1000.00",
+                vat_amount="166.67",
+                rate="20.00",
+                include_vat=VatInclusion.INCLUDED,
             ),
             make_payment(
-                amount="2000.00", vat_amount="333.33", rate="20.00", include_vat=VatInclusion.INCLUDED
+                amount="2000.00",
+                vat_amount="333.33",
+                rate="20.00",
+                include_vat=VatInclusion.INCLUDED,
             ),
         ]
     )
@@ -173,9 +187,9 @@ def test_payment_list_combined_drops_rate_when_rates_differ():
 
 
 def test_total_amount_tax_payments_wraps_taxes():
-    taxes = [make_payment(amount="100.00"), make_payment(amount="200.00")]
+    taxes = PaymentList([make_payment(amount="100.00"), make_payment(amount="200.00")])
     total_amount = TotalAmount(total=make_payment(amount="300.00"), taxes=taxes)
-    tax_payments = total_amount.tax_payments
+    tax_payments = total_amount.taxes
     assert isinstance(tax_payments, PaymentList)
     assert tax_payments.amount_value == Decimal("300.00")
 

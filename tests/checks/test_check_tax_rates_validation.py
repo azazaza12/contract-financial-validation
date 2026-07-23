@@ -9,6 +9,7 @@ from app.domain.entities import (
     AdvancePaymentsField,
     Money,
     Payment,
+    PaymentList,
     TotalAmount,
     TotalAmountField,
     Vat,
@@ -34,7 +35,7 @@ def _total_amount_field(
     total_rate: Decimal | None,
     tax_rates: list[Decimal | None] | None,
 ) -> TotalAmountField:
-    taxes = [_payment(vat_rate=r) for r in tax_rates or []]
+    taxes = PaymentList([_payment(vat_rate=r) for r in tax_rates or []])
     return TotalAmountField(
         value=TotalAmount(
             total=_payment(vat_rate=total_rate),

@@ -6,6 +6,7 @@ from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
     Payment,
+    PaymentList,
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
@@ -29,10 +30,10 @@ def _advances_field_has_any_vat_rate(
     return any(_advance_has_any_vat_rate(adv) for adv in advance_payments_field.value)
 
 
-def _filter_valid_payments(
-    payments: list[Payment],
-) -> list[Payment]:
-    return [payment for payment in payments if payment.vat.rate is not None]
+def _filter_valid_payments(payments: PaymentList) -> PaymentList:
+    return PaymentList(
+        [payment for payment in payments if payment.vat.rate is not None]
+    )
 
 
 class CheckTaxRatesValidation(BaseCheck):
@@ -45,7 +46,7 @@ class CheckTaxRatesValidation(BaseCheck):
     def _append_payment_lines_mismatch(
         self,
         reference_rate: Decimal | None,
-        lines: list[Payment],
+        lines: PaymentList,
     ) -> None:
         for i, payment in enumerate(lines):
             if payment.vat.rate != reference_rate:
@@ -110,7 +111,7 @@ class CheckTaxRatesValidation(BaseCheck):
                 continue
 
             valid_payments = _filter_valid_payments(
-                advance_payment.payments,
+                PaymentList(advance_payment.payments),
             )
 
             advance_total_rate = (
@@ -156,7 +157,7 @@ class CheckTaxRatesValidation(BaseCheck):
 
         if not (
             ta.total.vat.rate is not None
-            or ta.tax_payments.vat_rates
+            or ta.taxes.vat_rates
             or _advances_field_has_any_vat_rate(advance_payments_field)
         ):
             raise InsufficientCheckDataError(
@@ -177,6 +178,6 @@ class CheckTaxRatesValidation(BaseCheck):
 
         contract_rate = ta.total.vat.rate
         self._collect_advance_rate_errors(
-            contract_rate, ta.tax_payments.vat_rates, advance_payments_field.value
+            contract_rate, ta.taxes.vat_rates, advance_payments_field.value
         )
         return self._result(self.errors)

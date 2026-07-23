@@ -12,6 +12,7 @@ from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentsField,
     Payment,
+    PaymentList,
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
@@ -59,7 +60,7 @@ class CheckVatConsistency(BaseCheck):
         if advance_payment.total is not None:
             aggregate_vat = self._valid_vat(advance_payment.total)
 
-        lines_vat = self._sum_valid_vat(advance_payment.payments)
+        lines_vat = self._sum_valid_vat(PaymentList(advance_payment.payments))
 
         if aggregate_vat is not None and lines_vat is not None:
             diff = abs(aggregate_vat - lines_vat)
@@ -104,7 +105,7 @@ class CheckVatConsistency(BaseCheck):
 
         return vat_amount if (vat_amount is not None and vat_amount >= 0) else None
 
-    def _sum_valid_vat(self, payments: list[Payment] | None) -> Decimal | None:
+    def _sum_valid_vat(self, payments: PaymentList | None) -> Decimal | None:
         if not payments:
             return None
         vat_sum: Decimal | None = None

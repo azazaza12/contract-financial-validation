@@ -47,8 +47,12 @@ def test_unknown_footing_does_not_merge_economically() -> None:
 
 
 def test_merges_economically_via_gross_when_net_unavailable() -> None:
-    net_stated = _payment(amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20))
-    gross_without_rate = _payment(amount=Decimal(120), include_vat=VatInclusion.INCLUDED, rate=None)
+    net_stated = _payment(
+        amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20)
+    )
+    gross_without_rate = _payment(
+        amount=Decimal(120), include_vat=VatInclusion.INCLUDED, rate=None
+    )
 
     assert (
         net_stated.should_merge_economically(
@@ -59,8 +63,12 @@ def test_merges_economically_via_gross_when_net_unavailable() -> None:
 
 
 def test_does_not_merge_economically_when_converted_amounts_differ() -> None:
-    net_stated = _payment(amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20))
-    gross_stated = _payment(amount=Decimal(200), include_vat=VatInclusion.INCLUDED, rate=Decimal(20))
+    net_stated = _payment(
+        amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20)
+    )
+    gross_stated = _payment(
+        amount=Decimal(200), include_vat=VatInclusion.INCLUDED, rate=Decimal(20)
+    )
 
     assert (
         net_stated.should_merge_economically([gross_stated], tolerance=AMOUNT_TOLERANCE)
@@ -70,8 +78,12 @@ def test_does_not_merge_economically_when_converted_amounts_differ() -> None:
 
 def test_merge_payment_fills_missing_rate_for_same_footing() -> None:
     errors: list = []
-    complete = _payment(amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20))
-    partial = _payment(amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=None)
+    complete = _payment(
+        amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20)
+    )
+    partial = _payment(
+        amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=None
+    )
 
     result = merge_payment(
         [_candidate(complete), _candidate(partial)], "total", errors, STRICT_REGISTRY
@@ -85,8 +97,12 @@ def test_merge_payment_fills_missing_rate_for_same_footing() -> None:
 
 def test_merge_payment_assembles_via_gross_when_net_unavailable() -> None:
     errors: list = []
-    net_stated = _payment(amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20))
-    gross_without_rate = _payment(amount=Decimal(120), include_vat=VatInclusion.INCLUDED, rate=None)
+    net_stated = _payment(
+        amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20)
+    )
+    gross_without_rate = _payment(
+        amount=Decimal(120), include_vat=VatInclusion.INCLUDED, rate=None
+    )
 
     result = merge_payment(
         [_candidate(net_stated), _candidate(gross_without_rate)],
@@ -101,8 +117,12 @@ def test_merge_payment_assembles_via_gross_when_net_unavailable() -> None:
 
 def test_merge_payment_same_footing_rate_conflict_reports_field_error() -> None:
     errors: list = []
-    p1 = _payment(amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20))
-    p2 = _payment(amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(10))
+    p1 = _payment(
+        amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20)
+    )
+    p2 = _payment(
+        amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(10)
+    )
 
     result = merge_payment(
         [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
@@ -143,8 +163,12 @@ def test_merge_payment_same_footing_vat_amount_conflict_reports_field_error() ->
 
 def test_merge_payment_flags_same_gross_footing_beyond_tolerance() -> None:
     errors: list = []
-    p1 = _payment(amount=Decimal("120.00"), include_vat=VatInclusion.INCLUDED, rate=Decimal(20))
-    p2 = _payment(amount=Decimal("121.08"), include_vat=VatInclusion.INCLUDED, rate=Decimal(20))
+    p1 = _payment(
+        amount=Decimal("120.00"), include_vat=VatInclusion.INCLUDED, rate=Decimal(20)
+    )
+    p2 = _payment(
+        amount=Decimal("121.08"), include_vat=VatInclusion.INCLUDED, rate=Decimal(20)
+    )
 
     result = merge_payment(
         [_candidate(p1), _candidate(p2)], "total", errors, STRICT_REGISTRY
@@ -268,7 +292,9 @@ def test_merge_payment_keeps_filled_transcription_when_first_bearer_lacks_it() -
 def test_group_mixing_shared_and_converted_basis_is_economically_mergeable() -> None:
     shared = _payment(amount=Decimal(120), include_vat=VatInclusion.INCLUDED)
     same_footing = _payment(amount=Decimal(120), include_vat=VatInclusion.INCLUDED)
-    converted = _payment(amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20))
+    converted = _payment(
+        amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20)
+    )
 
     assert (
         shared.should_merge_economically(
@@ -282,10 +308,18 @@ def test_merge_payment_merges_group_mixing_shared_and_converted_basis() -> None:
     errors: list = []
     result = merge_payment(
         [
-            _candidate(_payment(amount=Decimal(120), include_vat=VatInclusion.INCLUDED)),
-            _candidate(_payment(amount=Decimal(120), include_vat=VatInclusion.INCLUDED)),
             _candidate(
-                _payment(amount=Decimal(100), include_vat=VatInclusion.EXCLUDED, rate=Decimal(20))
+                _payment(amount=Decimal(120), include_vat=VatInclusion.INCLUDED)
+            ),
+            _candidate(
+                _payment(amount=Decimal(120), include_vat=VatInclusion.INCLUDED)
+            ),
+            _candidate(
+                _payment(
+                    amount=Decimal(100),
+                    include_vat=VatInclusion.EXCLUDED,
+                    rate=Decimal(20),
+                )
             ),
         ],
         "total",
