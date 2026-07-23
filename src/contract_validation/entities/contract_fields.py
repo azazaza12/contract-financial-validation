@@ -8,6 +8,8 @@ from app.domain.merge.handlers import merge_payment
 from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
 from .field import BaseField
+from .errors.checks import AmountNotPositiveError, VatAmountNotPositiveError, VatRateNotPositiveError, BaseCheckError
+from .errors.base import BaseContractError
 
 
 class Basis(StrEnum):
@@ -40,6 +42,16 @@ class Money:
             return True
         return bool(self.transcription is not None and self.transcription.strip() != "")
 
+    def is_correct(self, include_zero: bool = False) -> list[BaseContractError]:
+        if self.value is None:
+            return []
+
+        if self.value < 0 or (not include_zero and self.value == Decimal('0')):
+            return [AmountNotPositiveError(value=self.value)]
+        return []
+
+
+
 
 @dataclass(kw_only=True, frozen=True)
 class Vat:
@@ -56,6 +68,16 @@ class Vat:
         return self.rate is not None
 
 
+    def is_correct(self) -> list[BaseContractError]:
+        errors = []
+        if self.rate is not None and self.rate < 0:
+            errors.append(VatRateNotPositiveError(value=self.rate))
+        if self.amount is not None:
+            errors.extend(self.amount.is_correct(include_zero=True))
+        return errors
+
+
+
 @dataclass(kw_only=True, frozen=True)
 class Payment:
     amount: Money | None
@@ -67,6 +89,15 @@ class Payment:
         return (
             self.amount is not None and self.amount.has_data()
         ) or self.vat.has_data()
+
+    def is_correct(self) -> list[BaseContractError]:
+        errors = []
+        if self.amount is not None:
+            errors.extend(self.amount.is_correct())
+        if self.vat is not None:
+            errors.extend(self.vat.is_correct())
+        return errors
+
 
     @property
     def amount_value(self) -> Decimal | None:
@@ -173,6 +204,13 @@ class PaymentList:
     def __bool__(self) -> bool:
         return bool(self._payments)
 
+
+    def is_correct(self) -> list[BaseContractError]:
+        errors = []
+        for payment in self._payments:
+            errors.extend(payment.is_correct())
+        return errors
+
     @property
     def amount_value(self) -> Decimal | None:
         total: Decimal | None = None
@@ -265,6 +303,12 @@ class TotalAmount:
             return True
         return bool(any(payment.has_data() for payment in self.taxes))
 
+    def is_correct(self) -> list[BaseContractError]:
+        errors = []
+        errors.extend(self.total.is_correct())
+        errors.extend(self.taxes.is_correct())
+        return errors
+
 
 @dataclass(kw_only=True, frozen=True)
 class TotalAmountField(BaseField[TotalAmount]):
@@ -272,6 +316,9 @@ class TotalAmountField(BaseField[TotalAmount]):
 
     def has_data(self) -> bool:
         return self.value.has_data()
+
+    def is_correct(self) -> list[BaseContractError]:
+        return self.value.is_correct()
 
 
 @dataclass(kw_only=True, frozen=True)
