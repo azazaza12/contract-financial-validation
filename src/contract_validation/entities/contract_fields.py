@@ -189,6 +189,34 @@ class Payment:
             return self.amount_excluding_vat
         return self.amount_value
 
+    def _amount_as(self, inclusion: VatInclusion) -> Decimal | None:
+        if inclusion is VatInclusion.INCLUDED:
+            return self.amount_including_vat
+        if inclusion is VatInclusion.EXCLUDED:
+            return self.amount_excluding_vat
+        return self.amount_value
+
+    def __add__(self, other: Payment) -> Payment:
+        inclusion = select_common_vat_inclusion([self, other])
+        self_amount = self._amount_as(inclusion)
+        other_amount = other._amount_as(inclusion)
+        if self_amount is None:
+            amount_value = other_amount
+        elif other_amount is None:
+            amount_value = self_amount
+        else:
+            amount_value = self_amount + other_amount
+        amount = (
+            Money(value=amount_value, transcription=None)
+            if amount_value is not None
+            else None
+        )
+        return Payment(
+            amount=amount,
+            vat=self.vat + other.vat,
+            include_vat=inclusion,
+        )
+
     def should_merge_economically(
         self, others: list[Payment], *, tolerance: Decimal
     ) -> bool:
