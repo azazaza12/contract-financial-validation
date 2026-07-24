@@ -403,6 +403,12 @@ class AdvancePayment:
             return True
         return bool(any(payment.has_data() for payment in self.payments))
 
+    @property
+    def resolved(self) -> Payment | None:
+        if self.total is not None and self.total.amount_value is not None:
+            return self.total
+        return self.payments.summed
+
     def amount_in_basis(self, basis: Basis) -> Decimal | None:
         if self.total is not None:
             total = self.total.amount_in_basis(basis)
