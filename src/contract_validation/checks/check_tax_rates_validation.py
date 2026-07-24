@@ -111,7 +111,7 @@ class CheckTaxRatesValidation(BaseCheck):
                 continue
 
             valid_payments = _filter_valid_payments(
-                PaymentList(advance_payment.payments),
+                advance_payment.payments,
             )
 
             advance_total_rate = (

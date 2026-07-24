@@ -3,6 +3,7 @@ from decimal import Decimal
 from app.domain.entities import (
     AdvancePayment,
     Money,
+    MoneyValidationMode,
     Payment,
     PaymentList,
     TotalAmount,
@@ -198,12 +199,12 @@ def test_total_amount_tax_payments_wraps_taxes():
     assert tax_payments.amount_value == Decimal("300.00")
 
 
-def make_advance(*, total: Payment | None, payments: list[Payment]) -> AdvancePayment:
+def make_advance(*, total: Payment | None, payments: PaymentList) -> AdvancePayment:
     return AdvancePayment(percent=None, total=total, payments=payments)
 
 
 def test_advance_payment_lines_wraps_payments():
-    payments = [make_payment(amount="500.00")]
+    payments = PaymentList([make_payment(amount="500.00")])
     advance = make_advance(total=None, payments=payments)
     assert isinstance(advance.payments, PaymentList)
     assert advance.payments.amount_value == Decimal("500.00")
@@ -215,13 +216,13 @@ def test_advance_payment_lines_wraps_payments():
 def test_money_is_correct_accepts_positive_value():
     money = Money(value=Decimal(100), transcription=None)
 
-    assert money.is_correct() == []
+    assert money.validate() == []
 
 
 def test_money_is_correct_rejects_zero_by_default():
     money = Money(value=Decimal(0), transcription=None)
 
-    errors = money.is_correct()
+    errors = money.validate()
 
     assert len(errors) == 1
     assert isinstance(errors[0], AmountNotPositiveError)
@@ -230,13 +231,13 @@ def test_money_is_correct_rejects_zero_by_default():
 def test_money_is_correct_allows_zero_when_include_zero():
     money = Money(value=Decimal(0), transcription=None)
 
-    assert money.is_correct(include_zero=True) == []
+    assert money.validate(MoneyValidationMode.NON_NEGATIVE) == []
 
 
 def test_money_is_correct_rejects_negative():
     money = Money(value=Decimal(-1), transcription=None)
 
-    errors = money.is_correct()
+    errors = money.validate()
 
     assert len(errors) == 1
     assert isinstance(errors[0], AmountNotPositiveError)
@@ -251,7 +252,7 @@ def test_vat_is_correct_returns_rate_and_amount_errors():
         rate=Decimal(-20),
     )
 
-    errors = vat.is_correct()
+    errors = vat.validate()
 
     assert any(isinstance(e, VatRateNotPositiveError) for e in errors)
     assert any(isinstance(e, AmountNotPositiveError) for e in errors)
@@ -270,7 +271,7 @@ def test_payment_is_correct_collects_errors_from_amount_and_vat():
         include_vat=VatInclusion.INCLUDED,
     )
 
-    errors = payment.is_correct()
+    errors = payment.validate()
 
     assert len(errors) == 3  # noqa: PLR2004
     assert sum(isinstance(e, AmountNotPositiveError) for e in errors) == 2  # noqa: PLR2004
@@ -292,7 +293,7 @@ def test_payment_list_is_correct_collects_errors_from_all_payments():
         ]
     )
 
-    errors = payment_list.is_correct()
+    errors = payment_list.validate()
 
     assert len(errors) == 2  # noqa: PLR2004
 
@@ -321,7 +322,7 @@ def test_total_amount_is_correct_collects_errors_from_total_and_taxes():
         ),
     )
 
-    errors = total.is_correct()
+    errors = total.validate()
 
     assert len(errors) == 3  # noqa: PLR2004
 

@@ -80,12 +80,12 @@ async def test_total_amounts_succeeds_when_total_taxes_and_advances_match() -> N
             AdvancePayment(
                 percent=Decimal("50.00"),
                 total=_make_payment("50.00"),
-                payments=[_make_payment("50.00")],
+                payments=PaymentList([_make_payment("50.00")]),
             ),
             AdvancePayment(
                 percent=Decimal("50.00"),
                 total=_make_payment("50.00"),
-                payments=[_make_payment("50.00")],
+                payments=PaymentList([_make_payment("50.00")]),
             ),
         ],
     )
@@ -108,12 +108,12 @@ async def test_total_amounts_fails_when_total_and_taxes_differ() -> None:
 async def test_total_amounts_fails_when_advance_total_and_payments_differ() -> None:
     result = await _run_check(
         total_amount="100.00",
-        taxes_amounts=["100.00"],
+        taxes_amounts=PaymentList(["100.00"]),
         advances=[
             AdvancePayment(
                 percent=Decimal("100.00"),
                 total=_make_payment("100.00"),
-                payments=[_make_payment("90.00")],
+                payments=PaymentList([_make_payment("90.00")]),
             ),
         ],
     )
@@ -131,7 +131,7 @@ async def test_total_amounts_skips_none_amounts_without_crash() -> None:
                 AdvancePayment(
                     percent=None,
                     total=None,
-                    payments=[],
+                    payments=PaymentList([]),
                 )
             ],
         )
@@ -204,12 +204,12 @@ async def test_total_amounts_succeeds_with_multiple_advances_and_nested_payments
             AdvancePayment(
                 percent=Decimal("50.00"),
                 total=_make_payment("150.00"),
-                payments=[_make_payment("100.00"), _make_payment("50.00")],
+                payments=PaymentList([_make_payment("100.00"), _make_payment("50.00")]),
             ),
             AdvancePayment(
                 percent=Decimal("50.00"),
                 total=_make_payment("150.00"),
-                payments=[_make_payment("120.00"), _make_payment("30.00")],
+                payments=PaymentList([_make_payment("120.00"), _make_payment("30.00")]),
             ),
         ],
     )
@@ -226,7 +226,9 @@ async def test_advance_with_only_total_matches_contract_success() -> None:
         total_amount="100.00",
         taxes_amounts=None,
         advances=[
-            AdvancePayment(percent=None, total=_make_payment("100.00"), payments=[]),
+            AdvancePayment(
+                percent=None, total=_make_payment("100.00"), payments=PaymentList([])
+            ),
         ],
     )
     assert result.status == CheckStatus.SUCCESS
@@ -238,7 +240,9 @@ async def test_advance_with_only_total_differs_from_contract_fails() -> None:
         total_amount="100.00",
         taxes_amounts=None,
         advances=[
-            AdvancePayment(percent=None, total=_make_payment("90.00"), payments=[]),
+            AdvancePayment(
+                percent=None, total=_make_payment("90.00"), payments=PaymentList([])
+            ),
         ],
     )
     assert result.status == CheckStatus.FAILED
@@ -256,7 +260,7 @@ async def test_advance_with_only_payments_matches_contract_success() -> None:
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[_make_payment("60.00"), _make_payment("40.00")],
+                payments=PaymentList([_make_payment("60.00"), _make_payment("40.00")]),
             ),
         ],
     )
@@ -272,7 +276,7 @@ async def test_advance_with_only_payments_differs_from_contract_fails() -> None:
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[_make_payment("90.00")],
+                payments=PaymentList([_make_payment("90.00")]),
             ),
         ],
     )
@@ -288,11 +292,13 @@ async def test_mixed_advances_total_only_and_payments_only_success() -> None:
         total_amount="100.00",
         taxes_amounts=None,
         advances=[
-            AdvancePayment(percent=None, total=_make_payment("60.00"), payments=[]),
+            AdvancePayment(
+                percent=None, total=_make_payment("60.00"), payments=PaymentList([])
+            ),
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[_make_payment("40.00")],
+                payments=PaymentList([_make_payment("40.00")]),
             ),
         ],
     )
@@ -321,7 +327,9 @@ async def test_errors_collected_from_multiple_sources() -> None:
         total_amount="100.00",
         taxes_amounts=["90.00"],
         advances=[
-            AdvancePayment(percent=None, total=_make_payment("80.00"), payments=[]),
+            AdvancePayment(
+                percent=None, total=_make_payment("80.00"), payments=PaymentList([])
+            ),
         ],
     )
     assert result.status == CheckStatus.FAILED
@@ -337,7 +345,7 @@ async def test_within_advance_and_cross_source_errors_both_collected() -> None:
             AdvancePayment(
                 percent=None,
                 total=_make_payment("80.00"),
-                payments=[_make_payment("70.00")],
+                payments=PaymentList([_make_payment("70.00")]),
             ),
         ],
     )
