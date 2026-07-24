@@ -2,6 +2,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum
+from functools import reduce
 
 from app.domain.merge.defaults import STRICT_REGISTRY
 from app.domain.merge.handlers import merge_payment
@@ -304,16 +305,6 @@ class PaymentList:
         return total
 
     @property
-    def _vat_amount_value(self) -> Decimal | None:
-        total: Decimal | None = None
-        for payment in self._payments:
-            value = payment.vat_amount_value
-            if value is None:
-                continue
-            total = (total or Decimal("0.00")) + value
-        return total
-
-    @property
     def vat_rates(self) -> set[Decimal]:
         return {
             payment.vat_rate
@@ -322,48 +313,11 @@ class PaymentList:
         }
 
     @property
-    def _vat_rate(self) -> Decimal | None:
-        rates = self.vat_rates
-        if len(rates) == 1:
-            return next(iter(rates))
-        return None
-
-    @property
-    def _include_vat(self) -> VatInclusion:
-        values = {
-            payment.include_vat
-            for payment in self._payments
-            if payment.include_vat is not VatInclusion.UNSPECIFIED
-        }
-
-        if not values:
-            return VatInclusion.UNSPECIFIED
-        if len(values) == 1:
-            return values.pop()
-        return VatInclusion.MIXED
-
-    @property
-    def combined(self) -> Payment | None:
-        amount_value = self.amount_value
-        vat_amount_value = self._vat_amount_value
-        rate = self._vat_rate
-        if amount_value is None and vat_amount_value is None and rate is None:
+    def summed(self) -> Payment | None:
+        if not self._payments:
             return None
-        amount = (
-            Money(value=amount_value, transcription=None)
-            if amount_value is not None
-            else None
-        )
-        vat_amount = (
-            Money(value=vat_amount_value, transcription=None)
-            if vat_amount_value is not None
-            else None
-        )
-        return Payment(
-            amount=amount,
-            vat=Vat(amount=vat_amount, rate=rate),
-            include_vat=self._include_vat,
-        )
+        result = reduce(Payment.__add__, self._payments)
+        return result if result.has_data() else None
 
 
 @dataclass(kw_only=True, frozen=True)

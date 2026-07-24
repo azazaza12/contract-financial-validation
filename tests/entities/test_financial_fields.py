@@ -322,16 +322,16 @@ def test_payment_list_vat_rates_collects_distinct_non_none():
     assert payment_list.vat_rates == {Decimal("20.00"), Decimal("10.00")}
 
 
-def test_payment_list_combined_none_when_empty():
-    assert PaymentList([]).combined is None
+def test_payment_list_summed_none_when_empty():
+    assert PaymentList([]).summed is None
 
 
-def test_payment_list_combined_none_when_all_fields_missing():
+def test_payment_list_summed_none_when_all_fields_missing():
     payment_list = PaymentList([make_payment(amount=None, vat_amount=None, rate=None)])
-    assert payment_list.combined is None
+    assert payment_list.summed is None
 
 
-def test_payment_list_combined_sums_amounts_and_keeps_common_rate():
+def test_payment_list_summed_sums_amounts_and_keeps_common_rate():
     payment_list = PaymentList(
         [
             make_payment(
@@ -348,24 +348,24 @@ def test_payment_list_combined_sums_amounts_and_keeps_common_rate():
             ),
         ]
     )
-    combined = payment_list.combined
-    assert combined is not None
-    assert combined.amount_value == Decimal("3000.00")
-    assert combined.vat_amount_value == Decimal("500.00")
-    assert combined.vat_rate == Decimal("20.00")
-    assert combined.include_vat is VatInclusion.INCLUDED
+    summed = payment_list.summed
+    assert summed is not None
+    assert summed.amount_value == Decimal("3000.00")
+    assert summed.vat_amount_value == Decimal("500.00")
+    assert summed.vat_rate == Decimal("20.00")
+    assert summed.include_vat is VatInclusion.INCLUDED
 
 
-def test_payment_list_combined_drops_rate_when_rates_differ():
+def test_payment_list_summed_drops_rate_when_rates_differ():
     payment_list = PaymentList(
         [
             make_payment(amount="1000.00", rate="20.00"),
             make_payment(amount="2000.00", rate="10.00"),
         ]
     )
-    combined = payment_list.combined
-    assert combined is not None
-    assert combined.vat_rate is None
+    summed = payment_list.summed
+    assert summed is not None
+    assert summed.vat_rate is None
 
 
 def test_total_amount_tax_payments_wraps_taxes():
