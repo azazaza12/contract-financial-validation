@@ -1,6 +1,6 @@
 from collections.abc import Hashable
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Self
 
 from app.domain.merge.defaults import DEFAULT_REGISTRY
 
@@ -113,7 +113,7 @@ class FieldCollector:
         self._fields.append(field)
         self._type_map = None
 
-    def __add__(self, other: FieldCollector) -> FieldCollector:
+    def __add__(self, other: Self) -> Self:
         self._fields.extend(other._fields)
         self._type_map = None
         return self
