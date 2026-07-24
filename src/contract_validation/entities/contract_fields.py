@@ -164,12 +164,14 @@ class Payment:
             return None
         if self.include_vat is VatInclusion.EXCLUDED:
             return stated
-        if self.vat.rate is None:
-            return None
-        gross_percent = Decimal(100) + self.vat.rate
-        if gross_percent <= 0:
-            return None
-        return stated * Decimal(100) / gross_percent
+        if self.vat.rate is not None:
+            gross_percent = Decimal(100) + self.vat.rate
+            if gross_percent > 0:
+                return stated * Decimal(100) / gross_percent
+        vat_amount = self.vat.amount_value
+        if vat_amount is not None:
+            return stated - vat_amount
+        return None
 
     @property
     def amount_including_vat(self) -> Decimal | None:
@@ -178,9 +180,12 @@ class Payment:
             return None
         if self.include_vat is VatInclusion.INCLUDED:
             return stated
-        if self.vat.rate is None:
-            return None
-        return stated * (Decimal(100) + self.vat.rate) / Decimal(100)
+        if self.vat.rate is not None:
+            return stated * (Decimal(100) + self.vat.rate) / Decimal(100)
+        vat_amount = self.vat.amount_value
+        if vat_amount is not None:
+            return stated + vat_amount
+        return None
 
     def amount_in_basis(self, basis: Basis) -> Decimal | None:
         if basis is Basis.INCLUDING_VAT:
