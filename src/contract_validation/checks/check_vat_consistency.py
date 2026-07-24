@@ -60,7 +60,7 @@ class CheckVatConsistency(BaseCheck):
         if advance_payment.total is not None:
             aggregate_vat = self._valid_vat(advance_payment.total)
 
-        lines_vat = self._sum_valid_vat(PaymentList(advance_payment.payments))
+        lines_vat = self._sum_valid_vat(advance_payment.payments)
 
         if aggregate_vat is not None and lines_vat is not None:
             diff = abs(aggregate_vat - lines_vat)

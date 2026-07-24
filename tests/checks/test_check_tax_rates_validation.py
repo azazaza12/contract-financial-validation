@@ -53,7 +53,7 @@ def _advance(
     return AdvancePayment(
         percent=None,
         total=_payment(vat_rate=total_rate) if total_rate is not None else None,
-        payments=payments or [],
+        payments=PaymentList(payments or []),
     )
 
 
@@ -104,7 +104,7 @@ async def test_no_rate_in_total_or_taxes_but_advance_has_rate_tax_line_fails() -
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[_payment(vat_rate=Decimal(20))],
+                payments=PaymentList([_payment(vat_rate=Decimal(20))]),
             ),
         ],
     )
@@ -119,7 +119,7 @@ async def test_no_rate_in_total_no_tax_lines_but_advance_has_rate_success() -> N
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[_payment(vat_rate=Decimal(20))],
+                payments=PaymentList([_payment(vat_rate=Decimal(20))]),
             ),
         ],
     )
@@ -213,10 +213,12 @@ async def test_advances_with_payments_no_advance_total_skips_line_check() -> Non
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[
-                    _payment(vat_rate=Decimal(20)),
-                    _payment(vat_rate=Decimal(20)),
-                ],
+                payments=PaymentList(
+                    [
+                        _payment(vat_rate=Decimal(20)),
+                        _payment(vat_rate=Decimal(20)),
+                    ]
+                ),
             ),
         ],
     )
@@ -252,10 +254,12 @@ async def test_advances_with_payments_no_advance_total_mixed_rates_success() -> 
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[
-                    _payment(vat_rate=Decimal(20)),
-                    _payment(vat_rate=Decimal(10)),
-                ],
+                payments=PaymentList(
+                    [
+                        _payment(vat_rate=Decimal(20)),
+                        _payment(vat_rate=Decimal(10)),
+                    ]
+                ),
             ),
         ],
     )
@@ -273,10 +277,12 @@ async def test_advances_with_payments_no_advance_total_all_rates_none_not_found(
                 AdvancePayment(
                     percent=None,
                     total=None,
-                    payments=[
-                        _payment(vat_rate=None),
-                        _payment(vat_rate=None),
-                    ],
+                    payments=PaymentList(
+                        [
+                            _payment(vat_rate=None),
+                            _payment(vat_rate=None),
+                        ]
+                    ),
                 ),
             ],
         )
@@ -337,7 +343,7 @@ async def test_flat_advances_skip_none_total_success() -> None:
         total_rate=Decimal(20),
         tax_rates=None,
         advances=[
-            AdvancePayment(percent=None, total=None, payments=[]),
+            AdvancePayment(percent=None, total=None, payments=PaymentList([])),
             _advance(total_rate=Decimal(20)),
         ],
     )
@@ -352,7 +358,7 @@ async def test_flat_advance_total_amount_without_vat_rate_success() -> None:
             AdvancePayment(
                 percent=Decimal(50),
                 total=_payment(vat_rate=None),
-                payments=[],
+                payments=PaymentList([]),
             ),
         ],
     )
@@ -409,10 +415,12 @@ async def test_advance_payments_no_total_mismatch_contract_rate_failed() -> None
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[
-                    _payment(vat_rate=Decimal(20)),
-                    _payment(vat_rate=Decimal(10)),
-                ],
+                payments=PaymentList(
+                    [
+                        _payment(vat_rate=Decimal(20)),
+                        _payment(vat_rate=Decimal(10)),
+                    ]
+                ),
             ),
         ],
     )
@@ -431,10 +439,12 @@ async def test_advance_payments_no_total_all_rates_in_tax_rates_success() -> Non
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[
-                    _payment(vat_rate=Decimal(20)),
-                    _payment(vat_rate=Decimal(10)),
-                ],
+                payments=PaymentList(
+                    [
+                        _payment(vat_rate=Decimal(20)),
+                        _payment(vat_rate=Decimal(10)),
+                    ]
+                ),
             ),
         ],
     )
@@ -449,10 +459,12 @@ async def test_advance_payments_no_total_rate_not_in_tax_rates_failed() -> None:
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[
-                    _payment(vat_rate=Decimal(20)),
-                    _payment(vat_rate=Decimal(10)),
-                ],
+                payments=PaymentList(
+                    [
+                        _payment(vat_rate=Decimal(20)),
+                        _payment(vat_rate=Decimal(10)),
+                    ]
+                ),
             ),
         ],
     )
@@ -472,7 +484,9 @@ async def test_advance_payments_no_total_mixed_none_valid_collects_not_found() -
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[_payment(vat_rate=None), _payment(vat_rate=Decimal(20))],
+                payments=PaymentList(
+                    [_payment(vat_rate=None), _payment(vat_rate=Decimal(20))]
+                ),
             ),
         ],
     )

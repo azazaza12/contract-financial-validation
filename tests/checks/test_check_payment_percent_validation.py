@@ -12,6 +12,7 @@ from app.domain.entities import (
     FieldCollector,
     Money,
     Payment,
+    PaymentList,
     Source,
     TotalAmount,
     TotalAmountField,
@@ -44,7 +45,7 @@ def _make_advance(
     payment_value: str | None,
 ) -> AdvancePayment:
     total = _make_payment(payment_value) if payment_value is not None else None
-    return AdvancePayment(percent=percent, total=total, payments=[])
+    return AdvancePayment(percent=percent, total=total, payments=PaymentList([]))
 
 
 async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]):
@@ -364,7 +365,7 @@ async def test_payment_percent_falls_back_to_raw_when_advance_lacks_rate() -> No
                 vat=Vat(amount=None, rate=None),
                 include_vat=VatInclusion.EXCLUDED,
             ),
-            payments=[],
+            payments=PaymentList([]),
         ),
     ]
     fields = FieldCollector(
@@ -409,10 +410,14 @@ async def test_payment_percent_uses_advance_payments_for_basis_when_total_has_no
         AdvancePayment(
             percent=Decimal("100.00"),
             total=numberless_total,
-            payments=[
-                _vat_payment("50.00", rate="20.00", include_vat=VatInclusion.EXCLUDED),
-                non_grossable_line,
-            ],
+            payments=PaymentList(
+                [
+                    _vat_payment(
+                        "50.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
+                    ),
+                    non_grossable_line,
+                ]
+            ),
         ),
     ]
     fields = FieldCollector(
@@ -455,7 +460,7 @@ async def test_payment_percent_basis_ignores_advance_payments_when_total_has_num
         AdvancePayment(
             percent=Decimal("100.00"),
             total=advance_total,
-            payments=[non_grossable_line],
+            payments=PaymentList([non_grossable_line]),
         ),
     ]
     fields = FieldCollector(
@@ -492,14 +497,14 @@ async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match(
             total=_vat_payment(
                 "60.00", rate="20.00", include_vat=VatInclusion.INCLUDED
             ),
-            payments=[],
+            payments=PaymentList([]),
         ),
         AdvancePayment(
             percent=Decimal("50.00"),
             total=_vat_payment(
                 "60.00", rate="20.00", include_vat=VatInclusion.INCLUDED
             ),
-            payments=[],
+            payments=PaymentList([]),
         ),
     ]
     fields = FieldCollector(
