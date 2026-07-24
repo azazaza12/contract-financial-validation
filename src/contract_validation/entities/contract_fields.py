@@ -63,6 +63,15 @@ class Money:
             return [AmountNotPositiveError(value=self.value)]
         return []
 
+    def __add__(self, other: Money) -> Money:
+        if self.value is None:
+            value = other.value
+        elif other.value is None:
+            value = self.value
+        else:
+            value = self.value + other.value
+        return Money(value=value, transcription=None)
+
 
 @dataclass(kw_only=True, frozen=True)
 class Vat:
@@ -85,6 +94,16 @@ class Vat:
         if self.amount is not None:
             errors.extend(self.amount.validate(MoneyValidationMode.NON_NEGATIVE))
         return errors
+
+    def __add__(self, other: Vat) -> Vat:
+        if self.amount is None:
+            amount = other.amount
+        elif other.amount is None:
+            amount = self.amount
+        else:
+            amount = self.amount + other.amount
+        rate = self.rate if self.rate is not None and self.rate == other.rate else None
+        return Vat(amount=amount, rate=rate)
 
 
 @dataclass(kw_only=True, frozen=True)
