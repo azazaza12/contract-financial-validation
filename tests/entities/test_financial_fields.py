@@ -160,6 +160,31 @@ def test_money_add_keeps_other_value_when_one_side_missing():
     assert (left + right).value == Decimal("5.00")
 
 
+def test_money_sub_returns_difference_when_both_sides_present():
+    left = Money(value=Decimal("10.00"), transcription="десять")
+    right = Money(value=Decimal("4.00"), transcription="четыре")
+
+    result = left - right
+
+    assert result.value == Decimal("6.00")
+    assert result.transcription is None
+
+
+def test_money_sub_none_when_one_side_missing():
+    left = Money(value=None, transcription=None)
+    right = Money(value=Decimal("5.00"), transcription=None)
+
+    assert (left - right).value is None
+    assert (right - left).value is None
+
+
+def test_money_sub_returns_negative_when_left_smaller():
+    left = Money(value=Decimal("4.00"), transcription=None)
+    right = Money(value=Decimal("10.00"), transcription=None)
+
+    assert (left - right).value == Decimal("-6.00")
+
+
 def test_vat_add_sums_amounts_and_keeps_matching_rate():
     left = Vat(
         amount=Money(value=Decimal("10.00"), transcription=None), rate=Decimal(20)
@@ -279,6 +304,73 @@ def test_payment_add_drops_transcription():
     )
 
     assert (left + right).amount.transcription is None
+
+
+def test_payment_sub_returns_difference_when_both_sides_present():
+    left = make_payment(amount="100.00", include_vat=VatInclusion.EXCLUDED)
+    right = make_payment(amount="30.00", include_vat=VatInclusion.EXCLUDED)
+
+    result = left - right
+
+    assert result.amount_value == Decimal("70.00")
+
+
+def test_payment_sub_returns_negative_when_left_smaller():
+    left = make_payment(amount="30.00", include_vat=VatInclusion.EXCLUDED)
+    right = make_payment(amount="100.00", include_vat=VatInclusion.EXCLUDED)
+
+    result = left - right
+
+    assert result.amount_value == Decimal("-70.00")
+
+
+def test_payment_sub_converts_to_common_inclusion_when_rates_allow():
+    included = make_payment(
+        amount="120.00", rate="20", include_vat=VatInclusion.INCLUDED
+    )
+    excluded = make_payment(
+        amount="50.00", rate="20", include_vat=VatInclusion.EXCLUDED
+    )
+
+    result = included - excluded
+
+    assert result.include_vat is VatInclusion.INCLUDED
+    assert result.amount_value == Decimal("60.00")
+
+
+def test_payment_sub_amount_none_when_self_amount_missing():
+    left = make_payment(amount=None, include_vat=VatInclusion.UNSPECIFIED)
+    right = make_payment(amount="50.00", include_vat=VatInclusion.EXCLUDED)
+
+    assert (left - right).amount_value is None
+
+
+def test_payment_sub_amount_none_when_other_amount_missing():
+    left = make_payment(amount="50.00", include_vat=VatInclusion.EXCLUDED)
+    right = make_payment(amount=None, include_vat=VatInclusion.UNSPECIFIED)
+
+    assert (left - right).amount_value is None
+
+
+def test_payment_sub_vat_amount_difference_when_both_present():
+    left = make_payment(amount="120.00", vat_amount="20.00")
+    right = make_payment(amount="60.00", vat_amount="8.00")
+
+    assert (left - right).vat_amount_value == Decimal("12.00")
+
+
+def test_payment_sub_vat_amount_none_when_one_side_missing():
+    left = make_payment(amount="120.00", vat_amount="20.00")
+    right = make_payment(amount="60.00", vat_amount=None)
+
+    assert (left - right).vat_amount_value is None
+
+
+def test_payment_sub_rate_always_none():
+    left = make_payment(amount="100.00", rate="20", include_vat=VatInclusion.EXCLUDED)
+    right = make_payment(amount="50.00", rate="20", include_vat=VatInclusion.EXCLUDED)
+
+    assert (left - right).vat_rate is None
 
 
 def test_payment_list_iterates_in_order():

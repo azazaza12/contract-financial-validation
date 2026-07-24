@@ -73,6 +73,13 @@ class Money:
             value = self.value + other.value
         return Money(value=value, transcription=None)
 
+    def __sub__(self, other: Money) -> Money:
+        if self.value is None or other.value is None:
+            value = None
+        else:
+            value = self.value - other.value
+        return Money(value=value, transcription=None)
+
 
 @dataclass(kw_only=True, frozen=True)
 class Vat:
@@ -105,6 +112,13 @@ class Vat:
             amount = self.amount + other.amount
         rate = self.rate if self.rate is not None and self.rate == other.rate else None
         return Vat(amount=amount, rate=rate)
+
+    def __sub__(self, other: Vat) -> Vat:
+        if self.amount is None or other.amount is None:
+            amount = None
+        else:
+            amount = self.amount - other.amount
+        return Vat(amount=amount, rate=None)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -220,6 +234,26 @@ class Payment:
         return Payment(
             amount=amount,
             vat=self.vat + other.vat,
+            include_vat=inclusion,
+        )
+
+    def __sub__(self, other: Payment) -> Payment:
+        inclusion = select_common_vat_inclusion([self, other])
+        self_amount = self._amount_as(inclusion)
+        other_amount = other._amount_as(inclusion)
+        amount_value = (
+            self_amount - other_amount
+            if self_amount is not None and other_amount is not None
+            else None
+        )
+        amount = (
+            Money(value=amount_value, transcription=None)
+            if amount_value is not None
+            else None
+        )
+        return Payment(
+            amount=amount,
+            vat=self.vat - other.vat,
             include_vat=inclusion,
         )
 
