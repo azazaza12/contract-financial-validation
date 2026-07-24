@@ -105,6 +105,44 @@ def test_expected_vat_amount_none_when_included_denominator_zero():
     assert payment.expected_vat_amount is None
 
 
+def test_amount_excluding_vat_uses_rate_when_present():
+    payment = make_payment(
+        amount="120.00", rate="20", include_vat=VatInclusion.INCLUDED
+    )
+    assert payment.amount_excluding_vat == Decimal("100.00")
+
+
+def test_amount_excluding_vat_falls_back_to_vat_amount_when_rate_missing():
+    payment = make_payment(
+        amount="120.00", vat_amount="20.00", include_vat=VatInclusion.INCLUDED
+    )
+    assert payment.amount_excluding_vat == Decimal("100.00")
+
+
+def test_amount_excluding_vat_none_when_rate_and_vat_amount_missing():
+    payment = make_payment(amount="120.00", include_vat=VatInclusion.INCLUDED)
+    assert payment.amount_excluding_vat is None
+
+
+def test_amount_including_vat_uses_rate_when_present():
+    payment = make_payment(
+        amount="100.00", rate="20", include_vat=VatInclusion.EXCLUDED
+    )
+    assert payment.amount_including_vat == Decimal("120.00")
+
+
+def test_amount_including_vat_falls_back_to_vat_amount_when_rate_missing():
+    payment = make_payment(
+        amount="100.00", vat_amount="20.00", include_vat=VatInclusion.EXCLUDED
+    )
+    assert payment.amount_including_vat == Decimal("120.00")
+
+
+def test_amount_including_vat_none_when_rate_and_vat_amount_missing():
+    payment = make_payment(amount="100.00", include_vat=VatInclusion.EXCLUDED)
+    assert payment.amount_including_vat is None
+
+
 def test_money_add_sums_present_values_and_drops_transcription():
     left = Money(value=Decimal("10.00"), transcription="десять")
     right = Money(value=Decimal("5.00"), transcription="пять")
@@ -123,8 +161,12 @@ def test_money_add_keeps_other_value_when_one_side_missing():
 
 
 def test_vat_add_sums_amounts_and_keeps_matching_rate():
-    left = Vat(amount=Money(value=Decimal("10.00"), transcription=None), rate=Decimal(20))
-    right = Vat(amount=Money(value=Decimal("5.00"), transcription=None), rate=Decimal(20))
+    left = Vat(
+        amount=Money(value=Decimal("10.00"), transcription=None), rate=Decimal(20)
+    )
+    right = Vat(
+        amount=Money(value=Decimal("5.00"), transcription=None), rate=Decimal(20)
+    )
 
     result = left + right
 
