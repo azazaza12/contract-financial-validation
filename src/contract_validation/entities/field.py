@@ -113,6 +113,11 @@ class FieldCollector:
         self._fields.append(field)
         self._type_map = None
 
+    def __add__(self, other: FieldCollector) -> FieldCollector:
+        self._fields.extend(other._fields)
+        self._type_map = None
+        return self
+
     def __len__(self) -> int:
         return len(self._fields)
 
