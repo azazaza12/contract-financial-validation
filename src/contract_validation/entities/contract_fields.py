@@ -218,6 +218,20 @@ def select_basis(payments: list[Payment]) -> Basis:
     return Basis.RAW
 
 
+def select_common_vat_inclusion(payments: list[Payment]) -> VatInclusion:
+    numbered = [p for p in payments if p.amount_value is not None]
+    if not numbered:
+        return VatInclusion.UNSPECIFIED
+    common = {p.include_vat for p in numbered}
+    if len(common) == 1:
+        return common.pop()
+    if all(p.amount_including_vat is not None for p in numbered):
+        return VatInclusion.INCLUDED
+    if all(p.amount_excluding_vat is not None for p in numbered):
+        return VatInclusion.EXCLUDED
+    return VatInclusion.MIXED
+
+
 @dataclass(frozen=True)
 class PaymentList:
     _payments: list[Payment]
