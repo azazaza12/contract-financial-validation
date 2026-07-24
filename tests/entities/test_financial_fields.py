@@ -479,6 +479,41 @@ def test_advance_payment_lines_wraps_payments():
     assert advance.payments.amount_value == Decimal("500.00")
 
 
+def test_advance_payment_resolved_prefers_total_when_present():
+    total = make_payment(amount="1000.00")
+    payments = PaymentList([make_payment(amount="500.00")])
+    advance = make_advance(total=total, payments=payments)
+
+    assert advance.resolved is total
+
+
+def test_advance_payment_resolved_falls_back_to_summed_payments():
+    payments = PaymentList([make_payment(amount="500.00")])
+    advance = make_advance(total=None, payments=payments)
+
+    resolved = advance.resolved
+
+    assert resolved is not None
+    assert resolved.amount_value == Decimal("500.00")
+
+
+def test_advance_payment_resolved_falls_back_when_total_amount_missing():
+    total = make_payment(amount=None, vat_amount="10.00")
+    payments = PaymentList([make_payment(amount="500.00")])
+    advance = make_advance(total=total, payments=payments)
+
+    resolved = advance.resolved
+
+    assert resolved is not None
+    assert resolved.amount_value == Decimal("500.00")
+
+
+def test_advance_payment_resolved_none_when_no_data():
+    advance = make_advance(total=None, payments=PaymentList([]))
+
+    assert advance.resolved is None
+
+
 # ---------- Money ----------
 
 
