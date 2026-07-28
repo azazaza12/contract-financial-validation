@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from app.domain.entities import (
     AdvancePayment,
+    AdvancePaymentsField,
     Money,
     MoneyValidationMode,
     Payment,
@@ -14,6 +15,7 @@ from app.domain.entities.errors.checks import (
     AmountDiscrepancyError,
     AmountNotPositiveError,
     VatAmountDiscrepancyError,
+    VatAmountNotPositiveError,
     VatRateNotPositiveError,
 )
 from app.domain.entities.single_supplier_fields import select_common_vat_inclusion
@@ -558,6 +560,41 @@ def test_advance_payment_has_amounts_in_nested_payments():
     assert advance.has_amounts()
 
 
+def test_advance_payment_validate_collects_total_and_payments_errors():
+    advance = make_advance(
+        total=make_payment(amount="-100.00"),
+        payments=PaymentList([make_payment(rate="-20.00")]),
+    )
+
+    errors = advance.validate()
+
+    assert len(errors) == 2  # noqa: PLR2004
+    assert any(isinstance(error, AmountNotPositiveError) for error in errors)
+    assert any(isinstance(error, VatRateNotPositiveError) for error in errors)
+
+
+def test_advance_payments_field_validate_collects_all_advance_errors():
+    field = AdvancePaymentsField(
+        value=[
+            make_advance(
+                total=make_payment(amount="-100.00"),
+                payments=PaymentList([]),
+            ),
+            make_advance(
+                total=None,
+                payments=PaymentList([make_payment(rate="-20.00")]),
+            ),
+        ],
+        sources=[],
+    )
+
+    errors = field.validate()
+
+    assert len(errors) == 2  # noqa: PLR2004
+    assert any(isinstance(error, AmountNotPositiveError) for error in errors)
+    assert any(isinstance(error, VatRateNotPositiveError) for error in errors)
+
+
 def test_advance_payment_comparison_skips_when_total_missing():
     advance = make_advance(
         total=None,
@@ -663,7 +700,7 @@ def test_vat_is_correct_returns_rate_and_amount_errors():
     errors = vat.validate()
 
     assert any(isinstance(e, VatRateNotPositiveError) for e in errors)
-    assert any(isinstance(e, AmountNotPositiveError) for e in errors)
+    assert any(isinstance(e, VatAmountNotPositiveError) for e in errors)
 
 
 # ---------- Payment ----------
@@ -783,7 +820,8 @@ def test_payment_is_correct_collects_errors_from_amount_and_vat():
     errors = payment.validate()
 
     assert len(errors) == 3  # noqa: PLR2004
-    assert sum(isinstance(e, AmountNotPositiveError) for e in errors) == 2  # noqa: PLR2004
+    assert sum(isinstance(e, AmountNotPositiveError) for e in errors) == 1
+    assert sum(isinstance(e, VatAmountNotPositiveError) for e in errors) == 1
     assert sum(isinstance(e, VatRateNotPositiveError) for e in errors) == 1
 
 
