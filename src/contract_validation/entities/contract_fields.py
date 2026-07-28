@@ -147,6 +147,9 @@ class Payment:
             self.amount is not None and self.amount.has_data()
         ) or self.vat.has_data()
 
+    def has_amounts(self) -> bool:
+        return self.amount_value is not None or self.vat_amount_value is not None
+
     def validate(self) -> list[BaseContractError]:
         errors = []
         if self.amount is not None:
@@ -360,6 +363,9 @@ class PaymentList:
     def __bool__(self) -> bool:
         return bool(self._payments)
 
+    def has_amounts(self) -> bool:
+        return any(payment.has_amounts() for payment in self._payments)
+
     def validate(self) -> list[BaseContractError]:
         errors = []
         for payment in self._payments:
@@ -411,6 +417,9 @@ class TotalAmount:
             return True
         return bool(any(payment.has_data() for payment in self.taxes))
 
+    def has_amounts(self) -> bool:
+        return self.total.has_amounts() or self.taxes.has_amounts()
+
     def validate(self) -> list[BaseContractError]:
         errors = []
         errors.extend(self.total.validate())
@@ -433,6 +442,9 @@ class TotalAmountField(BaseField[TotalAmount]):
     def has_data(self) -> bool:
         return self.value.has_data()
 
+    def has_amounts(self) -> bool:
+        return self.value.has_amounts()
+
     def validate(self) -> list[BaseContractError]:
         return self.value.validate()
 
@@ -449,6 +461,11 @@ class AdvancePayment:
         if self.total is not None and self.total.has_data():
             return True
         return bool(any(payment.has_data() for payment in self.payments))
+
+    def has_amounts(self) -> bool:
+        return (
+            self.total is not None and self.total.has_amounts()
+        ) or self.payments.has_amounts()
 
     @property
     def resolved(self) -> Payment | None:
@@ -482,6 +499,9 @@ class AdvancePaymentsField(BaseField[list[AdvancePayment]]):
 
     def has_data(self) -> bool:
         return bool(any(payment.has_data() for payment in self.value))
+
+    def has_amounts(self) -> bool:
+        return any(payment.has_amounts() for payment in self.value)
 
 
 @dataclass(kw_only=True, frozen=True)

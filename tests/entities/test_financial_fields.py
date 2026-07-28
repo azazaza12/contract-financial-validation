@@ -69,6 +69,18 @@ def test_vat_rate_returns_rate():
     assert payment.vat_rate == Decimal("20.00")
 
 
+def test_payment_has_amounts_when_amount_present():
+    assert make_payment(amount="100.00").has_amounts()
+
+
+def test_payment_has_amounts_when_vat_amount_present():
+    assert make_payment(vat_amount="20.00").has_amounts()
+
+
+def test_payment_has_no_amounts_when_only_vat_rate_present():
+    assert not make_payment(rate="20.00").has_amounts()
+
+
 def test_expected_vat_amount_none_when_amount_missing():
     payment = make_payment(amount=None, rate="20.00")
     assert payment.expected_vat_amount is None
@@ -462,6 +474,17 @@ def test_payment_list_summed_drops_rate_when_rates_differ():
     assert summed.vat_rate is None
 
 
+def test_payment_list_has_amounts_when_any_payment_has_amount():
+    payment_list = PaymentList(
+        [
+            make_payment(rate="20.00"),
+            make_payment(amount="100.00"),
+        ]
+    )
+
+    assert payment_list.has_amounts()
+
+
 def test_total_amount_tax_payments_wraps_taxes():
     taxes = PaymentList([make_payment(amount="100.00"), make_payment(amount="200.00")])
     total_amount = TotalAmount(total=make_payment(amount="300.00"), taxes=taxes)
@@ -514,6 +537,25 @@ def test_advance_payment_resolved_none_when_no_data():
     advance = make_advance(total=None, payments=PaymentList([]))
 
     assert advance.resolved is None
+
+
+def test_advance_payment_has_no_amounts_when_only_percent_present():
+    advance = AdvancePayment(
+        percent=Decimal("50.00"),
+        total=None,
+        payments=PaymentList([]),
+    )
+
+    assert not advance.has_amounts()
+
+
+def test_advance_payment_has_amounts_in_nested_payments():
+    advance = make_advance(
+        total=None,
+        payments=PaymentList([make_payment(vat_amount="20.00")]),
+    )
+
+    assert advance.has_amounts()
 
 
 def test_advance_payment_comparison_skips_when_total_missing():
