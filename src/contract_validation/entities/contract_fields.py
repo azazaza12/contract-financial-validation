@@ -14,6 +14,7 @@ from .errors.checks import (
     AmountNotPositiveError,
     BaseCheckError,
     VatAmountDiscrepancyError,
+    VatAmountNotPositiveError,
     VatRateNotPositiveError,
 )
 from .field import BaseField
@@ -102,9 +103,9 @@ class Vat:
         errors: list[BaseContractError] = []
         if self.rate is not None and self.rate < 0:
             errors.append(VatRateNotPositiveError(value=self.rate))
-        amount = self.amount
+        amount = self.amount_value
         if amount is not None and amount < 0:
-            errors.append(VatAmountDiscrepancyError(value=amount))
+            errors.append(VatAmountNotPositiveError(value=amount))
         return errors
 
     def __add__(self, other: Vat) -> Vat:
@@ -468,6 +469,13 @@ class AdvancePayment:
             self.total is not None and self.total.has_amounts()
         ) or self.payments.has_amounts()
 
+    def validate(self) -> list[BaseContractError]:
+        errors: list[BaseContractError] = []
+        if self.total is not None:
+            errors.extend(self.total.validate())
+        errors.extend(self.payments.validate())
+        return errors
+
     @property
     def resolved(self) -> Payment | None:
         if self.total is not None and self.total.amount_value is not None:
@@ -503,6 +511,12 @@ class AdvancePaymentsField(BaseField[list[AdvancePayment]]):
 
     def has_amounts(self) -> bool:
         return any(payment.has_amounts() for payment in self.value)
+
+    def validate(self) -> list[BaseContractError]:
+        errors: list[BaseContractError] = []
+        for advance_payment in self.value:
+            errors.extend(advance_payment.validate())
+        return errors
 
 
 @dataclass(kw_only=True, frozen=True)
