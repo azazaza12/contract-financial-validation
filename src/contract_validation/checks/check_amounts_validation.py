@@ -1,9 +1,8 @@
 from decimal import Decimal
 from typing import cast
 
-from app.domain.entities.errors.checks import AmountDiscrepancyError, BaseCheckError
+from app.domain.entities.errors.checks import BaseCheckError
 from app.domain.entities.single_supplier_fields import (
-    AdvancePayment,
     AdvancePaymentsField,
     Payment,
     PaymentList,
@@ -23,17 +22,6 @@ class CheckTotalAmountsValidation(BaseCheck):
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
         self.errors: list[BaseCheckError] = []
-
-
-    def _check_advance_payment(self, advance_payment: AdvancePayment) -> None:
-        if advance_payment.total is None:
-            return
-        payments_sum = advance_payment.payments.summed
-        if payments_sum is None:
-            return
-        self.errors.extend(payments_sum.compare(advance_payment.total, tolerance=self.tolerance))
-
-
 
     async def execute(self) -> CheckExecutionResult:
         self.errors = []
@@ -56,7 +44,11 @@ class CheckTotalAmountsValidation(BaseCheck):
         if advance_payments_field is not None:
             advance_payments: list[Payment] = []
             for advance_payment in advance_payments_field.value:
-                self._check_advance_payment(advance_payment)
+                self.errors.extend(
+                    advance_payment.compare_payments_with_total(
+                        tolerance=self.tolerance
+                    )
+                )
 
                 resolved = advance_payment.resolved
                 if resolved is not None:
