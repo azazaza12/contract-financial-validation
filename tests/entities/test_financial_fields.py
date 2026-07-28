@@ -7,6 +7,8 @@ from app.domain.entities import (
     MoneyValidationMode,
     Payment,
     PaymentList,
+    SpecPosition,
+    SpecPositionsField,
     TotalAmount,
     Vat,
     VatInclusion,
@@ -888,4 +890,60 @@ def test_total_amount_get_moneys_returns_total_and_tax_moneys():
         total.amount,
         tax1.amount,
         tax2.amount,
+    ]
+
+
+# ---------- SpecPosition ----------
+
+
+def test_spec_position_validate_rejects_non_positive_amount_values():
+    position = SpecPosition(
+        name="Position",
+        quantity=Decimal(0),
+        unit_price=Decimal(-10),
+        total_price=Decimal(-20),
+        unit_of_measurement="piece",
+    )
+
+    assert position.validate() == [
+        AmountNotPositiveError(value=Decimal(-10)),
+        AmountNotPositiveError(value=Decimal(-20)),
+    ]
+
+
+def test_spec_position_validate_does_not_validate_quantity():
+    position = SpecPosition(
+        name="Position",
+        quantity=Decimal(-1),
+        unit_price=Decimal(10),
+        total_price=Decimal(20),
+        unit_of_measurement="piece",
+    )
+
+    assert position.validate() == []
+
+
+def test_spec_positions_field_validate_collects_errors_from_all_positions():
+    field = SpecPositionsField(
+        value=[
+            SpecPosition(
+                name="First",
+                quantity=Decimal(1),
+                unit_price=Decimal(10),
+                total_price=Decimal(10),
+                unit_of_measurement="piece",
+            ),
+            SpecPosition(
+                name="Second",
+                quantity=Decimal(-1),
+                unit_price=Decimal(20),
+                total_price=Decimal(0),
+                unit_of_measurement="piece",
+            ),
+        ],
+        sources=[],
+    )
+
+    assert field.validate() == [
+        AmountNotPositiveError(value=Decimal(0)),
     ]

@@ -32,8 +32,7 @@ class CheckTotalAmountsValidation(BaseCheck):
         )
 
         if not total_amount_field.has_amounts() and (
-            advance_payments_field is None
-            or not advance_payments_field.has_amounts()
+            advance_payments_field is None or not advance_payments_field.has_amounts()
         ):
             raise InsufficientCheckDataError(
                 self.__class__.__name__,

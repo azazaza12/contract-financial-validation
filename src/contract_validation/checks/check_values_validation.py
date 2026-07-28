@@ -20,9 +20,7 @@ class CheckValuesValidation(BaseCheck):
     async def execute(self) -> CheckExecutionResult:
         errors: list[BaseCheckError] = []
 
-        total_amount_field = cast(
-            "TotalAmountField | None", self.total_amount_field
-        )
+        total_amount_field = cast("TotalAmountField | None", self.total_amount_field)
         advance_payments_field = cast(
             "AdvancePaymentsField | None", self.advance_payments_field
         )
