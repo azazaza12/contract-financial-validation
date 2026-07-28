@@ -10,7 +10,10 @@ from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
 from .errors.base import BaseContractError
 from .errors.checks import (
+    AmountDiscrepancyError,
     AmountNotPositiveError,
+    BaseCheckError,
+    VatAmountDiscrepancyError,
     VatRateNotPositiveError,
 )
 from .field import BaseField
@@ -119,6 +122,17 @@ class Vat:
         else:
             amount = self.amount - other.amount
         return Vat(amount=amount, rate=None)
+
+
+@dataclass(frozen=True, kw_only=True)
+class _NormalizedAmounts:
+    left: Decimal
+    right: Decimal
+    inclusion: VatInclusion
+
+    @property
+    def difference(self) -> Decimal:
+        return self.left - self.right
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -237,25 +251,58 @@ class Payment:
             include_vat=inclusion,
         )
 
-    def __sub__(self, other: Payment) -> Payment:
+    def _normalized_amounts(self, other: Payment) -> _NormalizedAmounts | None:
         inclusion = select_common_vat_inclusion([self, other])
-        self_amount = self._amount_as(inclusion)
-        other_amount = other._amount_as(inclusion)
-        amount_value = (
-            self_amount - other_amount
-            if self_amount is not None and other_amount is not None
-            else None
-        )
-        amount = (
-            Money(value=amount_value, transcription=None)
-            if amount_value is not None
-            else None
-        )
+        left = self._amount_as(inclusion)
+        right = other._amount_as(inclusion)
+        if left is None or right is None:
+            return None
+        return _NormalizedAmounts(left=left, right=right, inclusion=inclusion)
+
+    def __sub__(self, other: Payment) -> Payment:
+        normalized = self._normalized_amounts(other)
+        if normalized is None:
+            return Payment(
+                amount=None,
+                vat=self.vat - other.vat,
+                include_vat=select_common_vat_inclusion([self, other]),
+            )
+        difference = normalized.difference
+        amount = Money(value=difference, transcription=None)
         return Payment(
             amount=amount,
             vat=self.vat - other.vat,
-            include_vat=inclusion,
+            include_vat=normalized.inclusion,
         )
+
+    def compare(
+        self, reference: Payment, *, tolerance: Decimal
+    ) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
+        normalized = self._normalized_amounts(reference)
+        value_vat_amount = self.vat.amount_value
+        reference_vat_amount = reference.vat.amount_value
+        if normalized is not None:
+            amount_difference = abs(normalized.difference)
+            if amount_difference > tolerance:
+                errors.append(
+                    AmountDiscrepancyError(
+                        value=normalized.left,
+                        reference_value=normalized.right,
+                        difference=amount_difference,
+                    )
+                )
+        if value_vat_amount is not None and reference_vat_amount is not None:
+            vat_amount_difference = abs(reference_vat_amount - value_vat_amount)
+            if vat_amount_difference > tolerance:
+                errors.append(
+                    VatAmountDiscrepancyError(
+                        value=value_vat_amount,
+                        reference_value=reference_vat_amount,
+                        difference=vat_amount_difference,
+                    )
+                )
+        return errors
 
     def should_merge_economically(
         self, others: list[Payment], *, tolerance: Decimal
