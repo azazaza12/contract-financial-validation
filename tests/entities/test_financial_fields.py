@@ -11,7 +11,9 @@ from app.domain.entities import (
     VatInclusion,
 )
 from app.domain.entities.errors.checks import (
+    AmountDiscrepancyError,
     AmountNotPositiveError,
+    VatAmountDiscrepancyError,
     VatRateNotPositiveError,
 )
 from app.domain.entities.single_supplier_fields import select_common_vat_inclusion
@@ -563,6 +565,107 @@ def test_vat_is_correct_returns_rate_and_amount_errors():
 
 
 # ---------- Payment ----------
+
+
+def test_payment_compare_returns_no_errors_when_values_match():
+    value = make_payment(amount="100.00", vat_amount="20.00")
+    reference = make_payment(amount="100.00", vat_amount="20.00")
+
+    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+
+    assert errors == []
+
+
+def test_payment_compare_returns_amount_discrepancy():
+    value = make_payment(amount="120.00")
+    reference = make_payment(amount="100.00")
+
+    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+
+    assert errors == [
+        AmountDiscrepancyError(
+            value=Decimal("120.00"),
+            reference_value=Decimal("100.00"),
+            difference=Decimal("20.00"),
+        )
+    ]
+
+
+def test_payment_compare_returns_positive_difference_when_value_is_smaller():
+    value = make_payment(amount="100.00")
+    reference = make_payment(amount="120.00")
+
+    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+
+    assert errors == [
+        AmountDiscrepancyError(
+            value=Decimal("100.00"),
+            reference_value=Decimal("120.00"),
+            difference=Decimal("20.00"),
+        )
+    ]
+
+
+def test_payment_compare_uses_normalized_amounts_in_error():
+    value = make_payment(
+        amount="120.00",
+        rate="20.00",
+        include_vat=VatInclusion.EXCLUDED,
+    )
+    reference = make_payment(
+        amount="120.00",
+        rate="20.00",
+        include_vat=VatInclusion.INCLUDED,
+    )
+
+    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+
+    assert errors == [
+        AmountDiscrepancyError(
+            value=Decimal("144.00"),
+            reference_value=Decimal("120.00"),
+            difference=Decimal("24.00"),
+        )
+    ]
+
+
+def test_payment_compare_checks_vat_when_amounts_are_missing():
+    value = make_payment(amount=None, vat_amount="10.00")
+    reference = make_payment(amount=None, vat_amount="20.00")
+
+    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+
+    assert errors == [
+        VatAmountDiscrepancyError(
+            value=Decimal("10.00"),
+            reference_value=Decimal("20.00"),
+            difference=Decimal("10.00"),
+        )
+    ]
+
+
+def test_payment_compare_checks_amount_when_vat_amounts_are_missing():
+    value = make_payment(amount="120.00", vat_amount=None)
+    reference = make_payment(amount="100.00", vat_amount=None)
+
+    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+
+    assert errors == [
+        AmountDiscrepancyError(
+            value=Decimal("120.00"),
+            reference_value=Decimal("100.00"),
+            difference=Decimal("20.00"),
+        )
+    ]
+
+
+def test_payment_compare_allows_difference_equal_to_tolerance():
+    value = make_payment(amount="101.00", vat_amount="21.00")
+    reference = make_payment(amount="100.00", vat_amount="20.00")
+
+    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+
+    assert errors == []
 
 
 def test_payment_is_correct_collects_errors_from_amount_and_vat():
