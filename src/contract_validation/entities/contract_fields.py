@@ -102,8 +102,9 @@ class Vat:
         errors: list[BaseContractError] = []
         if self.rate is not None and self.rate < 0:
             errors.append(VatRateNotPositiveError(value=self.rate))
-        if self.amount is not None:
-            errors.extend(self.amount.validate(MoneyValidationMode.NON_NEGATIVE))
+        amount = self.amount
+        if amount is not None and amount < 0:
+            errors.append(VatAmountDiscrepancyError(value=amount))
         return errors
 
     def __add__(self, other: Vat) -> Vat:
