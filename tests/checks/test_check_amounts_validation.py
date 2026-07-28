@@ -170,6 +170,75 @@ async def test_total_amounts_succeeds_with_only_total_amount() -> None:
     assert result.errors == []
 
 
+async def test_total_amounts_succeeds_with_only_taxes_amount() -> None:
+    result = await _run_check(
+        total_amount=None,
+        taxes_amounts=["100.00"],
+        advances=None,
+    )
+
+    assert result.status == CheckStatus.SUCCESS
+    assert result.errors == []
+
+
+async def test_total_amounts_succeeds_with_only_advance_total() -> None:
+    result = await _run_check(
+        total_amount=None,
+        taxes_amounts=None,
+        advances=[
+            AdvancePayment(
+                percent=None,
+                total=_make_payment("100.00"),
+                payments=PaymentList([]),
+            )
+        ],
+    )
+
+    assert result.status == CheckStatus.SUCCESS
+    assert result.errors == []
+
+
+async def test_total_amounts_succeeds_with_only_advance_payments() -> None:
+    result = await _run_check(
+        total_amount=None,
+        taxes_amounts=None,
+        advances=[
+            AdvancePayment(
+                percent=None,
+                total=None,
+                payments=PaymentList([_make_payment("100.00")]),
+            )
+        ],
+    )
+
+    assert result.status == CheckStatus.SUCCESS
+    assert result.errors == []
+
+
+async def test_total_amounts_succeeds_with_only_total_vat_amount() -> None:
+    check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
+    check.total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=Payment(
+                amount=None,
+                vat=Vat(
+                    amount=Money(value=Decimal("20.00"), transcription=None),
+                    rate=Decimal("20.00"),
+                ),
+                include_vat=VatInclusion.INCLUDED,
+            ),
+            taxes=PaymentList([]),
+        ),
+        sources=[],
+    )
+    check.advance_payments_field = None
+
+    result = await check.execute()
+
+    assert result.status == CheckStatus.SUCCESS
+    assert result.errors == []
+
+
 async def test_total_amounts_succeeds_when_taxes_list_is_empty() -> None:
     result = await _run_check(
         total_amount="100.00",
