@@ -463,6 +463,18 @@ class AdvancePayment:
                 return total
         return self.payments.amount_in_basis(basis)
 
+    def compare_payments_with_total(
+        self, *, tolerance: Decimal
+    ) -> list[BaseCheckError]:
+        if self.total is None:
+            return []
+
+        payments_sum = self.payments.summed
+        if payments_sum is None:
+            return []
+
+        return payments_sum.compare(self.total, tolerance=tolerance)
+
 
 @dataclass(kw_only=True, frozen=True)
 class AdvancePaymentsField(BaseField[list[AdvancePayment]]):

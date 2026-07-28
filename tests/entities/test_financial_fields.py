@@ -516,6 +516,66 @@ def test_advance_payment_resolved_none_when_no_data():
     assert advance.resolved is None
 
 
+def test_advance_payment_comparison_skips_when_total_missing():
+    advance = make_advance(
+        total=None,
+        payments=PaymentList([make_payment(amount="100.00", vat_amount="20.00")]),
+    )
+
+    errors = advance.compare_payments_with_total(tolerance=Decimal("1.00"))
+
+    assert errors == []
+
+
+def test_advance_payment_comparison_skips_when_payments_missing():
+    advance = make_advance(
+        total=make_payment(amount="100.00", vat_amount="20.00"),
+        payments=PaymentList([]),
+    )
+
+    errors = advance.compare_payments_with_total(tolerance=Decimal("1.00"))
+
+    assert errors == []
+
+
+def test_advance_payment_comparison_succeeds_when_sums_match():
+    advance = make_advance(
+        total=make_payment(amount="100.00", vat_amount="20.00"),
+        payments=PaymentList(
+            [
+                make_payment(amount="60.00", vat_amount="12.00"),
+                make_payment(amount="40.00", vat_amount="8.00"),
+            ]
+        ),
+    )
+
+    errors = advance.compare_payments_with_total(tolerance=Decimal("1.00"))
+
+    assert errors == []
+
+
+def test_advance_payment_comparison_returns_amount_and_vat_errors():
+    advance = make_advance(
+        total=make_payment(amount="100.00", vat_amount="20.00"),
+        payments=PaymentList([make_payment(amount="90.00", vat_amount="15.00")]),
+    )
+
+    errors = advance.compare_payments_with_total(tolerance=Decimal("1.00"))
+
+    assert errors == [
+        AmountDiscrepancyError(
+            value=Decimal("90.00"),
+            reference_value=Decimal("100.00"),
+            difference=Decimal("10.00"),
+        ),
+        VatAmountDiscrepancyError(
+            value=Decimal("15.00"),
+            reference_value=Decimal("20.00"),
+            difference=Decimal("5.00"),
+        ),
+    ]
+
+
 # ---------- Money ----------
 
 
