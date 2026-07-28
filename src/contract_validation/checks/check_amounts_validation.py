@@ -31,24 +31,16 @@ class CheckTotalAmountsValidation(BaseCheck):
             "AdvancePaymentsField | None", self.advance_payments_field
         )
 
-        total = total_amount_field.value.total
-        payments = [total, *total_amount_field.value.taxes]
-        if advance_payments_field is not None:
-            for advance_payment in advance_payments_field.value:
-                if advance_payment.total is not None:
-                    payments.append(advance_payment.total)
-                payments.extend(advance_payment.payments)
-
-        has_amount = any(payment.amount_value is not None for payment in payments)
-        has_vat_amount = any(
-            payment.vat_amount_value is not None for payment in payments
-        )
-        if not has_amount and not has_vat_amount:
+        if not total_amount_field.has_amounts() and (
+            advance_payments_field is None
+            or not advance_payments_field.has_amounts()
+        ):
             raise InsufficientCheckDataError(
                 self.__class__.__name__,
                 "no amount or VAT amount found",
             )
 
+        total = total_amount_field.value.total
         taxes = total_amount_field.value.taxes.summed
         if taxes is not None:
             self.errors.extend(taxes.compare(total, tolerance=self.tolerance))
