@@ -8,7 +8,6 @@ from app.domain.merge.defaults import STRICT_REGISTRY
 from app.domain.merge.handlers import merge_payment
 from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
-from .errors.base import BaseContractError
 from .errors.checks import (
     AmountDiscrepancyError,
     AmountNotPositiveError,
@@ -57,7 +56,7 @@ class Money:
 
     def validate(
         self, mode: MoneyValidationMode = MoneyValidationMode.POSITIVE
-    ) -> list[BaseContractError]:
+    ) -> list[BaseCheckError]:
         if self.value is None:
             return []
 
@@ -99,8 +98,8 @@ class Vat:
             return True
         return self.rate is not None
 
-    def validate(self) -> list[BaseContractError]:
-        errors: list[BaseContractError] = []
+    def validate(self) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
         if self.rate is not None and self.rate < 0:
             errors.append(VatRateNotPositiveError(value=self.rate))
         amount = self.amount_value
@@ -152,8 +151,8 @@ class Payment:
     def has_amounts(self) -> bool:
         return self.amount_value is not None or self.vat_amount_value is not None
 
-    def validate(self) -> list[BaseContractError]:
-        errors = []
+    def validate(self) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
         if self.amount is not None:
             errors.extend(self.amount.validate())
         if self.vat is not None:
@@ -368,8 +367,8 @@ class PaymentList:
     def has_amounts(self) -> bool:
         return any(payment.has_amounts() for payment in self._payments)
 
-    def validate(self) -> list[BaseContractError]:
-        errors = []
+    def validate(self) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
         for payment in self._payments:
             errors.extend(payment.validate())
         return errors
@@ -422,8 +421,8 @@ class TotalAmount:
     def has_amounts(self) -> bool:
         return self.total.has_amounts() or self.taxes.has_amounts()
 
-    def validate(self) -> list[BaseContractError]:
-        errors = []
+    def validate(self) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
         errors.extend(self.total.validate())
         errors.extend(self.taxes.validate())
         return errors
@@ -447,7 +446,7 @@ class TotalAmountField(BaseField[TotalAmount]):
     def has_amounts(self) -> bool:
         return self.value.has_amounts()
 
-    def validate(self) -> list[BaseContractError]:
+    def validate(self) -> list[BaseCheckError]:
         return self.value.validate()
 
 
@@ -469,8 +468,8 @@ class AdvancePayment:
             self.total is not None and self.total.has_amounts()
         ) or self.payments.has_amounts()
 
-    def validate(self) -> list[BaseContractError]:
-        errors: list[BaseContractError] = []
+    def validate(self) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
         if self.total is not None:
             errors.extend(self.total.validate())
         errors.extend(self.payments.validate())
@@ -512,8 +511,8 @@ class AdvancePaymentsField(BaseField[list[AdvancePayment]]):
     def has_amounts(self) -> bool:
         return any(payment.has_amounts() for payment in self.value)
 
-    def validate(self) -> list[BaseContractError]:
-        errors: list[BaseContractError] = []
+    def validate(self) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
         for advance_payment in self.value:
             errors.extend(advance_payment.validate())
         return errors
@@ -536,6 +535,13 @@ class SpecPosition:
             or self.total_price is not None
         )
 
+    def validate(self) -> list[BaseCheckError]:
+        return [
+            AmountNotPositiveError(value=value)
+            for value in (self.unit_price, self.total_price)
+            if value is not None and value <= 0
+        ]
+
 
 @dataclass(kw_only=True, frozen=True)
 class SpecPositionsField(BaseField[list[SpecPosition]]):
@@ -543,6 +549,12 @@ class SpecPositionsField(BaseField[list[SpecPosition]]):
 
     def has_data(self) -> bool:
         return bool(any(position.has_data() for position in self.value))
+
+    def validate(self) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
+        for position in self.value:
+            errors.extend(position.validate())
+        return errors
 
 
 @dataclass(kw_only=True, frozen=True)
