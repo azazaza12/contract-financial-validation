@@ -3,9 +3,8 @@ from typing import cast
 
 from app.domain.entities.errors.checks import BaseCheckError
 from app.domain.entities.single_supplier_fields import (
+    AdvancePaymentList,
     AdvancePaymentsField,
-    Payment,
-    PaymentList,
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
@@ -45,7 +44,6 @@ class CheckTotalAmountsValidation(BaseCheck):
             self.errors.extend(taxes.compare(total, tolerance=self.tolerance))
 
         if advance_payments_field is not None:
-            advance_payments: list[Payment] = []
             for advance_payment in advance_payments_field.value:
                 self.errors.extend(
                     advance_payment.compare_payments_with_total(
@@ -53,13 +51,10 @@ class CheckTotalAmountsValidation(BaseCheck):
                     )
                 )
 
-                resolved = advance_payment.resolved
-                if resolved is not None:
-                    advance_payments.append(resolved)
-            advances_sum = PaymentList(advance_payments).summed
-            if advances_sum is not None:
+            advances_sum = AdvancePaymentList(advance_payments_field.value).summed
+            if advances_sum is not None and advances_sum.total is not None:
                 self.errors.extend(
-                    advances_sum.compare(total, tolerance=self.tolerance)
+                    advances_sum.total.compare(total, tolerance=self.tolerance)
                 )
 
         return self._result(self.errors)
