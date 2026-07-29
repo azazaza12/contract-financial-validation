@@ -13,6 +13,7 @@ from .errors.checks import (
     AmountNotPositiveError,
     BaseCheckError,
     PaymentAmountPercentDiscrepancyError,
+    PositionCostDiscrepancyError,
     VatAmountCalculationDiscrepancyError,
     VatAmountDiscrepancyError,
     VatAmountNotPositiveError,
@@ -252,6 +253,17 @@ class Payment:
         if basis is Basis.EXCLUDING_VAT:
             return self.amount_excluding_vat
         return self.amount_value
+
+    def amount_variants(self) -> list[Decimal]:
+        values = [
+            value
+            for value in (self.amount_including_vat, self.amount_excluding_vat)
+            if value is not None
+        ]
+        if values:
+            return values
+        raw = self.amount_value
+        return [raw] if raw is not None else []
 
     def scaled(self, percent: Decimal) -> Payment:
         factor = percent / Decimal("100.00")
@@ -711,6 +723,84 @@ class SpecPosition:
             AmountNotPositiveError(value=value)
             for value in (self.unit_price, self.total_price)
             if value is not None and value <= 0
+        ]
+
+    def validate_cost_calculation(
+        self, *, index: int, tolerance: Decimal
+    ) -> list[BaseCheckError]:
+        if self.total_price is None or self.quantity is None or self.unit_price is None:
+            return []
+        calculated = self.quantity * self.unit_price
+        difference = abs(self.total_price - calculated)
+        if difference <= tolerance:
+            return []
+        return [
+            PositionCostDiscrepancyError(
+                count=index,
+                position_name=self.name,
+                cost=self.total_price,
+                calculated_cost=calculated,
+                difference_sum=difference,
+            )
+        ]
+
+
+@dataclass(frozen=True)
+class SpecPositionList:
+    _positions: list[SpecPosition]
+
+    def __iter__(self) -> Iterator[SpecPosition]:
+        return iter(self._positions)
+
+    def __len__(self) -> int:
+        return len(self._positions)
+
+    def __bool__(self) -> bool:
+        return bool(self._positions)
+
+    def has_position_totals(self) -> bool:
+        return any(position.total_price is not None for position in self._positions)
+
+    @property
+    def total_price_sum(self) -> Decimal | None:
+        total: Decimal | None = None
+        for position in self._positions:
+            if position.total_price is None:
+                continue
+            total = (total or Decimal("0.00")) + position.total_price
+        return total
+
+    def validate_cost_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
+        for index, position in enumerate(self._positions, start=1):
+            errors.extend(
+                position.validate_cost_calculation(index=index, tolerance=tolerance)
+            )
+        return errors
+
+    def compare_total_with(
+        self, total_payment: Payment, *, tolerance: Decimal
+    ) -> list[BaseCheckError]:
+        positions_total = self.total_price_sum
+        if positions_total is None:
+            return []
+
+        candidates = total_payment.amount_variants()
+        if not candidates:
+            return []
+
+        closest = min(
+            candidates, key=lambda candidate: abs(positions_total - candidate)
+        )
+        difference = abs(positions_total - closest)
+        if difference <= tolerance:
+            return []
+        return [
+            AmountDiscrepancyError(
+                reference_value=closest,
+                value=positions_total,
+                difference=difference,
+            )
         ]
 
 
