@@ -321,7 +321,9 @@ async def test_check_price_validation_skips_when_no_amounts_at_all() -> None:
         await check.execute()
 
 
-async def test_check_price_validation_skips_when_contract_total_is_missing() -> None:
+async def test_check_price_validation_validates_positions_without_contract_total() -> (
+    None
+):
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -358,9 +360,8 @@ async def test_check_price_validation_skips_when_contract_total_is_missing() -> 
     await CheckTask(check=check).run(ctx)
 
     run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
-    assert run.records[-1].status == TaskStatus.SKIPPED
-    assert "no contract total amount" in (run.records[-1].error_message or "")
-    contract_repo.save_errors.assert_not_awaited()
+    assert run.records[-1].status == TaskStatus.SUCCESS
+    contract_repo.save_errors.assert_awaited_once_with(contract.id, [], kind="check")
 
 
 async def test_check_price_validation_succeeds_when_within_tolerance() -> None:
