@@ -549,6 +549,10 @@ class AdvancePayment:
         if self.percent is None:
             return []
 
+        reference_amount = reference.amount_value
+        if reference_amount is None:
+            return []
+
         line_payment = self.resolved
         if line_payment is None:
             return []
@@ -566,7 +570,7 @@ class AdvancePayment:
                 amount=normalized.left,
                 expected_amount=normalized.right,
                 percent=self.percent,
-                contract_total_amount=reference.amount_value,
+                contract_total_amount=reference_amount,
             )
         ]
 
