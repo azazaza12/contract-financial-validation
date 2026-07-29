@@ -8,6 +8,7 @@ from app.domain.entities.errors.checks import (
 )
 from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
     Basis,
     Payment,
@@ -98,10 +99,12 @@ class CheckPaymentPercentValidation(BaseCheck):
             if error is not None:
                 errors.append(error)
 
-        total_percent = Decimal("0.00")
-        for advance_payment in advance_payments:
-            if advance_payment.percent is not None:
-                total_percent += advance_payment.percent
+        advances_sum = AdvancePaymentList(advance_payments).summed
+        total_percent = (
+            advances_sum.percent
+            if advances_sum is not None and advances_sum.percent is not None
+            else Decimal("0.00")
+        )
 
         if abs(total_percent - Decimal("100.00")) > self.tolerance:
             errors.append(

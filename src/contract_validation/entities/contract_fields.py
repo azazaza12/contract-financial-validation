@@ -524,6 +524,37 @@ class AdvancePayment:
         return payments_sum.compare(self.total, tolerance=tolerance)
 
 
+@dataclass(frozen=True)
+class AdvancePaymentList:
+    _advance_payments: list[AdvancePayment]
+
+    def __iter__(self) -> Iterator[AdvancePayment]:
+        return iter(self._advance_payments)
+
+    def __len__(self) -> int:
+        return len(self._advance_payments)
+
+    def __bool__(self) -> bool:
+        return bool(self._advance_payments)
+
+    @property
+    def summed(self) -> AdvancePayment | None:
+        resolved = [
+            ap.resolved for ap in self._advance_payments if ap.resolved is not None
+        ]
+        payment = PaymentList(resolved).summed
+
+        percents = [
+            ap.percent for ap in self._advance_payments if ap.percent is not None
+        ]
+        percent_sum = sum(percents, Decimal("0.00")) if percents else None
+
+        result = AdvancePayment(
+            percent=percent_sum, total=payment, payments=PaymentList([])
+        )
+        return result if result.has_data() else None
+
+
 @dataclass(kw_only=True, frozen=True)
 class AdvancePaymentsField(BaseField[list[AdvancePayment]]):
     merge_registry = STRICT_REGISTRY
