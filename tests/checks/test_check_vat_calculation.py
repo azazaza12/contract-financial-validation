@@ -10,6 +10,7 @@ from app.domain.entities import (
     AdvancePaymentsField,
     Money,
     Payment,
+    PaymentList,
     TotalAmount,
     TotalAmountField,
     Vat,
@@ -46,7 +47,7 @@ def _make_total_amount_field(
     taxes: list[Payment] | None = None,
 ) -> TotalAmountField:
     return TotalAmountField(
-        value=TotalAmount(total=total, taxes=taxes or []),
+        value=TotalAmount(total=total, taxes=PaymentList(taxes or [])),
         sources=[],
     )
 
@@ -174,14 +175,64 @@ async def test_vat_calculation_verifies_advance_line_payments() -> None:
             AdvancePayment(
                 percent=None,
                 total=None,
-                payments=[
-                    _pay(
-                        amount="60.00",
-                        vat_amount=bad_vat,
-                        vat_rate="20.00",
-                        include_vat=VatInclusion.INCLUDED,
-                    )
-                ],
+                payments=PaymentList(
+                    [
+                        _pay(
+                            amount="60.00",
+                            vat_amount=bad_vat,
+                            vat_rate="20.00",
+                            include_vat=VatInclusion.INCLUDED,
+                        )
+                    ]
+                ),
+            ),
+        ],
+    )
+    assert r.status == CheckStatus.FAILED
+    assert any(isinstance(e, VatAmountCalculationDiscrepancyError) for e in r.errors)
+
+
+async def test_vat_calculation_verifies_taxes() -> None:
+    bad_vat = str(Decimal("20.00") + AMOUNT_TOLERANCE + Decimal("0.01"))
+    r = await _run(
+        total=_pay(
+            amount="120.00",
+            vat_amount="20.00",
+            vat_rate="20.00",
+            include_vat=VatInclusion.INCLUDED,
+        ),
+        taxes=[
+            _pay(
+                amount="120.00",
+                vat_amount=bad_vat,
+                vat_rate="20.00",
+                include_vat=VatInclusion.INCLUDED,
+            )
+        ],
+    )
+    assert r.status == CheckStatus.FAILED
+    assert any(isinstance(e, VatAmountCalculationDiscrepancyError) for e in r.errors)
+
+
+async def test_vat_calculation_verifies_advance_total() -> None:
+    bad_vat = str(Decimal("10.00") + AMOUNT_TOLERANCE + Decimal("0.01"))
+    r = await _run(
+        total=_pay(
+            amount="120.00",
+            vat_amount="20.00",
+            vat_rate="20.00",
+            include_vat=VatInclusion.INCLUDED,
+        ),
+        advances=[
+            AdvancePayment(
+                percent=None,
+                total=_pay(
+                    amount="60.00",
+                    vat_amount=bad_vat,
+                    vat_rate="20.00",
+                    include_vat=VatInclusion.INCLUDED,
+                ),
+                payments=PaymentList([]),
             ),
         ],
     )
@@ -204,11 +255,24 @@ async def test_vat_calculation_skipped_when_no_amount_vat_rate_data() -> None:
         await check.execute()
 
 
-async def test_vat_calculation_skips_non_positive_amount_without_error() -> None:
+async def test_vat_calculation_flags_mismatch_with_zero_amount() -> None:
     r = await _run(
         total=_pay(
             amount="0.00",
             vat_amount="20.00",
+            vat_rate="20.00",
+            include_vat=VatInclusion.INCLUDED,
+        ),
+    )
+    assert r.status == CheckStatus.FAILED
+    assert any(isinstance(e, VatAmountCalculationDiscrepancyError) for e in r.errors)
+
+
+async def test_vat_calculation_succeeds_with_zero_amount_and_zero_vat() -> None:
+    r = await _run(
+        total=_pay(
+            amount="0.00",
+            vat_amount="0.00",
             vat_rate="20.00",
             include_vat=VatInclusion.INCLUDED,
         ),
