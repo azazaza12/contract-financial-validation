@@ -61,6 +61,56 @@ async def test_values_validation_succeeds_without_optional_fields() -> None:
     assert result.errors == []
 
 
+async def test_values_validation_rejects_zero_amounts() -> None:
+    total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=_make_payment(amount="0"),
+            taxes=PaymentList([]),
+        ),
+        sources=[],
+    )
+    spec_positions_field = SpecPositionsField(
+        value=[
+            SpecPosition(
+                name="Position",
+                quantity=Decimal(1),
+                unit_price=Decimal(0),
+                total_price=Decimal(0),
+                unit_of_measurement="piece",
+            )
+        ],
+        sources=[],
+    )
+    check = CheckValuesValidation()
+    check.prepare([total_amount_field, spec_positions_field])
+
+    result = await check.execute()
+
+    assert result.status is CheckStatus.FAILED
+    assert result.errors == [
+        AmountNotPositiveError(value=Decimal(0)),
+        AmountNotPositiveError(value=Decimal(0)),
+        AmountNotPositiveError(value=Decimal(0)),
+    ]
+
+
+async def test_values_validation_allows_zero_vat_amount() -> None:
+    total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=_make_payment(vat_amount="0"),
+            taxes=PaymentList([]),
+        ),
+        sources=[],
+    )
+    check = CheckValuesValidation()
+    check.prepare([total_amount_field])
+
+    result = await check.execute()
+
+    assert result.status is CheckStatus.SUCCESS
+    assert result.errors == []
+
+
 async def test_values_validation_collects_errors_from_all_models() -> None:
     total_amount_field = TotalAmountField(
         value=TotalAmount(

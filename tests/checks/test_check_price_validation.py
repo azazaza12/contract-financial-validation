@@ -20,7 +20,6 @@ from app.domain.entities import (
 )
 from app.domain.entities.errors import (
     AmountDiscrepancyError,
-    AmountNotPositiveError,
     PositionCostDiscrepancyError,
 )
 from app.domain.entities.single_supplier import SingleSupplierDocument
@@ -221,7 +220,9 @@ async def test_check_price_validation_fails_when_total_amount_mismatch() -> None
     assert any(isinstance(err, AmountDiscrepancyError) for err in called_errors)
 
 
-async def test_check_price_validation_fails_when_values_not_positive() -> None:
+async def test_check_price_validation_succeeds_when_zero_values_are_consistent() -> (
+    None
+):
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
     fields = FieldCollector(
         [
@@ -248,7 +249,7 @@ async def test_check_price_validation_fails_when_values_not_positive() -> None:
     await CheckTask(check=check).run(ctx)
 
     called_errors = contract_repo.save_errors.call_args.args[1]
-    assert any(isinstance(err, AmountNotPositiveError) for err in called_errors)
+    assert called_errors == []
 
 
 async def test_check_price_validation_skips_when_no_position_totals_to_compare() -> (

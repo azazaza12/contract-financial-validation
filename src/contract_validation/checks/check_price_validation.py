@@ -3,7 +3,6 @@ from typing import cast
 
 from app.domain.entities.errors.checks import (
     AmountDiscrepancyError,
-    AmountNotPositiveError,
     BaseCheckError,
     PositionCostDiscrepancyError,
 )
@@ -39,16 +38,9 @@ class CheckPriceValidation(BaseCheck):
             if position_total_amount is None:
                 continue
 
-            if position_total_amount <= 0:
-                self.errors.append(AmountNotPositiveError(value=position_total_amount))
-            else:
-                total_calculated += position_total_amount
+            total_calculated += position_total_amount
 
             if quantity is None or price is None:
-                continue
-
-            if price <= 0:
-                self.errors.append(AmountNotPositiveError(value=price))
                 continue
 
             position_calculated = quantity * price
@@ -100,27 +92,23 @@ class CheckPriceValidation(BaseCheck):
             position.total_price is not None for position in spec_positions
         )
 
-        representative_total = candidate_totals[0]
-        if representative_total <= 0:
-            self.errors.append(AmountNotPositiveError(value=representative_total))
-        elif positions_total == 0 and not has_position_totals:
+        if positions_total == 0 and not has_position_totals:
             raise InsufficientCheckDataError(
                 label,
                 "cannot calculate positions total for comparison",
             )
-        else:
-            closest_total = min(
-                candidate_totals,
-                key=lambda candidate: abs(positions_total - candidate),
+        closest_total = min(
+            candidate_totals,
+            key=lambda candidate: abs(positions_total - candidate),
+        )
+        difference = abs(positions_total - closest_total)
+        if difference > self.tolerance:
+            self.errors.append(
+                AmountDiscrepancyError(
+                    reference_value=closest_total,
+                    value=positions_total,
+                    difference=difference,
+                ),
             )
-            difference = abs(positions_total - closest_total)
-            if difference > self.tolerance:
-                self.errors.append(
-                    AmountDiscrepancyError(
-                        reference_value=closest_total,
-                        value=positions_total,
-                        difference=difference,
-                    ),
-                )
 
         return self._result(self.errors)
