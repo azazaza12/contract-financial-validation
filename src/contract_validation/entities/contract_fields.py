@@ -13,6 +13,7 @@ from .errors.checks import (
     AmountNotPositiveError,
     BaseCheckError,
     PaymentAmountPercentDiscrepancyError,
+    VatAmountCalculationDiscrepancyError,
     VatAmountDiscrepancyError,
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
@@ -152,6 +153,13 @@ class Payment:
     def has_amounts(self) -> bool:
         return self.amount_value is not None or self.vat_amount_value is not None
 
+    def has_vat_calculation_data(self) -> bool:
+        return (
+            self.amount_value is not None
+            and self.vat_amount_value is not None
+            and self.vat_rate is not None
+        )
+
     def validate(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         if self.amount is not None:
@@ -159,6 +167,22 @@ class Payment:
         if self.vat is not None:
             errors.extend(self.vat.validate())
         return errors
+
+    def vat_calculation_error(self, *, tolerance: Decimal) -> list[BaseCheckError]:
+        expected = self.expected_vat_amount
+        vat_amount = self.vat_amount_value
+        if expected is None or vat_amount is None:
+            return []
+        difference = abs(vat_amount - expected)
+        if difference <= tolerance:
+            return []
+        return [
+            VatAmountCalculationDiscrepancyError(
+                expected_vat_amount=expected,
+                vat_amount=vat_amount,
+                difference=difference,
+            )
+        ]
 
     @property
     def amount_value(self) -> Decimal | None:
@@ -387,10 +411,19 @@ class PaymentList:
     def has_amounts(self) -> bool:
         return any(payment.has_amounts() for payment in self._payments)
 
+    def has_vat_calculation_data(self) -> bool:
+        return any(payment.has_vat_calculation_data() for payment in self._payments)
+
     def validate(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         for payment in self._payments:
             errors.extend(payment.validate())
+        return errors
+
+    def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
+        for payment in self._payments:
+            errors.extend(payment.vat_calculation_error(tolerance=tolerance))
         return errors
 
     @property
@@ -441,10 +474,22 @@ class TotalAmount:
     def has_amounts(self) -> bool:
         return self.total.has_amounts() or self.taxes.has_amounts()
 
+    def has_vat_calculation_data(self) -> bool:
+        return (
+            self.total.has_vat_calculation_data()
+            or self.taxes.has_vat_calculation_data()
+        )
+
     def validate(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         errors.extend(self.total.validate())
         errors.extend(self.taxes.validate())
+        return errors
+
+    def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
+        errors.extend(self.total.vat_calculation_error(tolerance=tolerance))
+        errors.extend(self.taxes.validate_vat_calculation(tolerance=tolerance))
         return errors
 
     def get_moneys(self) -> list[Money]:
@@ -488,11 +533,23 @@ class AdvancePayment:
             self.total is not None and self.total.has_amounts()
         ) or self.payments.has_amounts()
 
+    def has_vat_calculation_data(self) -> bool:
+        return (
+            self.total is not None and self.total.has_vat_calculation_data()
+        ) or self.payments.has_vat_calculation_data()
+
     def validate(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         if self.total is not None:
             errors.extend(self.total.validate())
         errors.extend(self.payments.validate())
+        return errors
+
+    def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
+        if self.total is not None:
+            errors.extend(self.total.vat_calculation_error(tolerance=tolerance))
+        errors.extend(self.payments.validate_vat_calculation(tolerance=tolerance))
         return errors
 
     @property
@@ -587,6 +644,15 @@ class AdvancePaymentList:
 
     def __bool__(self) -> bool:
         return bool(self._advance_payments)
+
+    def has_vat_calculation_data(self) -> bool:
+        return any(ap.has_vat_calculation_data() for ap in self._advance_payments)
+
+    def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
+        for ap in self._advance_payments:
+            errors.extend(ap.validate_vat_calculation(tolerance=tolerance))
+        return errors
 
     @property
     def summed(self) -> AdvancePayment | None:
