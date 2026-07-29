@@ -48,11 +48,11 @@ class CheckPaymentPercentValidation(BaseCheck):
 
         errors: list[BaseCheckError] = []
         for advance_payment in advance_payments:
-            error = advance_payment.compare_amount_with_percent(
-                total_payment, tolerance=self.tolerance
+            errors.extend(
+                advance_payment.compare_amount_with_percent(
+                    total_payment, tolerance=self.tolerance
+                )
             )
-            if error is not None:
-                errors.append(error)
 
         total_percent = advances_sum.percent
         if abs(total_percent - Decimal("100.00")) > self.tolerance:

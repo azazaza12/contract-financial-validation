@@ -545,28 +545,30 @@ class AdvancePayment:
 
     def compare_amount_with_percent(
         self, reference: Payment, *, tolerance: Decimal
-    ) -> BaseCheckError | None:
+    ) -> list[BaseCheckError]:
         if self.percent is None:
-            return None
+            return []
 
         line_payment = self.resolved
         if line_payment is None:
-            return None
+            return []
 
         expected = reference.scaled(self.percent)
         normalized = line_payment.normalized_amounts(expected)
         if normalized is None:
-            return None
+            return []
 
         if abs(normalized.difference) <= tolerance:
-            return None
+            return []
 
-        return PaymentAmountPercentDiscrepancyError(
-            amount=normalized.left,
-            expected_amount=normalized.right,
-            percent=self.percent,
-            contract_total_amount=reference.amount_value,
-        )
+        return [
+            PaymentAmountPercentDiscrepancyError(
+                amount=normalized.left,
+                expected_amount=normalized.right,
+                percent=self.percent,
+                contract_total_amount=reference.amount_value,
+            )
+        ]
 
 
 @dataclass(frozen=True)
