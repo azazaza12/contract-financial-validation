@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import cast
 
 from app.domain.entities.single_supplier_fields import (
-    SpecPositionList,
+    Specification,
     SpecPositionsField,
     TotalAmountField,
 )
@@ -24,7 +24,7 @@ class CheckPriceValidation(BaseCheck):
         spec_positions_field = cast("SpecPositionsField", self.spec_positions_field)
         total_amount_field = cast("TotalAmountField", self.total_amount_field)
 
-        positions = SpecPositionList(spec_positions_field.value)
+        positions = Specification(spec_positions_field.value)
         total_payment = total_amount_field.value.total
         label = self.__class__.__name__
 

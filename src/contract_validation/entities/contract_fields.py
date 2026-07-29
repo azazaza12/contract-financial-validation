@@ -746,7 +746,7 @@ class SpecPosition:
 
 
 @dataclass(frozen=True)
-class SpecPositionList:
+class Specification:
     _positions: list[SpecPosition]
 
     def __iter__(self) -> Iterator[SpecPosition]:
