@@ -477,9 +477,32 @@ class AdvancePayment:
 
     @property
     def resolved(self) -> Payment | None:
-        if self.total is not None and self.total.amount_value is not None:
-            return self.total
-        return self.payments.summed
+        payments_sum = self.payments.summed
+        if self.total is None:
+            return payments_sum
+        if payments_sum is None:
+            return self.total if self.total.has_data() else None
+
+        total = self.total
+        amount = total.amount if total.amount_value is not None else payments_sum.amount
+        vat_amount = (
+            total.vat.amount
+            if total.vat_amount_value is not None
+            else payments_sum.vat.amount
+        )
+        vat_rate = (
+            total.vat.rate if total.vat.rate is not None else payments_sum.vat.rate
+        )
+        include_vat = (
+            total.include_vat
+            if total.amount_value is not None
+            else payments_sum.include_vat
+        )
+        return Payment(
+            amount=amount,
+            vat=Vat(amount=vat_amount, rate=vat_rate),
+            include_vat=include_vat,
+        )
 
     def amount_in_basis(self, basis: Basis) -> Decimal | None:
         if self.total is not None:

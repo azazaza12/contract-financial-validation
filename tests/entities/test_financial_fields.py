@@ -513,7 +513,7 @@ def test_advance_payment_resolved_prefers_total_when_present():
     payments = PaymentList([make_payment(amount="500.00")])
     advance = make_advance(total=total, payments=payments)
 
-    assert advance.resolved is total
+    assert advance.resolved == total
 
 
 def test_advance_payment_resolved_falls_back_to_summed_payments():
@@ -535,6 +535,19 @@ def test_advance_payment_resolved_falls_back_when_total_amount_missing():
 
     assert resolved is not None
     assert resolved.amount_value == Decimal("500.00")
+    assert resolved.vat_amount_value == Decimal("10.00")
+
+
+def test_advance_payment_resolved_prefers_each_available_total_value():
+    total = make_payment(amount=None, vat_amount="20.00")
+    payments = PaymentList([make_payment(amount="500.00", vat_amount="15.00")])
+    advance = make_advance(total=total, payments=payments)
+
+    resolved = advance.resolved
+
+    assert resolved is not None
+    assert resolved.amount_value == Decimal("500.00")
+    assert resolved.vat_amount_value == Decimal("20.00")
 
 
 def test_advance_payment_resolved_none_when_no_data():
