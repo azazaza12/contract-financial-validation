@@ -182,6 +182,7 @@ class Payment:
             amount is None
             or rate is None
             or self.include_vat is VatInclusion.UNSPECIFIED
+            or self.include_vat is VatInclusion.MIXED
         ):
             return None
         if self.include_vat is VatInclusion.INCLUDED:
