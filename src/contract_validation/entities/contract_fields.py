@@ -12,6 +12,7 @@ from .errors.checks import (
     AmountDiscrepancyError,
     AmountNotPositiveError,
     BaseCheckError,
+    PaymentAmountPercentDiscrepancyError,
     VatAmountDiscrepancyError,
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
@@ -126,7 +127,7 @@ class Vat:
 
 
 @dataclass(frozen=True, kw_only=True)
-class _NormalizedAmounts:
+class NormalizedAmounts:
     left: Decimal
     right: Decimal
     inclusion: VatInclusion
@@ -227,6 +228,24 @@ class Payment:
             return self.amount_excluding_vat
         return self.amount_value
 
+    def scaled(self, percent: Decimal) -> Payment:
+        factor = percent / Decimal("100.00")
+        amount = (
+            Money(value=self.amount_value * factor, transcription=None)
+            if self.amount_value is not None
+            else None
+        )
+        vat_amount = (
+            Money(value=self.vat_amount_value * factor, transcription=None)
+            if self.vat_amount_value is not None
+            else None
+        )
+        return Payment(
+            amount=amount,
+            vat=Vat(amount=vat_amount, rate=self.vat.rate),
+            include_vat=self.include_vat,
+        )
+
     def _amount_as(self, inclusion: VatInclusion) -> Decimal | None:
         if inclusion is VatInclusion.INCLUDED:
             return self.amount_including_vat
@@ -255,16 +274,16 @@ class Payment:
             include_vat=inclusion,
         )
 
-    def _normalized_amounts(self, other: Payment) -> _NormalizedAmounts | None:
+    def normalized_amounts(self, other: Payment) -> NormalizedAmounts | None:
         inclusion = select_common_vat_inclusion([self, other])
         left = self._amount_as(inclusion)
         right = other._amount_as(inclusion)
         if left is None or right is None:
             return None
-        return _NormalizedAmounts(left=left, right=right, inclusion=inclusion)
+        return NormalizedAmounts(left=left, right=right, inclusion=inclusion)
 
     def __sub__(self, other: Payment) -> Payment:
-        normalized = self._normalized_amounts(other)
+        normalized = self.normalized_amounts(other)
         if normalized is None:
             return Payment(
                 amount=None,
@@ -283,7 +302,7 @@ class Payment:
         self, reference: Payment, *, tolerance: Decimal
     ) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
-        normalized = self._normalized_amounts(reference)
+        normalized = self.normalized_amounts(reference)
         value_vat_amount = self.vat.amount_value
         reference_vat_amount = reference.vat.amount_value
         if normalized is not None:
@@ -522,6 +541,31 @@ class AdvancePayment:
             return []
 
         return payments_sum.compare(self.total, tolerance=tolerance)
+
+    def compare_amount_with_percent(
+        self, reference: Payment, *, tolerance: Decimal
+    ) -> BaseCheckError | None:
+        if self.percent is None:
+            return None
+
+        line_payment = self.resolved
+        if line_payment is None:
+            return None
+
+        expected = reference.scaled(self.percent)
+        normalized = line_payment.normalized_amounts(expected)
+        if normalized is None:
+            return None
+
+        if abs(normalized.difference) <= tolerance:
+            return None
+
+        return PaymentAmountPercentDiscrepancyError(
+            amount=normalized.left,
+            expected_amount=normalized.right,
+            percent=self.percent,
+            contract_total_amount=reference.amount_value,
+        )
 
 
 @dataclass(frozen=True)

@@ -3,17 +3,12 @@ from typing import cast
 
 from app.domain.entities.errors.checks import (
     BaseCheckError,
-    PaymentAmountPercentDiscrepancyError,
     PaymentPercentSumDiscrepancyError,
 )
 from app.domain.entities.single_supplier_fields import (
-    AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
-    Basis,
-    Payment,
     TotalAmountField,
-    select_basis,
 )
 from app.domain.entities.validation import CheckExecutionResult
 
@@ -28,43 +23,6 @@ class CheckPaymentPercentValidation(BaseCheck):
 
     def __init__(self, tolerance: Decimal) -> None:
         self.tolerance = tolerance
-
-    def _select_basis(
-        self, total_payment: Payment, advance_payments: list[AdvancePayment]
-    ) -> Basis:
-        group = [total_payment]
-        for advance_payment in advance_payments:
-            if (
-                advance_payment.total is not None
-                and advance_payment.total.amount_value is not None
-            ):
-                group.append(advance_payment.total)
-            else:
-                group.extend(advance_payment.payments)
-        return select_basis(group)
-
-    def _validate_advance_amount(
-        self,
-        advance_payment: AdvancePayment,
-        total_payment: Payment,
-        *,
-        basis: Basis,
-    ) -> BaseCheckError | None:
-        if advance_payment.percent is None:
-            return None
-        total_amount = total_payment.amount_in_basis(basis)
-        line_amount = advance_payment.amount_in_basis(basis)
-        if total_amount is None or line_amount is None:
-            return None
-        expected_amount = total_amount * advance_payment.percent / Decimal("100.00")
-        if abs(line_amount - expected_amount) <= self.tolerance:
-            return None
-        return PaymentAmountPercentDiscrepancyError(
-            amount=line_amount,
-            expected_amount=expected_amount,
-            percent=advance_payment.percent,
-            contract_total_amount=total_amount,
-        )
 
     async def execute(self) -> CheckExecutionResult:
         advance_payments_field = cast(
@@ -81,31 +39,22 @@ class CheckPaymentPercentValidation(BaseCheck):
                 "no advance payment records to validate",
             )
 
-        if not any(
-            advance_payment.percent is not None for advance_payment in advance_payments
-        ):
+        advances_sum = AdvancePaymentList(advance_payments).summed
+        if advances_sum is None or advances_sum.percent is None:
             raise InsufficientCheckDataError(
                 label,
                 "no advance payment percents to validate",
             )
 
-        basis = self._select_basis(total_payment, advance_payments)
-
         errors: list[BaseCheckError] = []
         for advance_payment in advance_payments:
-            error = self._validate_advance_amount(
-                advance_payment, total_payment, basis=basis
+            error = advance_payment.compare_amount_with_percent(
+                total_payment, tolerance=self.tolerance
             )
             if error is not None:
                 errors.append(error)
 
-        advances_sum = AdvancePaymentList(advance_payments).summed
-        total_percent = (
-            advances_sum.percent
-            if advances_sum is not None and advances_sum.percent is not None
-            else Decimal("0.00")
-        )
-
+        total_percent = advances_sum.percent
         if abs(total_percent - Decimal("100.00")) > self.tolerance:
             errors.append(
                 PaymentPercentSumDiscrepancyError(total_percent=total_percent)
