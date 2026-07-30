@@ -10,6 +10,7 @@ from app.domain.entities import (
     Money,
     Payment,
     PaymentList,
+    Specification,
     SpecPosition,
     SpecPositionsField,
     TotalAmount,
@@ -71,15 +72,17 @@ async def test_values_validation_rejects_zero_amounts() -> None:
         sources=[],
     )
     spec_positions_field = SpecPositionsField(
-        value=[
-            SpecPosition(
-                name="Position",
-                quantity=Decimal(1),
-                unit_price=Decimal(0),
-                total_price=Decimal(0),
-                unit_of_measurement="piece",
-            )
-        ],
+        value=Specification(
+            [
+                SpecPosition(
+                    name="Position",
+                    quantity=Decimal(1),
+                    unit_price=Decimal(0),
+                    total_price=Decimal(0),
+                    unit_of_measurement="piece",
+                )
+            ]
+        ),
         sources=[],
     )
     check = CheckValuesValidation()
@@ -135,15 +138,17 @@ async def test_values_validation_collects_errors_from_all_models() -> None:
         sources=[],
     )
     spec_positions_field = SpecPositionsField(
-        value=[
-            SpecPosition(
-                name="Position",
-                quantity=Decimal(0),
-                unit_price=Decimal(-6),
-                total_price=Decimal(-7),
-                unit_of_measurement="piece",
-            )
-        ],
+        value=Specification(
+            [
+                SpecPosition(
+                    name="Position",
+                    quantity=Decimal(0),
+                    unit_price=Decimal(-6),
+                    total_price=Decimal(-7),
+                    unit_of_measurement="piece",
+                )
+            ]
+        ),
         sources=[],
     )
     check = CheckValuesValidation()

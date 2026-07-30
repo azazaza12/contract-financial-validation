@@ -805,7 +805,7 @@ class Specification:
 
 
 @dataclass(kw_only=True, frozen=True)
-class SpecPositionsField(BaseField[list[SpecPosition]]):
+class SpecPositionsField(BaseField[Specification]):
     merge_registry = STRICT_REGISTRY
 
     def has_data(self) -> bool:

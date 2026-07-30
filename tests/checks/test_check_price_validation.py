@@ -12,6 +12,7 @@ from app.domain.entities import (
     Money,
     Payment,
     Source,
+    Specification,
     SpecPosition,
     SpecPositionsField,
     TotalAmount,
@@ -65,15 +66,17 @@ async def test_check_price_validation_can_run_as_task_and_save_result() -> None:
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.0"),
-                        unit_price=Decimal("100.00"),
-                        total_price=Decimal("100.00"),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.0"),
+                            unit_price=Decimal("100.00"),
+                            total_price=Decimal("100.00"),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("100.00", document),
@@ -95,15 +98,17 @@ async def test_check_price_validation_raises_when_required_field_is_missing() ->
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.0"),
-                        unit_price=Decimal("100.00"),
-                        total_price=Decimal("100.00"),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.0"),
+                            unit_price=Decimal("100.00"),
+                            total_price=Decimal("100.00"),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
         ],
@@ -131,15 +136,17 @@ async def test_check_price_validation_raises_when_required_field_has_collision()
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.0"),
-                        unit_price=Decimal("100.00"),
-                        total_price=Decimal("100.00"),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.0"),
+                            unit_price=Decimal("100.00"),
+                            total_price=Decimal("100.00"),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("100.00", document),
@@ -165,15 +172,17 @@ async def test_check_price_validation_fails_when_position_total_mismatch() -> No
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("5.0"),
-                        unit_price=Decimal("100.00"),
-                        total_price=Decimal("600.00"),  # должно быть 500.00
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("5.0"),
+                            unit_price=Decimal("100.00"),
+                            total_price=Decimal("600.00"),  # должно быть 500.00
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("600.00", document),
@@ -195,15 +204,17 @@ async def test_check_price_validation_fails_when_total_amount_mismatch() -> None
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.0"),
-                        unit_price=Decimal("100.00"),
-                        total_price=Decimal("100.00"),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.0"),
+                            unit_price=Decimal("100.00"),
+                            total_price=Decimal("100.00"),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("150.00", document),  # рассчитано 100.00
@@ -227,15 +238,17 @@ async def test_check_price_validation_succeeds_when_zero_values_are_consistent()
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.0"),
-                        unit_price=Decimal("0.00"),
-                        total_price=Decimal("0.00"),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.0"),
+                            unit_price=Decimal("0.00"),
+                            total_price=Decimal("0.00"),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("0.00", document),
@@ -259,15 +272,17 @@ async def test_check_price_validation_skips_when_no_position_totals_to_compare()
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Кухонный рабочий",
-                        quantity=Decimal("6.0"),
-                        unit_price=None,
-                        total_price=None,
-                        unit_of_measurement=None,
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Кухонный рабочий",
+                            quantity=Decimal("6.0"),
+                            unit_price=None,
+                            total_price=None,
+                            unit_of_measurement=None,
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("6714000.0", document),
@@ -291,15 +306,17 @@ async def test_check_price_validation_skips_when_no_amounts_at_all() -> None:
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.0"),
-                        unit_price=None,
-                        total_price=None,
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.0"),
+                            unit_price=None,
+                            total_price=None,
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             TotalAmountField(
@@ -328,15 +345,17 @@ async def test_check_price_validation_validates_positions_without_contract_total
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("2.0"),
-                        unit_price=Decimal("50.00"),
-                        total_price=Decimal("100.00"),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("2.0"),
+                            unit_price=Decimal("50.00"),
+                            total_price=Decimal("100.00"),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             TotalAmountField(
@@ -369,15 +388,17 @@ async def test_check_price_validation_succeeds_when_within_tolerance() -> None:
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.0"),
-                        unit_price=Decimal("100.00"),
-                        total_price=Decimal("100.01"),  # ровно tolerance
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.0"),
+                            unit_price=Decimal("100.00"),
+                            total_price=Decimal("100.01"),  # ровно tolerance
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             _make_total_amount_field("100.01", document),
@@ -424,15 +445,17 @@ async def test_check_price_validation_succeeds_when_positions_match_net_total() 
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.0"),
-                        unit_price=Decimal("100.00"),
-                        total_price=Decimal("100.00"),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.0"),
+                            unit_price=Decimal("100.00"),
+                            total_price=Decimal("100.00"),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             _make_vat_total_amount_field(
@@ -453,15 +476,17 @@ async def test_check_price_validation_succeeds_when_positions_match_gross_total(
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.0"),
-                        unit_price=Decimal("120.00"),
-                        total_price=Decimal("120.00"),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.0"),
+                            unit_price=Decimal("120.00"),
+                            total_price=Decimal("120.00"),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             _make_vat_total_amount_field(
