@@ -4,7 +4,6 @@ from app.domain.entities.errors.checks import NumberTranscriptionError
 from app.domain.entities.single_supplier_fields import (
     AdvancePaymentsField,
     Money,
-    Payment,
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
@@ -32,35 +31,6 @@ class CheckNumberTranscriptionRub(BaseCheck):
             and amount.transcription.strip()
         ]
 
-    @staticmethod
-    def _amounts_from_payment(payment: Payment) -> list[Money]:
-        out: list[Money] = []
-        if payment.amount is not None and payment.amount.value is not None:
-            out.append(payment.amount)
-        if payment.vat.amount is not None and payment.vat.amount.value is not None:
-            out.append(payment.vat.amount)
-        return out
-
-    def _extract_amounts_from_fields(
-        self,
-        fields: list[TotalAmountField | AdvancePaymentsField],
-    ) -> list[Money]:
-        amounts: list[Money] = []
-        for field in fields:
-            if isinstance(field, TotalAmountField):
-                total_amount = field.value
-                amounts.extend(self._amounts_from_payment(total_amount.total))
-                for tax_payment in total_amount.taxes:
-                    amounts.extend(self._amounts_from_payment(tax_payment))
-                continue
-
-            for advance_payment in field.value:
-                if advance_payment.total is not None:
-                    amounts.extend(self._amounts_from_payment(advance_payment.total))
-                for payment in advance_payment.payments:
-                    amounts.extend(self._amounts_from_payment(payment))
-        return amounts
-
     async def execute(self) -> CheckExecutionResult:
         total_amount_fields = cast(
             "list[TotalAmountField]",
@@ -70,9 +40,13 @@ class CheckNumberTranscriptionRub(BaseCheck):
             "list[AdvancePaymentsField]",
             self.advance_payments_fields,
         )
-        extracted_amounts = self._extract_amounts_from_fields(
-            [*total_amount_fields, *advance_payments_fields],
-        )
+        fields: list[TotalAmountField | AdvancePaymentsField] = [
+            *total_amount_fields,
+            *advance_payments_fields,
+        ]
+        extracted_amounts: list[Money] = []
+        for field in fields:
+            extracted_amounts.extend(field.moneys())
         checkable_amounts = self._amounts_with_transcription(extracted_amounts)
         if not checkable_amounts:
             raise InsufficientCheckDataError(

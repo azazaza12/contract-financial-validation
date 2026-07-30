@@ -265,6 +265,9 @@ class Payment:
         raw = self.amount_value
         return [raw] if raw is not None else []
 
+    def moneys(self) -> list[Money]:
+        return [money for money in (self.amount, self.vat.amount) if money is not None]
+
     def scaled(self, percent: Decimal) -> Payment:
         factor = percent / Decimal("100.00")
         amount = (
@@ -438,6 +441,12 @@ class PaymentList:
             errors.extend(payment.validate_vat_calculation(tolerance=tolerance))
         return errors
 
+    def moneys(self) -> list[Money]:
+        moneys: list[Money] = []
+        for payment in self._payments:
+            moneys.extend(payment.moneys())
+        return moneys
+
     @property
     def amount_value(self) -> Decimal | None:
         total: Decimal | None = None
@@ -504,13 +513,8 @@ class TotalAmount:
         errors.extend(self.taxes.validate_vat_calculation(tolerance=tolerance))
         return errors
 
-    def get_moneys(self) -> list[Money]:
-        moneys: list[Money] = []
-        total_money = self.total.amount
-        if total_money is not None:
-            moneys.append(total_money)
-        moneys.extend(ta.amount for ta in self.taxes if ta.amount is not None)
-        return moneys
+    def moneys(self) -> list[Money]:
+        return [*self.total.moneys(), *self.taxes.moneys()]
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -525,6 +529,9 @@ class TotalAmountField(BaseField[TotalAmount]):
 
     def validate(self) -> list[BaseCheckError]:
         return self.value.validate()
+
+    def moneys(self) -> list[Money]:
+        return self.value.moneys()
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -563,6 +570,10 @@ class AdvancePayment:
             errors.extend(self.total.validate_vat_calculation(tolerance=tolerance))
         errors.extend(self.payments.validate_vat_calculation(tolerance=tolerance))
         return errors
+
+    def moneys(self) -> list[Money]:
+        total_moneys = self.total.moneys() if self.total is not None else []
+        return [*total_moneys, *self.payments.moneys()]
 
     @property
     def resolved(self) -> Payment | None:
@@ -666,6 +677,12 @@ class AdvancePaymentList:
             errors.extend(ap.validate_vat_calculation(tolerance=tolerance))
         return errors
 
+    def moneys(self) -> list[Money]:
+        moneys: list[Money] = []
+        for ap in self._advance_payments:
+            moneys.extend(ap.moneys())
+        return moneys
+
     @property
     def summed(self) -> AdvancePayment | None:
         resolved = [
@@ -699,6 +716,9 @@ class AdvancePaymentsField(BaseField[AdvancePaymentList]):
         for advance_payment in self.value:
             errors.extend(advance_payment.validate())
         return errors
+
+    def moneys(self) -> list[Money]:
+        return self.value.moneys()
 
 
 @dataclass(kw_only=True, frozen=True)

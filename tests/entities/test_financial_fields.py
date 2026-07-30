@@ -893,7 +893,7 @@ def test_total_amount_is_correct_collects_errors_from_total_and_taxes():
     assert len(errors) == 3  # noqa: PLR2004
 
 
-def test_total_amount_get_moneys_returns_total_and_tax_moneys():
+def test_total_amount_moneys_returns_total_and_tax_moneys():
     total = make_payment(amount="1000")
     tax1 = make_payment(amount="200")
     tax2 = make_payment(amount="100")
@@ -903,7 +903,7 @@ def test_total_amount_get_moneys_returns_total_and_tax_moneys():
         taxes=PaymentList([tax1, tax2]),
     )
 
-    assert total_amount.get_moneys() == [
+    assert total_amount.moneys() == [
         total.amount,
         tax1.amount,
         tax2.amount,
