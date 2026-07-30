@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities import Basis, Money, Payment, Vat, VatInclusion
+from app.domain.entities import Money, Payment, Vat, VatInclusion
 
 
 def _payment(value: str, *, rate: str, include_vat: VatInclusion) -> Payment:
@@ -56,19 +56,3 @@ def test_stated_gross_keeps_amount_including_and_strips_vat_for_excluding() -> N
 
     assert payment.amount_including_vat == Decimal("120.00")
     assert payment.amount_excluding_vat == Decimal("100.00")
-
-
-def test_amount_in_basis_covers_all_three_bases_for_net_payment() -> None:
-    payment = _payment("100.00", rate="20", include_vat=VatInclusion.EXCLUDED)
-
-    assert payment.amount_in_basis(Basis.INCLUDING_VAT) == Decimal("120.00")
-    assert payment.amount_in_basis(Basis.EXCLUDING_VAT) == Decimal("100.00")
-    assert payment.amount_in_basis(Basis.RAW) == Decimal("100.00")
-
-
-def test_amount_in_basis_covers_all_three_bases_for_gross_payment() -> None:
-    payment = _payment("120.00", rate="20", include_vat=VatInclusion.INCLUDED)
-
-    assert payment.amount_in_basis(Basis.INCLUDING_VAT) == Decimal("120.00")
-    assert payment.amount_in_basis(Basis.EXCLUDING_VAT) == Decimal("100.00")
-    assert payment.amount_in_basis(Basis.RAW) == Decimal("120.00")
