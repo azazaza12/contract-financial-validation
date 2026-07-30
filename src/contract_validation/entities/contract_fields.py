@@ -23,12 +23,6 @@ from .errors.checks import (
 from .field import BaseField
 
 
-class Basis(StrEnum):
-    INCLUDING_VAT = "including_vat"
-    EXCLUDING_VAT = "excluding_vat"
-    RAW = "raw"
-
-
 class VatInclusion(StrEnum):
     INCLUDED = "included"
     EXCLUDED = "excluded"
@@ -266,13 +260,6 @@ class Payment:
             return stated + vat_amount
         return None
 
-    def amount_in_basis(self, basis: Basis) -> Decimal | None:
-        if basis is Basis.INCLUDING_VAT:
-            return self.amount_including_vat
-        if basis is Basis.EXCLUDING_VAT:
-            return self.amount_excluding_vat
-        return self.amount_value
-
     def amount_variants(self) -> list[Decimal]:
         values = [
             value
@@ -305,7 +292,7 @@ class Payment:
             include_vat=self.include_vat,
         )
 
-    def _amount_as(self, inclusion: VatInclusion) -> Decimal | None:
+    def amount_as(self, inclusion: VatInclusion) -> Decimal | None:
         if inclusion is VatInclusion.INCLUDED:
             return self.amount_including_vat
         if inclusion is VatInclusion.EXCLUDED:
@@ -314,8 +301,8 @@ class Payment:
 
     def __add__(self, other: Payment) -> Payment:
         inclusion = select_common_vat_inclusion([self, other])
-        self_amount = self._amount_as(inclusion)
-        other_amount = other._amount_as(inclusion)
+        self_amount = self.amount_as(inclusion)
+        other_amount = other.amount_as(inclusion)
         if self_amount is None:
             amount_value = other_amount
         elif other_amount is None:
@@ -335,8 +322,8 @@ class Payment:
 
     def normalized_amounts(self, other: Payment) -> NormalizedAmounts | None:
         inclusion = select_common_vat_inclusion([self, other])
-        left = self._amount_as(inclusion)
-        right = other._amount_as(inclusion)
+        left = self.amount_as(inclusion)
+        right = other.amount_as(inclusion)
         if left is None or right is None:
             return None
         return NormalizedAmounts(left=left, right=right, inclusion=inclusion)
@@ -390,29 +377,18 @@ class Payment:
         self, others: list[Payment], *, tolerance: Decimal
     ) -> bool:
         group = [self, *others]
-        basis = select_basis(group)
-        if basis is Basis.RAW:
+        if len({payment.include_vat for payment in group}) == 1:
+            return False
+        inclusion = select_common_vat_inclusion(group)
+        if inclusion in (VatInclusion.UNSPECIFIED, VatInclusion.MIXED):
             return False
         amounts: list[Decimal] = []
         for payment in group:
-            amount = payment.amount_in_basis(basis)
+            amount = payment.amount_as(inclusion)
             if amount is None:
                 return False
             amounts.append(amount)
         return all(abs(amount - amounts[0]) <= tolerance for amount in amounts[1:])
-
-
-def select_basis(payments: list[Payment]) -> Basis:
-    numbered = [p for p in payments if p.amount_value is not None]
-    if not numbered:
-        return Basis.RAW
-    if len({p.include_vat for p in numbered}) == 1:
-        return Basis.RAW
-    if all(p.amount_including_vat is not None for p in numbered):
-        return Basis.INCLUDING_VAT
-    if all(p.amount_excluding_vat is not None for p in numbered):
-        return Basis.EXCLUDING_VAT
-    return Basis.RAW
 
 
 def select_common_vat_inclusion(payments: list[Payment]) -> VatInclusion:
@@ -483,15 +459,6 @@ class PaymentList:
         total: Decimal | None = None
         for payment in self._payments:
             value = payment.amount_value
-            if value is None:
-                continue
-            total = (total or Decimal("0.00")) + value
-        return total
-
-    def amount_in_basis(self, basis: Basis) -> Decimal | None:
-        total: Decimal | None = None
-        for payment in self._payments:
-            value = payment.amount_in_basis(basis)
             if value is None:
                 continue
             total = (total or Decimal("0.00")) + value
@@ -655,13 +622,6 @@ class AdvancePayment:
             vat=Vat(amount=vat_amount, rate=vat_rate),
             include_vat=include_vat,
         )
-
-    def amount_in_basis(self, basis: Basis) -> Decimal | None:
-        if self.total is not None:
-            total = self.total.amount_in_basis(basis)
-            if total is not None:
-                return total
-        return self.payments.amount_in_basis(basis)
 
     def compare_payments_with_total(
         self, *, tolerance: Decimal
