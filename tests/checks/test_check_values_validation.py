@@ -5,6 +5,7 @@ import pytest
 from app.domain.checks.check_values_validation import CheckValuesValidation
 from app.domain.entities import (
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
     Money,
     Payment,
@@ -120,13 +121,17 @@ async def test_values_validation_collects_errors_from_all_models() -> None:
         sources=[],
     )
     advance_payments_field = AdvancePaymentsField(
-        value=[
-            AdvancePayment(
-                percent=None,
-                total=_make_payment(amount="-3"),
-                payments=PaymentList([_make_payment(vat_amount="-5", vat_rate="-4")]),
-            )
-        ],
+        value=AdvancePaymentList(
+            [
+                AdvancePayment(
+                    percent=None,
+                    total=_make_payment(amount="-3"),
+                    payments=PaymentList(
+                        [_make_payment(vat_amount="-5", vat_rate="-4")]
+                    ),
+                )
+            ]
+        ),
         sources=[],
     )
     spec_positions_field = SpecPositionsField(

@@ -4,6 +4,7 @@ from .field import BaseField, FieldCollector
 from .merge_types import Source, SourceHeader, ValueCandidate
 from .single_supplier_fields import (
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
     Basis,
     DocumentObjectField,
@@ -23,6 +24,7 @@ from .user import User
 
 __all__ = [
     "AdvancePayment",
+    "AdvancePaymentList",
     "AdvancePaymentsField",
     "BaseContract",
     "BaseDocument",

@@ -685,7 +685,7 @@ class AdvancePaymentList:
 
 
 @dataclass(kw_only=True, frozen=True)
-class AdvancePaymentsField(BaseField[list[AdvancePayment]]):
+class AdvancePaymentsField(BaseField[AdvancePaymentList]):
     merge_registry = STRICT_REGISTRY
 
     def has_data(self) -> bool:

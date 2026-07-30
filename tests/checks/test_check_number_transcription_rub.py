@@ -8,6 +8,7 @@ from app.domain.checks.check_number_transcription_rub import CheckNumberTranscri
 from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.entities import (
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
     Money,
     Payment,
@@ -145,49 +146,51 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
         sources=[Source(document_id=document.id)],
     )
     advance_payments_field = AdvancePaymentsField(
-        value=[
-            AdvancePayment(
-                percent=Decimal("97.69"),
-                total=Payment(
-                    amount=Money(
-                        value=Decimal("1189129.80"),
-                        transcription=(
-                            "Один миллион сто восемьдесят девять тысяч "
-                            "сто двадцать девять"
-                        ),
-                    ),
-                    vat=Vat(
+        value=AdvancePaymentList(
+            [
+                AdvancePayment(
+                    percent=Decimal("97.69"),
+                    total=Payment(
                         amount=Money(
-                            value=Decimal("198188.30"),
+                            value=Decimal("1189129.80"),
                             transcription=(
-                                "Сто девяносто восемь тысяч сто восемьдесят восемь"
+                                "Один миллион сто восемьдесят девять тысяч "
+                                "сто двадцать девять"
                             ),
                         ),
-                        rate=Decimal("20.00"),
-                    ),
-                    include_vat=True,
-                ),
-                payments=[],
-            ),
-            AdvancePayment(
-                percent=Decimal("2.31"),
-                total=Payment(
-                    amount=Money(
-                        value=Decimal("28161.45"),
-                        transcription="Двадцать восемь тысяч сто шестьдесят один",
-                    ),
-                    vat=Vat(
-                        amount=Money(
-                            value=Decimal("2560.13"),
-                            transcription="Две тысячи пятьсот шестьдесят",
+                        vat=Vat(
+                            amount=Money(
+                                value=Decimal("198188.30"),
+                                transcription=(
+                                    "Сто девяносто восемь тысяч сто восемьдесят восемь"
+                                ),
+                            ),
+                            rate=Decimal("20.00"),
                         ),
-                        rate=Decimal("10.00"),
+                        include_vat=True,
                     ),
-                    include_vat=True,
+                    payments=[],
                 ),
-                payments=[],
-            ),
-        ],
+                AdvancePayment(
+                    percent=Decimal("2.31"),
+                    total=Payment(
+                        amount=Money(
+                            value=Decimal("28161.45"),
+                            transcription="Двадцать восемь тысяч сто шестьдесят один",
+                        ),
+                        vat=Vat(
+                            amount=Money(
+                                value=Decimal("2560.13"),
+                                transcription="Две тысячи пятьсот шестьдесят",
+                            ),
+                            rate=Decimal("10.00"),
+                        ),
+                        include_vat=True,
+                    ),
+                    payments=[],
+                ),
+            ]
+        ),
         sources=[Source(document_id=document.id)],
     )
 

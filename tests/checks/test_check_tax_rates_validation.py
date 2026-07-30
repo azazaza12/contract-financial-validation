@@ -6,6 +6,7 @@ from app.domain.checks.check_tax_rates_validation import CheckTaxRatesValidation
 from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.entities import (
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
     Money,
     Payment,
@@ -69,7 +70,7 @@ async def _run(
         tax_rates=tax_rates,
     )
     check.advance_payments_field = (
-        AdvancePaymentsField(value=advances, sources=[])
+        AdvancePaymentsField(value=AdvancePaymentList(advances), sources=[])
         if advances is not None
         else None
     )

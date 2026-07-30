@@ -27,8 +27,10 @@ class CheckVatCalculation(BaseCheck):
             self.advance_payments_field,
         )
 
-        advances = AdvancePaymentList(
-            advance_payments_field.value if advance_payments_field is not None else []
+        advances = (
+            advance_payments_field.value
+            if advance_payments_field is not None
+            else AdvancePaymentList([])
         )
 
         if (
