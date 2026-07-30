@@ -13,6 +13,7 @@ from .errors.checks import (
     AmountNotPositiveError,
     BaseCheckError,
     PaymentAmountPercentDiscrepancyError,
+    PaymentVatRatesDifferError,
     PositionCostDiscrepancyError,
     VatAmountCalculationDiscrepancyError,
     VatAmountDiscrepancyError,
@@ -184,6 +185,24 @@ class Payment:
                 difference=difference,
             )
         ]
+
+    def validate_vat_rate(
+        self, reference: list[Decimal], *, index: int | None = None
+    ) -> list[BaseCheckError]:
+        rate = self.vat.rate
+        if rate is None or not reference:
+            return []
+        if len(reference) == 1:
+            if rate == reference[0]:
+                return []
+            return [
+                PaymentVatRatesDifferError(
+                    index=index, rate_one=reference[0], rate_two=rate
+                )
+            ]
+        if rate in reference:
+            return []
+        return [PaymentVatRatesDifferError(index=index, rate_one=rate, rate_two=None)]
 
     @property
     def amount_value(self) -> Decimal | None:
@@ -447,6 +466,18 @@ class PaymentList:
             moneys.extend(payment.moneys())
         return moneys
 
+    def validate_vat_rate(
+        self, reference: list[Decimal], *, index: int | None = None
+    ) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
+        if index is not None:
+            for payment in self._payments:
+                errors.extend(payment.validate_vat_rate(reference, index=index))
+            return errors
+        for i, payment in enumerate(self._payments):
+            errors.extend(payment.validate_vat_rate(reference, index=i))
+        return errors
+
     @property
     def amount_value(self) -> Decimal | None:
         total: Decimal | None = None
@@ -571,6 +602,27 @@ class AdvancePayment:
         errors.extend(self.payments.validate_vat_calculation(tolerance=tolerance))
         return errors
 
+    def has_vat_rate(self) -> bool:
+        if self.total is not None and self.total.vat.rate is not None:
+            return True
+        return bool(self.payments.vat_rates)
+
+    def validate_vat_rate(
+        self, *, reference: list[Decimal], index: int
+    ) -> list[BaseCheckError]:
+        if not self.payments:
+            if self.total is None:
+                return []
+            return self.total.validate_vat_rate(reference, index=index)
+
+        if self.total is None or self.total.vat.rate is None:
+            return self.payments.validate_vat_rate(reference, index=index)
+
+        own_rate = self.total.vat.rate
+        errors = list(self.total.validate_vat_rate(reference, index=index))
+        errors.extend(self.payments.validate_vat_rate([own_rate], index=index))
+        return errors
+
     def moneys(self) -> list[Money]:
         total_moneys = self.total.moneys() if self.total is not None else []
         return [*total_moneys, *self.payments.moneys()]
@@ -682,6 +734,15 @@ class AdvancePaymentList:
         for ap in self._advance_payments:
             moneys.extend(ap.moneys())
         return moneys
+
+    def has_vat_rate(self) -> bool:
+        return any(ap.has_vat_rate() for ap in self._advance_payments)
+
+    def validate_vat_rate(self, reference: list[Decimal]) -> list[BaseCheckError]:
+        errors: list[BaseCheckError] = []
+        for index, ap in enumerate(self._advance_payments):
+            errors.extend(ap.validate_vat_rate(reference=reference, index=index))
+        return errors
 
     @property
     def summed(self) -> AdvancePayment | None:

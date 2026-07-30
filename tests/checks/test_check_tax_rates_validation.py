@@ -473,8 +473,8 @@ async def test_advance_payments_no_total_rate_not_in_tax_rates_failed() -> None:
     err = r.errors[0]
     assert isinstance(err, PaymentVatRatesDifferError)
     assert err.index == 0
-    assert err.rate_one == Decimal(10)
-    assert err.rate_two is None
+    assert err.rate_one == Decimal(20)
+    assert err.rate_two == Decimal(10)
 
 
 async def test_advance_payments_no_total_mixed_none_valid_collects_not_found() -> None:
