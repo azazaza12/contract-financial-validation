@@ -6,7 +6,6 @@ from app.domain.entities.errors.checks import (
     PaymentPercentSumDiscrepancyError,
 )
 from app.domain.entities.single_supplier_fields import (
-    AdvancePaymentList,
     AdvancePaymentsField,
     TotalAmountField,
 )
@@ -39,7 +38,7 @@ class CheckPaymentPercentValidation(BaseCheck):
                 "no advance payment records to validate",
             )
 
-        advances_sum = AdvancePaymentList(advance_payments).summed
+        advances_sum = advance_payments.summed
         if advances_sum is None or advances_sum.percent is None:
             raise InsufficientCheckDataError(
                 label,

@@ -8,6 +8,7 @@ from app.domain.checks.check_payment_percent_validation import (
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
     FieldCollector,
     Money,
@@ -66,7 +67,7 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
         sources=[Source(document_id=document.id)],
     )
     advance_payments_field = AdvancePaymentsField(
-        value=advances,
+        value=AdvancePaymentList(advances),
         sources=[Source(document_id=document.id)],
     )
     contract = DummyContract(
@@ -226,7 +227,7 @@ async def test_payment_percent_skips_when_advance_list_is_empty() -> None:
                     sources=[Source(document_id=document.id)],
                 ),
                 AdvancePaymentsField(
-                    value=[],
+                    value=AdvancePaymentList([]),
                     sources=[Source(document_id=document.id)],
                 ),
             ],
@@ -264,10 +265,12 @@ async def test_payment_percent_skips_when_no_advance_has_percent() -> None:
                     sources=[Source(document_id=document.id)],
                 ),
                 AdvancePaymentsField(
-                    value=[
-                        _make_advance(percent=None, payment_value="50.00"),
-                        _make_advance(percent=None, payment_value="50.00"),
-                    ],
+                    value=AdvancePaymentList(
+                        [
+                            _make_advance(percent=None, payment_value="50.00"),
+                            _make_advance(percent=None, payment_value="50.00"),
+                        ]
+                    ),
                     sources=[Source(document_id=document.id)],
                 ),
             ],
@@ -375,7 +378,7 @@ async def test_payment_percent_falls_back_to_raw_when_advance_lacks_rate() -> No
                 sources=[Source(document_id=document.id)],
             ),
             AdvancePaymentsField(
-                value=advances,
+                value=AdvancePaymentList(advances),
                 sources=[Source(document_id=document.id)],
             ),
         ],
@@ -427,7 +430,7 @@ async def test_payment_percent_uses_advance_payments_for_basis_when_total_has_no
                 sources=[Source(document_id=document.id)],
             ),
             AdvancePaymentsField(
-                value=advances,
+                value=AdvancePaymentList(advances),
                 sources=[Source(document_id=document.id)],
             ),
         ],
@@ -470,7 +473,7 @@ async def test_payment_percent_basis_ignores_advance_payments_when_total_has_num
                 sources=[Source(document_id=document.id)],
             ),
             AdvancePaymentsField(
-                value=advances,
+                value=AdvancePaymentList(advances),
                 sources=[Source(document_id=document.id)],
             ),
         ],
@@ -514,7 +517,7 @@ async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match(
                 sources=[Source(document_id=document.id)],
             ),
             AdvancePaymentsField(
-                value=advances,
+                value=AdvancePaymentList(advances),
                 sources=[Source(document_id=document.id)],
             ),
         ],

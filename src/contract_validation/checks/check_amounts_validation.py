@@ -3,7 +3,6 @@ from typing import cast
 
 from app.domain.entities.errors.checks import BaseCheckError
 from app.domain.entities.single_supplier_fields import (
-    AdvancePaymentList,
     AdvancePaymentsField,
     TotalAmountField,
 )
@@ -51,7 +50,7 @@ class CheckTotalAmountsValidation(BaseCheck):
                     )
                 )
 
-            advances_sum = AdvancePaymentList(advance_payments_field.value).summed
+            advances_sum = advance_payments_field.value.summed
             if advances_sum is not None and advances_sum.total is not None:
                 self.errors.extend(
                     advances_sum.total.compare(total, tolerance=self.tolerance)

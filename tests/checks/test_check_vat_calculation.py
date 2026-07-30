@@ -7,6 +7,7 @@ from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
     Money,
     Payment,
@@ -62,7 +63,7 @@ async def _run(
     check = CheckVatCalculation(tolerance=tolerance)
     check.total_amount_field = _make_total_amount_field(total=total, taxes=taxes or [])
     check.advance_payments_field = (
-        AdvancePaymentsField(value=advances, sources=[])
+        AdvancePaymentsField(value=AdvancePaymentList(advances), sources=[])
         if advances is not None
         else None
     )

@@ -5,6 +5,7 @@ from app.domain.checks.check_values_validation import CheckValuesValidation
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
     Money,
     Payment,
@@ -64,7 +65,7 @@ async def _run(
 ):
     total_amount_field = _make_total_amount_field(total=total, taxes=taxes or [])
     advance_payments_field = (
-        AdvancePaymentsField(value=advances, sources=[])
+        AdvancePaymentsField(value=AdvancePaymentList(advances), sources=[])
         if advances is not None
         else None
     )

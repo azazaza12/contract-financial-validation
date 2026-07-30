@@ -4,6 +4,7 @@ from typing import cast
 from app.domain.entities.errors.checks import BaseCheckError, PaymentVatRatesDifferError
 from app.domain.entities.single_supplier_fields import (
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
     Payment,
     PaymentList,
@@ -101,7 +102,7 @@ class CheckTaxRatesValidation(BaseCheck):
         self,
         contract_rate: Decimal | None,
         tax_rates: set[Decimal],
-        advance_payments: list[AdvancePayment],
+        advance_payments: AdvancePaymentList,
     ) -> None:
         for i, advance_payment in enumerate(advance_payments):
             if not advance_payment.payments:

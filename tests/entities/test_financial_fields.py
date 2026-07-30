@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from app.domain.entities import (
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
     Money,
     MoneyValidationMode,
@@ -590,16 +591,18 @@ def test_advance_payment_validate_collects_total_and_payments_errors():
 
 def test_advance_payments_field_validate_collects_all_advance_errors():
     field = AdvancePaymentsField(
-        value=[
-            make_advance(
-                total=make_payment(amount="-100.00"),
-                payments=PaymentList([]),
-            ),
-            make_advance(
-                total=None,
-                payments=PaymentList([make_payment(rate="-20.00")]),
-            ),
-        ],
+        value=AdvancePaymentList(
+            [
+                make_advance(
+                    total=make_payment(amount="-100.00"),
+                    payments=PaymentList([]),
+                ),
+                make_advance(
+                    total=None,
+                    payments=PaymentList([make_payment(rate="-20.00")]),
+                ),
+            ]
+        ),
         sources=[],
     )
 
