@@ -12,6 +12,7 @@ from app.domain.entities import (
     AdvancePaymentsField,
     Money,
     Payment,
+    PaymentList,
     Source,
     TotalAmount,
     TotalAmountField,
@@ -32,7 +33,7 @@ def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmou
                 vat=Vat(amount=None, rate=None),
                 include_vat=False,
             ),
-            taxes=[],
+            taxes=PaymentList([]),
         ),
         sources=[Source(document_id=document.id)],
     )
@@ -88,7 +89,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
                     ),
                     include_vat=True,
                 ),
-                taxes=[],
+                taxes=PaymentList([]),
             ),
             sources=[Source(document_id=uuid4())],
         )
@@ -141,7 +142,7 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
                 ),
                 include_vat=True,
             ),
-            taxes=[],
+            taxes=PaymentList([]),
         ),
         sources=[Source(document_id=document.id)],
     )
@@ -169,7 +170,7 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
                         ),
                         include_vat=True,
                     ),
-                    payments=[],
+                    payments=PaymentList([]),
                 ),
                 AdvancePayment(
                     percent=Decimal("2.31"),
@@ -187,7 +188,7 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
                         ),
                         include_vat=True,
                     ),
-                    payments=[],
+                    payments=PaymentList([]),
                 ),
             ]
         ),
@@ -237,7 +238,7 @@ async def test_check_14_skips_when_no_amount_transcription_pairs() -> None:
                     vat=Vat(amount=None, rate=None),
                     include_vat=False,
                 ),
-                taxes=[],
+                taxes=PaymentList([]),
             ),
             sources=[Source(document_id=document.id)],
         )
