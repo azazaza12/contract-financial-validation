@@ -7,6 +7,7 @@ from app.domain.entities import (
     DocumentObjectField,
     FieldCollector,
     Source,
+    Specification,
     SpecPosition,
     SpecPositionsField,
 )
@@ -30,7 +31,7 @@ async def _run_check_task(
                 sources=[Source(document_id=document.id)],
             ),
             SpecPositionsField(
-                value=positions,
+                value=Specification(positions),
                 sources=[Source(document_id=document.id)],
             ),
         ],
@@ -109,29 +110,31 @@ async def test_passes_stripped_numbered_positions_to_compliancer() -> None:
         sources=[],
     )
     check.spec_positions_field = SpecPositionsField(
-        value=[
-            SpecPosition(
-                name="  Позиция 1  ",
-                quantity=None,
-                unit_price=None,
-                total_price=None,
-                unit_of_measurement=None,
-            ),
-            SpecPosition(
-                name="",
-                quantity=None,
-                unit_price=None,
-                total_price=None,
-                unit_of_measurement=None,
-            ),
-            SpecPosition(
-                name="Позиция 3",
-                quantity=None,
-                unit_price=None,
-                total_price=None,
-                unit_of_measurement=None,
-            ),
-        ],
+        value=Specification(
+            [
+                SpecPosition(
+                    name="  Позиция 1  ",
+                    quantity=None,
+                    unit_price=None,
+                    total_price=None,
+                    unit_of_measurement=None,
+                ),
+                SpecPosition(
+                    name="",
+                    quantity=None,
+                    unit_price=None,
+                    total_price=None,
+                    unit_of_measurement=None,
+                ),
+                SpecPosition(
+                    name="Позиция 3",
+                    quantity=None,
+                    unit_price=None,
+                    total_price=None,
+                    unit_of_measurement=None,
+                ),
+            ]
+        ),
         sources=[],
     )
 
@@ -155,15 +158,17 @@ async def test_check1_can_run_as_task_and_save_result() -> None:
                 sources=[Source(document_id=document.id)],
             ),
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.00"),
-                        unit_price=Decimal(100),
-                        total_price=Decimal(100),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.00"),
+                            unit_price=Decimal(100),
+                            total_price=Decimal(100),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
         ],
@@ -197,15 +202,17 @@ async def test_check1_raises_when_required_field_is_missing() -> None:
     fields = FieldCollector(
         [
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.00"),
-                        unit_price=Decimal(100),
-                        total_price=Decimal(100),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.00"),
+                            unit_price=Decimal(100),
+                            total_price=Decimal(100),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
         ],
@@ -242,27 +249,31 @@ async def test_check1_raises_when_required_field_has_collision() -> None:
                 sources=[Source(document_id=document.id)],
             ),
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 1",
-                        quantity=Decimal("1.00"),
-                        unit_price=Decimal(100),
-                        total_price=Decimal(100),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.00"),
+                            unit_price=Decimal(100),
+                            total_price=Decimal(100),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
             SpecPositionsField(
-                value=[
-                    SpecPosition(
-                        name="Позиция 2",
-                        quantity=Decimal("2.00"),
-                        unit_price=Decimal(100),
-                        total_price=Decimal(200),
-                        unit_of_measurement="шт",
-                    ),
-                ],
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 2",
+                            quantity=Decimal("2.00"),
+                            unit_price=Decimal(100),
+                            total_price=Decimal(200),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
                 sources=[Source(document_id=document.id)],
             ),
         ],

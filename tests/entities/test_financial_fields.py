@@ -8,6 +8,7 @@ from app.domain.entities import (
     MoneyValidationMode,
     Payment,
     PaymentList,
+    Specification,
     SpecPosition,
     SpecPositionsField,
     TotalAmount,
@@ -941,22 +942,24 @@ def test_spec_position_validate_does_not_validate_quantity():
 
 def test_spec_positions_field_validate_collects_errors_from_all_positions():
     field = SpecPositionsField(
-        value=[
-            SpecPosition(
-                name="First",
-                quantity=Decimal(1),
-                unit_price=Decimal(10),
-                total_price=Decimal(10),
-                unit_of_measurement="piece",
-            ),
-            SpecPosition(
-                name="Second",
-                quantity=Decimal(-1),
-                unit_price=Decimal(20),
-                total_price=Decimal(0),
-                unit_of_measurement="piece",
-            ),
-        ],
+        value=Specification(
+            [
+                SpecPosition(
+                    name="First",
+                    quantity=Decimal(1),
+                    unit_price=Decimal(10),
+                    total_price=Decimal(10),
+                    unit_of_measurement="piece",
+                ),
+                SpecPosition(
+                    name="Second",
+                    quantity=Decimal(-1),
+                    unit_price=Decimal(20),
+                    total_price=Decimal(0),
+                    unit_of_measurement="piece",
+                ),
+            ]
+        ),
         sources=[],
     )
 

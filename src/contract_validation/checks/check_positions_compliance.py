@@ -3,7 +3,7 @@ from typing import cast
 from app.domain.entities.errors.checks import BaseCheckError, PositionsComplianceError
 from app.domain.entities.single_supplier_fields import (
     DocumentObjectField,
-    SpecPosition,
+    Specification,
     SpecPositionsField,
 )
 from app.domain.entities.validation import CheckExecutionResult
@@ -15,7 +15,7 @@ from .errors import InsufficientCheckDataError
 
 
 def _numbered_non_empty_positions(
-    spec_positions: list[SpecPosition],
+    spec_positions: Specification,
 ) -> list[NumberedPosition]:
     positions: list[NumberedPosition] = []
     for number, position in enumerate(spec_positions, 1):
