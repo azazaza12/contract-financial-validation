@@ -123,12 +123,15 @@ async def test_values_validation_collects_errors_from_all_models() -> None:
         ),
         sources=[],
     )
+    advance_total = _make_payment(amount="-3")
     advance_payments_field = AdvancePaymentsField(
         value=AdvancePaymentList(
             [
                 AdvancePayment(
                     percent=None,
-                    total=_make_payment(amount="-3"),
+                    amount=advance_total.amount,
+                    vat=advance_total.vat,
+                    include_vat=advance_total.include_vat,
                     payments=PaymentList(
                         [_make_payment(vat_amount="-5", vat_rate="-4")]
                     ),

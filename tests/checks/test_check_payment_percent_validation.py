@@ -7,6 +7,7 @@ from app.domain.checks.check_payment_percent_validation import (
 )
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
+    EMPTY_PAYMENT,
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
@@ -40,13 +41,26 @@ def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:
     )
 
 
+def _advance(
+    *, percent: Decimal | None, total: Payment | None, payments: PaymentList
+) -> AdvancePayment:
+    base = total if total is not None else EMPTY_PAYMENT
+    return AdvancePayment(
+        percent=percent,
+        amount=base.amount,
+        vat=base.vat,
+        include_vat=base.include_vat,
+        payments=payments,
+    )
+
+
 def _make_advance(
     *,
     percent: Decimal | None,
     payment_value: str | None,
 ) -> AdvancePayment:
     total = _make_payment(payment_value) if payment_value is not None else None
-    return AdvancePayment(percent=percent, total=total, payments=PaymentList([]))
+    return _advance(percent=percent, total=total, payments=PaymentList([]))
 
 
 async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]):
@@ -361,7 +375,7 @@ async def test_payment_percent_falls_back_to_raw_when_advance_lacks_rate() -> No
         "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
     )
     advances = [
-        AdvancePayment(
+        _advance(
             percent=Decimal("100.00"),
             total=Payment(
                 amount=Money(value=Decimal("100.00"), transcription=None),
@@ -410,7 +424,7 @@ async def test_payment_percent_uses_advance_payments_for_basis_when_total_has_no
         include_vat=VatInclusion.EXCLUDED,
     )
     advances = [
-        AdvancePayment(
+        _advance(
             percent=Decimal("100.00"),
             total=numberless_total,
             payments=PaymentList(
@@ -460,7 +474,7 @@ async def test_payment_percent_basis_ignores_advance_payments_when_total_has_num
         include_vat=VatInclusion.EXCLUDED,
     )
     advances = [
-        AdvancePayment(
+        _advance(
             percent=Decimal("100.00"),
             total=advance_total,
             payments=PaymentList([non_grossable_line]),
@@ -495,14 +509,14 @@ async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match(
         "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
     )
     advances = [
-        AdvancePayment(
+        _advance(
             percent=Decimal("50.00"),
             total=_vat_payment(
                 "60.00", rate="20.00", include_vat=VatInclusion.INCLUDED
             ),
             payments=PaymentList([]),
         ),
-        AdvancePayment(
+        _advance(
             percent=Decimal("50.00"),
             total=_vat_payment(
                 "60.00", rate="20.00", include_vat=VatInclusion.INCLUDED
