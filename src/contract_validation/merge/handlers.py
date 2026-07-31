@@ -1,8 +1,9 @@
+from collections.abc import Sequence
 from dataclasses import fields as dc_fields
 from dataclasses import replace
 from datetime import date, datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 from app.domain.constants import AMOUNT_TOLERANCE
@@ -11,7 +12,11 @@ from app.domain.entities.merge_types import Source, SourceHeader, ValueCandidate
 
 
 if TYPE_CHECKING:
-    from app.domain.entities.single_supplier_fields import Money, Payment
+    from app.domain.entities.single_supplier_fields import (
+        AdvancePayment,
+        Money,
+        Payment,
+    )
 
     from .registry import MergeRegistry
 
@@ -232,7 +237,7 @@ def merge_list_concat(
     )
 
 
-def _assemble_most_complete_payment(payments: list[Payment]) -> Payment:
+def _assemble_most_complete_payment[T: Payment](payments: list[T]) -> T:
     base = payments[0]
 
     rate = base.vat.rate
@@ -275,39 +280,36 @@ def _with_reference_transcriptions(
     return replace(payment, amount=amount, vat=replace(payment.vat, amount=vat_amount))
 
 
-def merge_payment(
+def _harmonize_transcriptions_if_same_footing(
+    payments: Sequence[Payment], candidates: list[ValueCandidate]
+) -> list[ValueCandidate]:
+    if len({payment.include_vat for payment in payments}) != 1:
+        return candidates
+    amount_transcription = _reference_transcription(
+        [payment.amount for payment in payments]
+    )
+    vat_transcription = _reference_transcription(
+        [payment.vat.amount for payment in payments]
+    )
+    return [
+        ValueCandidate(
+            value=_with_reference_transcriptions(
+                candidate.value,
+                amount_transcription=amount_transcription,
+                vat_transcription=vat_transcription,
+            ),
+            sources=candidate.sources,
+        )
+        for candidate in candidates
+    ]
+
+
+def _vat_conflict(
+    payments: Sequence[Payment],
     candidates: list[ValueCandidate],
     path: str,
     errors: list[BaseMergeError],
-    registry: MergeRegistry,
-) -> ValueCandidate | None:
-    if len(candidates) == 1:
-        return merge_dataclass_default(candidates, path, errors, registry)
-
-    payments = [c.value for c in candidates]
-    if not payments[0].should_merge_economically(
-        payments[1:], tolerance=AMOUNT_TOLERANCE
-    ):
-        if len({payment.include_vat for payment in payments}) == 1:
-            amount_transcription = _reference_transcription(
-                [payment.amount for payment in payments]
-            )
-            vat_transcription = _reference_transcription(
-                [payment.vat.amount for payment in payments]
-            )
-            candidates = [
-                ValueCandidate(
-                    value=_with_reference_transcriptions(
-                        candidate.value,
-                        amount_transcription=amount_transcription,
-                        vat_transcription=vat_transcription,
-                    ),
-                    sources=candidate.sources,
-                )
-                for candidate in candidates
-            ]
-        return merge_dataclass_default(candidates, path, errors, registry)
-
+) -> bool:
     rates = {p.vat.rate for p in payments if p.vat.rate is not None}
     rate_conflict = len(rates) > 1
 
@@ -338,10 +340,70 @@ def merge_payment(
                 path=f"{path}.vat.amount",
             )
         )
-    if rate_conflict or vat_amount_conflict:
+    return rate_conflict or vat_amount_conflict
+
+
+def _merge_payment_core[T: Payment](
+    values: list[T],
+    candidates: list[ValueCandidate],
+    path: str,
+    errors: list[BaseMergeError],
+    registry: MergeRegistry,
+) -> T | None:
+    if len(candidates) == 1:
+        result = merge_dataclass_default(candidates, path, errors, registry)
+        return result.value if result else None
+
+    if not values[0].should_merge_economically(values[1:], tolerance=AMOUNT_TOLERANCE):
+        harmonized = _harmonize_transcriptions_if_same_footing(values, candidates)
+        result = merge_dataclass_default(harmonized, path, errors, registry)
+        return result.value if result else None
+
+    if _vat_conflict(values, candidates, path, errors):
         return None
 
-    merged = _assemble_most_complete_payment(payments)
+    return _assemble_most_complete_payment(values)
+
+
+def merge_payment(
+    candidates: list[ValueCandidate],
+    path: str,
+    errors: list[BaseMergeError],
+    registry: MergeRegistry,
+) -> ValueCandidate | None:
+    payments: list[Payment] = [c.value for c in candidates]
+    merged = _merge_payment_core(payments, candidates, path, errors, registry)
+    if merged is None:
+        return None
+    return ValueCandidate(value=merged, sources=combine_sources(candidates))
+
+
+def merge_advance_payment(
+    candidates: list[ValueCandidate],
+    path: str,
+    errors: list[BaseMergeError],
+    registry: MergeRegistry,
+) -> ValueCandidate | None:
+    advances: list[AdvancePayment] = [c.value for c in candidates]
+    merged_total = _merge_payment_core(advances, candidates, path, errors, registry)
+    if merged_total is None:
+        return None
+
+    percent_result = registry.merge(
+        [ValueCandidate(value=c.value.percent, sources=c.sources) for c in candidates],
+        f"{path}.percent",
+        errors,
+    )
+    payments_result = registry.merge(
+        [ValueCandidate(value=c.value.payments, sources=c.sources) for c in candidates],
+        f"{path}.payments",
+        errors,
+    )
+    merged = replace(
+        merged_total,
+        percent=percent_result.value if percent_result else None,
+        payments=cast("ValueCandidate", payments_result).value,
+    )
     return ValueCandidate(value=merged, sources=combine_sources(candidates))
 
 

@@ -3,11 +3,11 @@ from .document import BaseDocument
 from .field import BaseField, FieldCollector
 from .merge_types import Source, SourceHeader, ValueCandidate
 from .single_supplier_fields import (
+    EMPTY_PAYMENT,
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
     DocumentObjectField,
-    EMPTY_PAYMENT,
     Money,
     MoneyValidationMode,
     Payment,
@@ -24,6 +24,7 @@ from .user import User
 
 
 __all__ = [
+    "EMPTY_PAYMENT",
     "AdvancePayment",
     "AdvancePaymentList",
     "AdvancePaymentsField",
@@ -31,7 +32,6 @@ __all__ = [
     "BaseDocument",
     "BaseField",
     "DocumentObjectField",
-    "EMPTY_PAYMENT",
     "FieldCollector",
     "Money",
     "MoneyValidationMode",
