@@ -1,11 +1,11 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum
 from functools import reduce
 
 from app.domain.merge.defaults import STRICT_REGISTRY
-from app.domain.merge.handlers import merge_payment
+from app.domain.merge.handlers import merge_advance_payment, merge_payment
 from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
 from .errors.checks import (
@@ -374,7 +374,7 @@ class Payment:
         return errors
 
     def should_merge_economically(
-        self, others: list[Payment], *, tolerance: Decimal
+        self, others: Sequence[Payment], *, tolerance: Decimal
     ) -> bool:
         group = [self, *others]
         if len({payment.include_vat for payment in group}) == 1:
@@ -573,7 +573,7 @@ class AdvancePayment(Payment):
         return bool(self.payments.vat_rates)
 
     def validate_vat_rate(
-        self, *, reference: list[Decimal], index: int
+        self, reference: list[Decimal], *, index: int | None = None
     ) -> list[BaseCheckError]:
         if not self.payments:
             return super().validate_vat_rate(reference, index=index)
@@ -595,7 +595,9 @@ class AdvancePayment(Payment):
         if not super().has_data():
             return payments_sum
         if payments_sum is None:
-            return Payment(amount=self.amount, vat=self.vat, include_vat=self.include_vat)
+            return Payment(
+                amount=self.amount, vat=self.vat, include_vat=self.include_vat
+            )
 
         amount = self.amount if self.amount_value is not None else payments_sum.amount
         vat_amount = (
@@ -868,3 +870,4 @@ class NomenclatureClassificationsField(BaseField[list[NomenclatureClassification
 
 
 STRICT_REGISTRY.register_type(Payment, merge_payment)
+STRICT_REGISTRY.register_type(AdvancePayment, merge_advance_payment)
