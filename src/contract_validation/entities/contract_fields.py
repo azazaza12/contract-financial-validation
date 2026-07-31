@@ -532,45 +532,43 @@ class TotalAmountField(BaseField[TotalAmount]):
         return self.value.moneys()
 
 
+EMPTY_PAYMENT = Payment(
+    amount=None, vat=Vat(amount=None, rate=None), include_vat=VatInclusion.UNSPECIFIED
+)
+
+
 @dataclass(kw_only=True, frozen=True)
-class AdvancePayment:
+class AdvancePayment(Payment):
     percent: Decimal | None
-    total: Payment | None
     payments: PaymentList
 
     def has_data(self) -> bool:
         if self.percent is not None:
             return True
-        if self.total is not None and self.total.has_data():
+        if super().has_data():
             return True
         return bool(any(payment.has_data() for payment in self.payments))
 
     def has_amounts(self) -> bool:
-        return (
-            self.total is not None and self.total.has_amounts()
-        ) or self.payments.has_amounts()
+        return super().has_amounts() or self.payments.has_amounts()
 
     def has_vat_calculation_data(self) -> bool:
         return (
-            self.total is not None and self.total.has_vat_calculation_data()
-        ) or self.payments.has_vat_calculation_data()
+            super().has_vat_calculation_data()
+            or self.payments.has_vat_calculation_data()
+        )
 
     def validate(self) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
-        if self.total is not None:
-            errors.extend(self.total.validate())
-        errors.extend(self.payments.validate())
-        return errors
+        return [*super().validate(), *self.payments.validate()]
 
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
-        if self.total is not None:
-            errors.extend(self.total.validate_vat_calculation(tolerance=tolerance))
-        errors.extend(self.payments.validate_vat_calculation(tolerance=tolerance))
-        return errors
+        return [
+            *super().validate_vat_calculation(tolerance=tolerance),
+            *self.payments.validate_vat_calculation(tolerance=tolerance),
+        ]
 
     def has_vat_rate(self) -> bool:
-        if self.total is not None and self.total.vat.rate is not None:
+        if self.vat.rate is not None:
             return True
         return bool(self.payments.vat_rates)
 
@@ -578,43 +576,37 @@ class AdvancePayment:
         self, *, reference: list[Decimal], index: int
     ) -> list[BaseCheckError]:
         if not self.payments:
-            if self.total is None:
-                return []
-            return self.total.validate_vat_rate(reference, index=index)
+            return super().validate_vat_rate(reference, index=index)
 
-        if self.total is None or self.total.vat.rate is None:
+        if self.vat.rate is None:
             return self.payments.validate_vat_rate(reference, index=index)
 
-        own_rate = self.total.vat.rate
-        errors = list(self.total.validate_vat_rate(reference, index=index))
+        own_rate = self.vat.rate
+        errors = list(super().validate_vat_rate(reference, index=index))
         errors.extend(self.payments.validate_vat_rate([own_rate], index=index))
         return errors
 
     def moneys(self) -> list[Money]:
-        total_moneys = self.total.moneys() if self.total is not None else []
-        return [*total_moneys, *self.payments.moneys()]
+        return [*super().moneys(), *self.payments.moneys()]
 
     @property
     def resolved(self) -> Payment | None:
         payments_sum = self.payments.summed
-        if self.total is None:
+        if not super().has_data():
             return payments_sum
         if payments_sum is None:
-            return self.total if self.total.has_data() else None
+            return Payment(amount=self.amount, vat=self.vat, include_vat=self.include_vat)
 
-        total = self.total
-        amount = total.amount if total.amount_value is not None else payments_sum.amount
+        amount = self.amount if self.amount_value is not None else payments_sum.amount
         vat_amount = (
-            total.vat.amount
-            if total.vat_amount_value is not None
+            self.vat.amount
+            if self.vat_amount_value is not None
             else payments_sum.vat.amount
         )
-        vat_rate = (
-            total.vat.rate if total.vat.rate is not None else payments_sum.vat.rate
-        )
+        vat_rate = self.vat.rate if self.vat.rate is not None else payments_sum.vat.rate
         include_vat = (
-            total.include_vat
-            if total.amount_value is not None
+            self.include_vat
+            if self.amount_value is not None
             else payments_sum.include_vat
         )
         return Payment(
@@ -626,14 +618,14 @@ class AdvancePayment:
     def compare_payments_with_total(
         self, *, tolerance: Decimal
     ) -> list[BaseCheckError]:
-        if self.total is None:
+        if not super().has_data():
             return []
 
         payments_sum = self.payments.summed
         if payments_sum is None:
             return []
 
-        return payments_sum.compare(self.total, tolerance=tolerance)
+        return payments_sum.compare(self, tolerance=tolerance)
 
     def compare_amount_with_percent(
         self, reference: Payment, *, tolerance: Decimal
@@ -716,8 +708,13 @@ class AdvancePaymentList:
         ]
         percent_sum = sum(percents, Decimal("0.00")) if percents else None
 
+        total = payment if payment is not None else EMPTY_PAYMENT
         result = AdvancePayment(
-            percent=percent_sum, total=payment, payments=PaymentList([])
+            percent=percent_sum,
+            amount=total.amount,
+            vat=total.vat,
+            include_vat=total.include_vat,
+            payments=PaymentList([]),
         )
         return result if result.has_data() else None
 
