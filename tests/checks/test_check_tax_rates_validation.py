@@ -5,6 +5,7 @@ import pytest
 from app.domain.checks.check_tax_rates_validation import CheckTaxRatesValidation
 from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.entities import (
+    EMPTY_PAYMENT,
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
@@ -46,15 +47,27 @@ def _total_amount_field(
     )
 
 
+def _advance_payment(
+    *, percent: Decimal | None, total: Payment | None, payments: PaymentList
+) -> AdvancePayment:
+    base = total if total is not None else EMPTY_PAYMENT
+    return AdvancePayment(
+        percent=percent,
+        amount=base.amount,
+        vat=base.vat,
+        include_vat=base.include_vat,
+        payments=payments,
+    )
+
+
 def _advance(
     *,
     total_rate: Decimal | None,
     payments: list[Payment] | None = None,
 ) -> AdvancePayment:
-    return AdvancePayment(
-        percent=None,
-        total=_payment(vat_rate=total_rate) if total_rate is not None else None,
-        payments=PaymentList(payments or []),
+    total = _payment(vat_rate=total_rate) if total_rate is not None else None
+    return _advance_payment(
+        percent=None, total=total, payments=PaymentList(payments or [])
     )
 
 
@@ -102,7 +115,7 @@ async def test_no_rate_in_total_or_taxes_but_advance_has_rate_tax_line_fails() -
         total_rate=None,
         tax_rates=[None],
         advances=[
-            AdvancePayment(
+            _advance_payment(
                 percent=None,
                 total=None,
                 payments=PaymentList([_payment(vat_rate=Decimal(20))]),
@@ -117,7 +130,7 @@ async def test_no_rate_in_total_no_tax_lines_but_advance_has_rate_success() -> N
         total_rate=None,
         tax_rates=[],
         advances=[
-            AdvancePayment(
+            _advance_payment(
                 percent=None,
                 total=None,
                 payments=PaymentList([_payment(vat_rate=Decimal(20))]),
@@ -211,7 +224,7 @@ async def test_advances_with_payments_no_advance_total_skips_line_check() -> Non
         total_rate=Decimal(20),
         tax_rates=None,
         advances=[
-            AdvancePayment(
+            _advance_payment(
                 percent=None,
                 total=None,
                 payments=PaymentList(
@@ -252,7 +265,7 @@ async def test_advances_with_payments_no_advance_total_mixed_rates_success() -> 
         total_rate=None,
         tax_rates=None,
         advances=[
-            AdvancePayment(
+            _advance_payment(
                 percent=None,
                 total=None,
                 payments=PaymentList(
@@ -275,7 +288,7 @@ async def test_advances_with_payments_no_advance_total_all_rates_none_not_found(
             total_rate=None,
             tax_rates=None,
             advances=[
-                AdvancePayment(
+                _advance_payment(
                     percent=None,
                     total=None,
                     payments=PaymentList(
@@ -344,7 +357,7 @@ async def test_flat_advances_skip_none_total_success() -> None:
         total_rate=Decimal(20),
         tax_rates=None,
         advances=[
-            AdvancePayment(percent=None, total=None, payments=PaymentList([])),
+            _advance_payment(percent=None, total=None, payments=PaymentList([])),
             _advance(total_rate=Decimal(20)),
         ],
     )
@@ -356,7 +369,7 @@ async def test_flat_advance_total_amount_without_vat_rate_success() -> None:
         total_rate=Decimal(22),
         tax_rates=[],
         advances=[
-            AdvancePayment(
+            _advance_payment(
                 percent=Decimal(50),
                 total=_payment(vat_rate=None),
                 payments=PaymentList([]),
@@ -413,7 +426,7 @@ async def test_advance_payments_no_total_mismatch_contract_rate_failed() -> None
         total_rate=Decimal(20),
         tax_rates=None,
         advances=[
-            AdvancePayment(
+            _advance_payment(
                 percent=None,
                 total=None,
                 payments=PaymentList(
@@ -437,7 +450,7 @@ async def test_advance_payments_no_total_all_rates_in_tax_rates_success() -> Non
         total_rate=None,
         tax_rates=[Decimal(20), Decimal(10)],
         advances=[
-            AdvancePayment(
+            _advance_payment(
                 percent=None,
                 total=None,
                 payments=PaymentList(
@@ -457,7 +470,7 @@ async def test_advance_payments_no_total_rate_not_in_tax_rates_failed() -> None:
         total_rate=None,
         tax_rates=[Decimal(20)],
         advances=[
-            AdvancePayment(
+            _advance_payment(
                 percent=None,
                 total=None,
                 payments=PaymentList(
@@ -482,7 +495,7 @@ async def test_advance_payments_no_total_mixed_none_valid_collects_not_found() -
         total_rate=None,
         tax_rates=None,
         advances=[
-            AdvancePayment(
+            _advance_payment(
                 percent=None,
                 total=None,
                 payments=PaymentList(

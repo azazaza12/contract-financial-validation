@@ -6,6 +6,7 @@ from app.domain.checks.check_vat_calculation import CheckVatCalculation
 from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
+    EMPTY_PAYMENT,
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
@@ -39,6 +40,19 @@ def _pay(
             rate=Decimal(vat_rate) if vat_rate is not None else None,
         ),
         include_vat=include_vat,
+    )
+
+
+def _advance(
+    *, percent: Decimal | None, total: Payment | None, payments: PaymentList
+) -> AdvancePayment:
+    base = total if total is not None else EMPTY_PAYMENT
+    return AdvancePayment(
+        percent=percent,
+        amount=base.amount,
+        vat=base.vat,
+        include_vat=base.include_vat,
+        payments=payments,
     )
 
 
@@ -173,7 +187,7 @@ async def test_vat_calculation_verifies_advance_line_payments() -> None:
             include_vat=VatInclusion.INCLUDED,
         ),
         advances=[
-            AdvancePayment(
+            _advance(
                 percent=None,
                 total=None,
                 payments=PaymentList(
@@ -225,7 +239,7 @@ async def test_vat_calculation_verifies_advance_total() -> None:
             include_vat=VatInclusion.INCLUDED,
         ),
         advances=[
-            AdvancePayment(
+            _advance(
                 percent=None,
                 total=_pay(
                     amount="60.00",

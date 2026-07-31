@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from app.domain.entities import (
+    EMPTY_PAYMENT,
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
@@ -499,8 +500,17 @@ def test_total_amount_tax_payments_wraps_taxes():
     assert tax_payments.amount_value == Decimal("300.00")
 
 
-def make_advance(*, total: Payment | None, payments: PaymentList) -> AdvancePayment:
-    return AdvancePayment(percent=None, total=total, payments=payments)
+def make_advance(
+    *, percent: Decimal | None = None, total: Payment | None, payments: PaymentList
+) -> AdvancePayment:
+    base = total if total is not None else EMPTY_PAYMENT
+    return AdvancePayment(
+        percent=percent,
+        amount=base.amount,
+        vat=base.vat,
+        include_vat=base.include_vat,
+        payments=payments,
+    )
 
 
 def test_advance_payment_lines_wraps_payments():
@@ -559,7 +569,7 @@ def test_advance_payment_resolved_none_when_no_data():
 
 
 def test_advance_payment_has_no_amounts_when_only_percent_present():
-    advance = AdvancePayment(
+    advance = make_advance(
         percent=Decimal("50.00"),
         total=None,
         payments=PaymentList([]),
