@@ -593,7 +593,7 @@ def test_advance_payment_validate_collects_total_and_payments_errors():
         payments=PaymentList([make_payment(rate="-20.00")]),
     )
 
-    errors = advance.validate()
+    errors = advance.validate_positivity()
 
     assert len(errors) == 2  # noqa: PLR2004
     assert any(isinstance(error, AmountNotPositiveError) for error in errors)
@@ -617,7 +617,7 @@ def test_advance_payments_field_validate_collects_all_advance_errors():
         sources=[],
     )
 
-    errors = field.validate()
+    errors = field.validate_positivity()
 
     assert len(errors) == 2  # noqa: PLR2004
     assert any(isinstance(error, AmountNotPositiveError) for error in errors)
@@ -690,13 +690,13 @@ def test_advance_payment_comparison_returns_amount_and_vat_errors():
 def test_money_is_correct_accepts_positive_value():
     money = Money(value=Decimal(100), transcription=None)
 
-    assert money.validate() == []
+    assert money.validate_positivity() == []
 
 
 def test_money_is_correct_rejects_zero_by_default():
     money = Money(value=Decimal(0), transcription=None)
 
-    errors = money.validate()
+    errors = money.validate_positivity()
 
     assert len(errors) == 1
     assert isinstance(errors[0], AmountNotPositiveError)
@@ -705,13 +705,13 @@ def test_money_is_correct_rejects_zero_by_default():
 def test_money_is_correct_allows_zero_when_include_zero():
     money = Money(value=Decimal(0), transcription=None)
 
-    assert money.validate(MoneyValidationMode.NON_NEGATIVE) == []
+    assert money.validate_positivity(MoneyValidationMode.NON_NEGATIVE) == []
 
 
 def test_money_is_correct_rejects_negative():
     money = Money(value=Decimal(-1), transcription=None)
 
-    errors = money.validate()
+    errors = money.validate_positivity()
 
     assert len(errors) == 1
     assert isinstance(errors[0], AmountNotPositiveError)
@@ -726,7 +726,7 @@ def test_vat_is_correct_returns_rate_and_amount_errors():
         rate=Decimal(-20),
     )
 
-    errors = vat.validate()
+    errors = vat.validate_positivity()
 
     assert any(isinstance(e, VatRateNotPositiveError) for e in errors)
     assert any(isinstance(e, VatAmountNotPositiveError) for e in errors)
@@ -846,7 +846,7 @@ def test_payment_is_correct_collects_errors_from_amount_and_vat():
         include_vat=VatInclusion.INCLUDED,
     )
 
-    errors = payment.validate()
+    errors = payment.validate_positivity()
 
     assert len(errors) == 3  # noqa: PLR2004
     assert sum(isinstance(e, AmountNotPositiveError) for e in errors) == 1
@@ -869,7 +869,7 @@ def test_payment_list_is_correct_collects_errors_from_all_payments():
         ]
     )
 
-    errors = payment_list.validate()
+    errors = payment_list.validate_positivity()
 
     assert len(errors) == 2  # noqa: PLR2004
 
@@ -898,7 +898,7 @@ def test_total_amount_is_correct_collects_errors_from_total_and_taxes():
         ),
     )
 
-    errors = total.validate()
+    errors = total.validate_positivity()
 
     assert len(errors) == 3  # noqa: PLR2004
 
@@ -932,7 +932,7 @@ def test_spec_position_validate_rejects_non_positive_amount_values():
         unit_of_measurement="piece",
     )
 
-    assert position.validate() == [
+    assert position.validate_positivity() == [
         AmountNotPositiveError(value=Decimal(-10)),
         AmountNotPositiveError(value=Decimal(-20)),
     ]
@@ -947,7 +947,7 @@ def test_spec_position_validate_does_not_validate_quantity():
         unit_of_measurement="piece",
     )
 
-    assert position.validate() == []
+    assert position.validate_positivity() == []
 
 
 def test_spec_positions_field_validate_collects_errors_from_all_positions():
@@ -973,6 +973,6 @@ def test_spec_positions_field_validate_collects_errors_from_all_positions():
         sources=[],
     )
 
-    assert field.validate() == [
+    assert field.validate_positivity() == [
         AmountNotPositiveError(value=Decimal(0)),
     ]

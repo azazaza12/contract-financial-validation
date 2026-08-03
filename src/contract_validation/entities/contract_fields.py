@@ -52,7 +52,7 @@ class Money:
             return True
         return bool(self.transcription is not None and self.transcription.strip() != "")
 
-    def validate(
+    def validate_positivity(
         self, mode: MoneyValidationMode = MoneyValidationMode.POSITIVE
     ) -> list[BaseCheckError]:
         if self.value is None:
@@ -96,7 +96,7 @@ class Vat:
             return True
         return self.rate is not None
 
-    def validate(self) -> list[BaseCheckError]:
+    def validate_positivity(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         if self.rate is not None and self.rate < 0:
             errors.append(VatRateNotPositiveError(value=self.rate))
@@ -153,12 +153,12 @@ class Payment:
             and self.vat_rate is not None
         )
 
-    def validate(self) -> list[BaseCheckError]:
+    def validate_positivity(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         if self.amount is not None:
-            errors.extend(self.amount.validate())
+            errors.extend(self.amount.validate_positivity())
         if self.vat is not None:
-            errors.extend(self.vat.validate())
+            errors.extend(self.vat.validate_positivity())
         return errors
 
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
@@ -422,10 +422,10 @@ class PaymentList:
     def has_vat_calculation_data(self) -> bool:
         return any(payment.has_vat_calculation_data() for payment in self._payments)
 
-    def validate(self) -> list[BaseCheckError]:
+    def validate_positivity(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         for payment in self._payments:
-            errors.extend(payment.validate())
+            errors.extend(payment.validate_positivity())
         return errors
 
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
@@ -494,10 +494,10 @@ class TotalAmount:
             or self.taxes.has_vat_calculation_data()
         )
 
-    def validate(self) -> list[BaseCheckError]:
+    def validate_positivity(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
-        errors.extend(self.total.validate())
-        errors.extend(self.taxes.validate())
+        errors.extend(self.total.validate_positivity())
+        errors.extend(self.taxes.validate_positivity())
         return errors
 
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
@@ -517,8 +517,8 @@ class TotalAmountField(BaseField[TotalAmount]):
     def has_data(self) -> bool:
         return self.value.has_data()
 
-    def validate(self) -> list[BaseCheckError]:
-        return self.value.validate()
+    def validate_positivity(self) -> list[BaseCheckError]:
+        return self.value.validate_positivity()
 
     def numeric_moneys(self) -> list[Money]:
         return self.value.numeric_moneys()
@@ -547,8 +547,8 @@ class AdvancePayment(Payment):
             or self.payments.has_vat_calculation_data()
         )
 
-    def validate(self) -> list[BaseCheckError]:
-        return [*super().validate(), *self.payments.validate()]
+    def validate_positivity(self) -> list[BaseCheckError]:
+        return [*super().validate_positivity(), *self.payments.validate_positivity()]
 
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
         return [
@@ -717,10 +717,10 @@ class AdvancePaymentsField(BaseField[AdvancePaymentList]):
     def has_data(self) -> bool:
         return bool(any(payment.has_data() for payment in self.value))
 
-    def validate(self) -> list[BaseCheckError]:
+    def validate_positivity(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         for advance_payment in self.value:
-            errors.extend(advance_payment.validate())
+            errors.extend(advance_payment.validate_positivity())
         return errors
 
     def numeric_moneys(self) -> list[Money]:
@@ -744,7 +744,7 @@ class SpecPosition:
             or self.total_price is not None
         )
 
-    def validate(self) -> list[BaseCheckError]:
+    def validate_positivity(self) -> list[BaseCheckError]:
         return [
             AmountNotPositiveError(value=value)
             for value in (self.unit_price, self.total_price)
@@ -837,10 +837,10 @@ class SpecPositionsField(BaseField[Specification]):
     def has_data(self) -> bool:
         return bool(any(position.has_data() for position in self.value))
 
-    def validate(self) -> list[BaseCheckError]:
+    def validate_positivity(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         for position in self.value:
-            errors.extend(position.validate())
+            errors.extend(position.validate_positivity())
         return errors
 
 

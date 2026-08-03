@@ -29,10 +29,10 @@ class CheckValuesValidation(BaseCheck):
         )
 
         if total_amount_field is not None:
-            errors.extend(total_amount_field.validate())
+            errors.extend(total_amount_field.validate_positivity())
         if advance_payments_field is not None:
-            errors.extend(advance_payments_field.validate())
+            errors.extend(advance_payments_field.validate_positivity())
         if spec_positions_field is not None:
-            errors.extend(spec_positions_field.validate())
+            errors.extend(spec_positions_field.validate_positivity())
 
         return self._result(errors)
