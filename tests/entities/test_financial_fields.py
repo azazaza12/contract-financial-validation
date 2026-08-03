@@ -77,15 +77,15 @@ def test_vat_rate_returns_rate():
 
 
 def test_payment_has_amounts_when_amount_present():
-    assert make_payment(amount="100.00").has_amounts()
+    assert make_payment(amount="100.00").numeric_moneys()
 
 
 def test_payment_has_amounts_when_vat_amount_present():
-    assert make_payment(vat_amount="20.00").has_amounts()
+    assert make_payment(vat_amount="20.00").numeric_moneys()
 
 
 def test_payment_has_no_amounts_when_only_vat_rate_present():
-    assert not make_payment(rate="20.00").has_amounts()
+    assert not make_payment(rate="20.00").numeric_moneys()
 
 
 def test_expected_vat_amount_none_when_amount_missing():
@@ -489,7 +489,7 @@ def test_payment_list_has_amounts_when_any_payment_has_amount():
         ]
     )
 
-    assert payment_list.has_amounts()
+    assert payment_list.numeric_moneys()
 
 
 def test_total_amount_tax_payments_wraps_taxes():
@@ -575,7 +575,7 @@ def test_advance_payment_has_no_amounts_when_only_percent_present():
         payments=PaymentList([]),
     )
 
-    assert not advance.has_amounts()
+    assert not advance.numeric_moneys()
 
 
 def test_advance_payment_has_amounts_in_nested_payments():
@@ -584,7 +584,7 @@ def test_advance_payment_has_amounts_in_nested_payments():
         payments=PaymentList([make_payment(vat_amount="20.00")]),
     )
 
-    assert advance.has_amounts()
+    assert advance.numeric_moneys()
 
 
 def test_advance_payment_validate_collects_total_and_payments_errors():
@@ -913,7 +913,7 @@ def test_total_amount_moneys_returns_total_and_tax_moneys():
         taxes=PaymentList([tax1, tax2]),
     )
 
-    assert total_amount.moneys() == [
+    assert total_amount.numeric_moneys() == [
         total.amount,
         tax1.amount,
         tax2.amount,
