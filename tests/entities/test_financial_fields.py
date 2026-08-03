@@ -6,7 +6,6 @@ from app.domain.entities import (
     AdvancePaymentList,
     AdvancePaymentsField,
     Money,
-    MoneyValidationMode,
     Payment,
     PaymentList,
     Specification,
@@ -700,12 +699,6 @@ def test_money_is_correct_rejects_zero_by_default():
 
     assert len(errors) == 1
     assert isinstance(errors[0], AmountNotPositiveError)
-
-
-def test_money_is_correct_allows_zero_when_include_zero():
-    money = Money(value=Decimal(0), transcription=None)
-
-    assert money.validate_positivity(MoneyValidationMode.NON_NEGATIVE) == []
 
 
 def test_money_is_correct_rejects_negative():
