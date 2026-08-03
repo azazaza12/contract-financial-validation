@@ -146,9 +146,6 @@ class Payment:
             self.amount is not None and self.amount.has_data()
         ) or self.vat.has_data()
 
-    def has_amounts(self) -> bool:
-        return self.amount_value is not None or self.vat_amount_value is not None
-
     def has_vat_calculation_data(self) -> bool:
         return (
             self.amount_value is not None
@@ -271,8 +268,12 @@ class Payment:
         raw = self.amount_value
         return [raw] if raw is not None else []
 
-    def moneys(self) -> list[Money]:
-        return [money for money in (self.amount, self.vat.amount) if money is not None]
+    def numeric_moneys(self) -> list[Money]:
+        return [
+            money
+            for money in (self.amount, self.vat.amount)
+            if money is not None and money.value is not None
+        ]
 
     def scaled(self, percent: Decimal) -> Payment:
         factor = percent / Decimal("100.00")
@@ -418,9 +419,6 @@ class PaymentList:
     def __bool__(self) -> bool:
         return bool(self._payments)
 
-    def has_amounts(self) -> bool:
-        return any(payment.has_amounts() for payment in self._payments)
-
     def has_vat_calculation_data(self) -> bool:
         return any(payment.has_vat_calculation_data() for payment in self._payments)
 
@@ -436,10 +434,10 @@ class PaymentList:
             errors.extend(payment.validate_vat_calculation(tolerance=tolerance))
         return errors
 
-    def moneys(self) -> list[Money]:
+    def numeric_moneys(self) -> list[Money]:
         moneys: list[Money] = []
         for payment in self._payments:
-            moneys.extend(payment.moneys())
+            moneys.extend(payment.numeric_moneys())
         return moneys
 
     def validate_vat_rate(
@@ -490,9 +488,6 @@ class TotalAmount:
             return True
         return bool(any(payment.has_data() for payment in self.taxes))
 
-    def has_amounts(self) -> bool:
-        return self.total.has_amounts() or self.taxes.has_amounts()
-
     def has_vat_calculation_data(self) -> bool:
         return (
             self.total.has_vat_calculation_data()
@@ -511,8 +506,8 @@ class TotalAmount:
         errors.extend(self.taxes.validate_vat_calculation(tolerance=tolerance))
         return errors
 
-    def moneys(self) -> list[Money]:
-        return [*self.total.moneys(), *self.taxes.moneys()]
+    def numeric_moneys(self) -> list[Money]:
+        return [*self.total.numeric_moneys(), *self.taxes.numeric_moneys()]
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -522,14 +517,11 @@ class TotalAmountField(BaseField[TotalAmount]):
     def has_data(self) -> bool:
         return self.value.has_data()
 
-    def has_amounts(self) -> bool:
-        return self.value.has_amounts()
-
     def validate(self) -> list[BaseCheckError]:
         return self.value.validate()
 
-    def moneys(self) -> list[Money]:
-        return self.value.moneys()
+    def numeric_moneys(self) -> list[Money]:
+        return self.value.numeric_moneys()
 
 
 EMPTY_PAYMENT = Payment(
@@ -548,9 +540,6 @@ class AdvancePayment(Payment):
         if super().has_data():
             return True
         return bool(any(payment.has_data() for payment in self.payments))
-
-    def has_amounts(self) -> bool:
-        return super().has_amounts() or self.payments.has_amounts()
 
     def has_vat_calculation_data(self) -> bool:
         return (
@@ -586,8 +575,8 @@ class AdvancePayment(Payment):
         errors.extend(self.payments.validate_vat_rate([own_rate], index=index))
         return errors
 
-    def moneys(self) -> list[Money]:
-        return [*super().moneys(), *self.payments.moneys()]
+    def numeric_moneys(self) -> list[Money]:
+        return [*super().numeric_moneys(), *self.payments.numeric_moneys()]
 
     @property
     def resolved(self) -> Payment | None:
@@ -683,10 +672,10 @@ class AdvancePaymentList:
             errors.extend(ap.validate_vat_calculation(tolerance=tolerance))
         return errors
 
-    def moneys(self) -> list[Money]:
+    def numeric_moneys(self) -> list[Money]:
         moneys: list[Money] = []
         for ap in self._advance_payments:
-            moneys.extend(ap.moneys())
+            moneys.extend(ap.numeric_moneys())
         return moneys
 
     def has_vat_rate(self) -> bool:
@@ -728,17 +717,14 @@ class AdvancePaymentsField(BaseField[AdvancePaymentList]):
     def has_data(self) -> bool:
         return bool(any(payment.has_data() for payment in self.value))
 
-    def has_amounts(self) -> bool:
-        return any(payment.has_amounts() for payment in self.value)
-
     def validate(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         for advance_payment in self.value:
             errors.extend(advance_payment.validate())
         return errors
 
-    def moneys(self) -> list[Money]:
-        return self.value.moneys()
+    def numeric_moneys(self) -> list[Money]:
+        return self.value.numeric_moneys()
 
 
 @dataclass(kw_only=True, frozen=True)

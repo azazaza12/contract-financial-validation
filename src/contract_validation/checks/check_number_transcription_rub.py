@@ -26,9 +26,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
         return [
             amount
             for amount in amounts
-            if amount.value is not None
-            and amount.transcription is not None
-            and amount.transcription.strip()
+            if amount.transcription is not None and amount.transcription.strip()
         ]
 
     async def execute(self) -> CheckExecutionResult:
@@ -46,7 +44,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
         ]
         extracted_amounts: list[Money] = []
         for field in fields:
-            extracted_amounts.extend(field.moneys())
+            extracted_amounts.extend(field.numeric_moneys())
         checkable_amounts = self._amounts_with_transcription(extracted_amounts)
         if not checkable_amounts:
             raise InsufficientCheckDataError(
