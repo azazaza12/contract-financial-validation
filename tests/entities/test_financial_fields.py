@@ -500,7 +500,7 @@ def test_total_amount_tax_payments_wraps_taxes():
 
 
 def make_advance(
-    *, percent: Decimal | None = None, total: Payment | None, payments: PaymentList
+    *, percent: Decimal | None = None, total: Payment | None
 ) -> AdvancePayment:
     base = total if total is not None else EMPTY_PAYMENT
     return AdvancePayment(
@@ -508,89 +508,17 @@ def make_advance(
         amount=base.amount,
         vat=base.vat,
         include_vat=base.include_vat,
-        payments=payments,
     )
-
-
-def test_advance_payment_lines_wraps_payments():
-    payments = PaymentList([make_payment(amount="500.00")])
-    advance = make_advance(total=None, payments=payments)
-    assert isinstance(advance.payments, PaymentList)
-    assert advance.payments.amount_value == Decimal("500.00")
-
-
-def test_advance_payment_resolved_prefers_total_when_present():
-    total = make_payment(amount="1000.00")
-    payments = PaymentList([make_payment(amount="500.00")])
-    advance = make_advance(total=total, payments=payments)
-
-    assert advance.resolved == total
-
-
-def test_advance_payment_resolved_falls_back_to_summed_payments():
-    payments = PaymentList([make_payment(amount="500.00")])
-    advance = make_advance(total=None, payments=payments)
-
-    resolved = advance.resolved
-
-    assert resolved is not None
-    assert resolved.amount_value == Decimal("500.00")
-
-
-def test_advance_payment_resolved_falls_back_when_total_amount_missing():
-    total = make_payment(amount=None, vat_amount="10.00")
-    payments = PaymentList([make_payment(amount="500.00")])
-    advance = make_advance(total=total, payments=payments)
-
-    resolved = advance.resolved
-
-    assert resolved is not None
-    assert resolved.amount_value == Decimal("500.00")
-    assert resolved.vat_amount_value == Decimal("10.00")
-
-
-def test_advance_payment_resolved_prefers_each_available_total_value():
-    total = make_payment(amount=None, vat_amount="20.00")
-    payments = PaymentList([make_payment(amount="500.00", vat_amount="15.00")])
-    advance = make_advance(total=total, payments=payments)
-
-    resolved = advance.resolved
-
-    assert resolved is not None
-    assert resolved.amount_value == Decimal("500.00")
-    assert resolved.vat_amount_value == Decimal("20.00")
-
-
-def test_advance_payment_resolved_none_when_no_data():
-    advance = make_advance(total=None, payments=PaymentList([]))
-
-    assert advance.resolved is None
 
 
 def test_advance_payment_has_no_amounts_when_only_percent_present():
-    advance = make_advance(
-        percent=Decimal("50.00"),
-        total=None,
-        payments=PaymentList([]),
-    )
+    advance = make_advance(percent=Decimal("50.00"), total=None)
 
     assert not advance.numeric_moneys()
 
 
-def test_advance_payment_has_amounts_in_nested_payments():
-    advance = make_advance(
-        total=None,
-        payments=PaymentList([make_payment(vat_amount="20.00")]),
-    )
-
-    assert advance.numeric_moneys()
-
-
-def test_advance_payment_validate_collects_total_and_payments_errors():
-    advance = make_advance(
-        total=make_payment(amount="-100.00"),
-        payments=PaymentList([make_payment(rate="-20.00")]),
-    )
+def test_advance_payment_validate_collects_total_errors():
+    advance = make_advance(total=make_payment(amount="-100.00", rate="-20.00"))
 
     errors = advance.validate_positivity()
 
@@ -603,14 +531,8 @@ def test_advance_payments_field_validate_collects_all_advance_errors():
     field = AdvancePaymentsField(
         value=AdvancePaymentList(
             [
-                make_advance(
-                    total=make_payment(amount="-100.00"),
-                    payments=PaymentList([]),
-                ),
-                make_advance(
-                    total=None,
-                    payments=PaymentList([make_payment(rate="-20.00")]),
-                ),
+                make_advance(total=make_payment(amount="-100.00")),
+                make_advance(total=make_payment(rate="-20.00")),
             ]
         ),
         sources=[],
@@ -621,66 +543,6 @@ def test_advance_payments_field_validate_collects_all_advance_errors():
     assert len(errors) == 2  # noqa: PLR2004
     assert any(isinstance(error, AmountNotPositiveError) for error in errors)
     assert any(isinstance(error, VatRateNotPositiveError) for error in errors)
-
-
-def test_advance_payment_comparison_skips_when_total_missing():
-    advance = make_advance(
-        total=None,
-        payments=PaymentList([make_payment(amount="100.00", vat_amount="20.00")]),
-    )
-
-    errors = advance.compare_payments_with_total(tolerance=Decimal("1.00"))
-
-    assert errors == []
-
-
-def test_advance_payment_comparison_skips_when_payments_missing():
-    advance = make_advance(
-        total=make_payment(amount="100.00", vat_amount="20.00"),
-        payments=PaymentList([]),
-    )
-
-    errors = advance.compare_payments_with_total(tolerance=Decimal("1.00"))
-
-    assert errors == []
-
-
-def test_advance_payment_comparison_succeeds_when_sums_match():
-    advance = make_advance(
-        total=make_payment(amount="100.00", vat_amount="20.00"),
-        payments=PaymentList(
-            [
-                make_payment(amount="60.00", vat_amount="12.00"),
-                make_payment(amount="40.00", vat_amount="8.00"),
-            ]
-        ),
-    )
-
-    errors = advance.compare_payments_with_total(tolerance=Decimal("1.00"))
-
-    assert errors == []
-
-
-def test_advance_payment_comparison_returns_amount_and_vat_errors():
-    advance = make_advance(
-        total=make_payment(amount="100.00", vat_amount="20.00"),
-        payments=PaymentList([make_payment(amount="90.00", vat_amount="15.00")]),
-    )
-
-    errors = advance.compare_payments_with_total(tolerance=Decimal("1.00"))
-
-    assert errors == [
-        AmountDiscrepancyError(
-            value=Decimal("90.00"),
-            reference_value=Decimal("100.00"),
-            difference=Decimal("10.00"),
-        ),
-        VatAmountDiscrepancyError(
-            value=Decimal("15.00"),
-            reference_value=Decimal("20.00"),
-            difference=Decimal("5.00"),
-        ),
-    ]
 
 
 # ---------- Money ----------

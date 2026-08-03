@@ -44,13 +44,6 @@ class CheckTotalAmountsValidation(BaseCheck):
             self.errors.extend(taxes.compare(total, tolerance=self.tolerance))
 
         if advance_payments_field is not None:
-            for advance_payment in advance_payments_field.value:
-                self.errors.extend(
-                    advance_payment.compare_payments_with_total(
-                        tolerance=self.tolerance
-                    )
-                )
-
             advances_sum = advance_payments_field.value.summed
             if advances_sum is not None:
                 self.errors.extend(

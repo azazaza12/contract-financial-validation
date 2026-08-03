@@ -397,7 +397,7 @@ def select_common_vat_inclusion(payments: list[Payment]) -> VatInclusion:
 
 @dataclass(frozen=True)
 class PaymentList:
-    _payments: list[Payment]
+    _payments: Sequence[Payment]
 
     def __iter__(self) -> Iterator[Payment]:
         return iter(self._payments)
@@ -521,91 +521,14 @@ EMPTY_PAYMENT = Payment(
 @dataclass(kw_only=True, frozen=True)
 class AdvancePayment(Payment):
     percent: Decimal | None
-    payments: PaymentList
 
     def has_data(self) -> bool:
         if self.percent is not None:
             return True
-        if super().has_data():
-            return True
-        return bool(any(payment.has_data() for payment in self.payments))
-
-    def has_vat_calculation_data(self) -> bool:
-        return (
-            super().has_vat_calculation_data()
-            or self.payments.has_vat_calculation_data()
-        )
-
-    def validate_positivity(self) -> list[BaseCheckError]:
-        return [*super().validate_positivity(), *self.payments.validate_positivity()]
-
-    def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
-        return [
-            *super().validate_vat_calculation(tolerance=tolerance),
-            *self.payments.validate_vat_calculation(tolerance=tolerance),
-        ]
+        return super().has_data()
 
     def has_vat_rate(self) -> bool:
-        if self.vat.rate is not None:
-            return True
-        return bool(self.payments.vat_rates)
-
-    def validate_vat_rate(
-        self, reference: list[Decimal], *, index: int | None = None
-    ) -> list[BaseCheckError]:
-        if not self.payments:
-            return super().validate_vat_rate(reference, index=index)
-
-        if self.vat.rate is None:
-            return self.payments.validate_vat_rate(reference, index=index)
-
-        own_rate = self.vat.rate
-        errors = list(super().validate_vat_rate(reference, index=index))
-        errors.extend(self.payments.validate_vat_rate([own_rate], index=index))
-        return errors
-
-    def numeric_moneys(self) -> list[Money]:
-        return [*super().numeric_moneys(), *self.payments.numeric_moneys()]
-
-    @property
-    def resolved(self) -> Payment | None:
-        payments_sum = self.payments.summed
-        if not super().has_data():
-            return payments_sum
-        if payments_sum is None:
-            return Payment(
-                amount=self.amount, vat=self.vat, include_vat=self.include_vat
-            )
-
-        amount = self.amount if self.amount_value is not None else payments_sum.amount
-        vat_amount = (
-            self.vat.amount
-            if self.vat_amount_value is not None
-            else payments_sum.vat.amount
-        )
-        vat_rate = self.vat.rate if self.vat.rate is not None else payments_sum.vat.rate
-        include_vat = (
-            self.include_vat
-            if self.amount_value is not None
-            else payments_sum.include_vat
-        )
-        return Payment(
-            amount=amount,
-            vat=Vat(amount=vat_amount, rate=vat_rate),
-            include_vat=include_vat,
-        )
-
-    def compare_payments_with_total(
-        self, *, tolerance: Decimal
-    ) -> list[BaseCheckError]:
-        if not super().has_data():
-            return []
-
-        payments_sum = self.payments.summed
-        if payments_sum is None:
-            return []
-
-        return payments_sum.compare(self, tolerance=tolerance)
+        return self.vat.rate is not None
 
     def compare_amount_with_percent(
         self, reference: Payment, *, tolerance: Decimal
@@ -617,12 +540,8 @@ class AdvancePayment(Payment):
         if reference_amount is None:
             return []
 
-        line_payment = self.resolved
-        if line_payment is None:
-            return []
-
         expected = reference.scaled(self.percent)
-        normalized = line_payment.normalized_amounts(expected)
+        normalized = self.normalized_amounts(expected)
         if normalized is None:
             return []
 
@@ -678,10 +597,7 @@ class AdvancePaymentList:
 
     @property
     def summed(self) -> AdvancePayment | None:
-        resolved = [
-            ap.resolved for ap in self._advance_payments if ap.resolved is not None
-        ]
-        payment = PaymentList(resolved).summed
+        payment = PaymentList(self._advance_payments).summed
 
         percents = [
             ap.percent for ap in self._advance_payments if ap.percent is not None
@@ -694,7 +610,6 @@ class AdvancePaymentList:
             amount=total.amount,
             vat=total.vat,
             include_vat=total.include_vat,
-            payments=PaymentList([]),
         )
         return result if result.has_data() else None
 
