@@ -30,11 +30,6 @@ class VatInclusion(StrEnum):
     MIXED = "mixed"
 
 
-class MoneyValidationMode(StrEnum):
-    POSITIVE = "positive"
-    NON_NEGATIVE = "non_negative"
-
-
 class DocumentObjectField(BaseField[str]):
     merge_registry = STRICT_REGISTRY
 
@@ -52,16 +47,10 @@ class Money:
             return True
         return bool(self.transcription is not None and self.transcription.strip() != "")
 
-    def validate_positivity(
-        self, mode: MoneyValidationMode = MoneyValidationMode.POSITIVE
-    ) -> list[BaseCheckError]:
+    def validate_positivity(self) -> list[BaseCheckError]:
         if self.value is None:
             return []
-
-        if self.value < 0:
-            return [AmountNotPositiveError(value=self.value)]
-
-        if mode is MoneyValidationMode.POSITIVE and self.value == Decimal(0):
+        if self.value <= 0:
             return [AmountNotPositiveError(value=self.value)]
         return []
 
