@@ -3,7 +3,7 @@ from dataclasses import fields as dc_fields
 from dataclasses import replace
 from datetime import date, datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from app.domain.constants import AMOUNT_TOLERANCE
@@ -394,15 +394,9 @@ def merge_advance_payment(
         f"{path}.percent",
         errors,
     )
-    payments_result = registry.merge(
-        [ValueCandidate(value=c.value.payments, sources=c.sources) for c in candidates],
-        f"{path}.payments",
-        errors,
-    )
     merged = replace(
         merged_total,
         percent=percent_result.value if percent_result else None,
-        payments=cast("ValueCandidate", payments_result).value,
     )
     return ValueCandidate(value=merged, sources=combine_sources(candidates))
 

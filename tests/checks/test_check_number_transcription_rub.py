@@ -168,7 +168,6 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
                         rate=Decimal("20.00"),
                     ),
                     include_vat=True,
-                    payments=PaymentList([]),
                 ),
                 AdvancePayment(
                     percent=Decimal("2.31"),
@@ -184,7 +183,6 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
                         rate=Decimal("10.00"),
                     ),
                     include_vat=True,
-                    payments=PaymentList([]),
                 ),
             ]
         ),

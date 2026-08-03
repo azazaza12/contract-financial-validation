@@ -53,7 +53,7 @@ def _make_payment(
 
 
 def _advance_payment(
-    *, percent: Decimal | None, total: Payment | None, payments: PaymentList
+    *, percent: Decimal | None, total: Payment | None
 ) -> AdvancePayment:
     base = total if total is not None else EMPTY_PAYMENT
     return AdvancePayment(
@@ -61,7 +61,6 @@ def _advance_payment(
         amount=base.amount,
         vat=base.vat,
         include_vat=base.include_vat,
-        payments=payments,
     )
 
 
@@ -126,16 +125,8 @@ async def test_total_amounts_succeeds_when_total_taxes_and_advances_match() -> N
         total_amount="100.00",
         taxes_amounts=PaymentList(["100.00"]),
         advances=[
-            _advance_payment(
-                percent=Decimal("50.00"),
-                total=_make_payment("50.00"),
-                payments=PaymentList([_make_payment("50.00")]),
-            ),
-            _advance_payment(
-                percent=Decimal("50.00"),
-                total=_make_payment("50.00"),
-                payments=PaymentList([_make_payment("50.00")]),
-            ),
+            _advance_payment(percent=Decimal("50.00"), total=_make_payment("50.00")),
+            _advance_payment(percent=Decimal("50.00"), total=_make_payment("50.00")),
         ],
     )
 
@@ -154,34 +145,13 @@ async def test_total_amounts_fails_when_total_and_taxes_differ() -> None:
     assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
-async def test_total_amounts_fails_when_advance_total_and_payments_differ() -> None:
-    result = await _run_check(
-        total_amount="100.00",
-        taxes_amounts=PaymentList(["100.00"]),
-        advances=[
-            _advance_payment(
-                percent=Decimal("100.00"),
-                total=_make_payment("100.00"),
-                payments=PaymentList([_make_payment("90.00")]),
-            ),
-        ],
-    )
-
-    assert result.status == CheckStatus.FAILED
-    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
-
-
 async def test_total_amounts_skips_none_amounts_without_crash() -> None:
     with pytest.raises(InsufficientCheckDataError):
         await _run_check(
             total_amount=None,
             taxes_amounts=[None],
             advances=[
-                _advance_payment(
-                    percent=None,
-                    total=None,
-                    payments=PaymentList([]),
-                )
+                _advance_payment(percent=None, total=None),
             ],
         )
 
@@ -235,28 +205,7 @@ async def test_total_amounts_succeeds_with_only_advance_total() -> None:
         total_amount=None,
         taxes_amounts=None,
         advances=[
-            _advance_payment(
-                percent=None,
-                total=_make_payment("100.00"),
-                payments=PaymentList([]),
-            )
-        ],
-    )
-
-    assert result.status == CheckStatus.SUCCESS
-    assert result.errors == []
-
-
-async def test_total_amounts_succeeds_with_only_advance_payments() -> None:
-    result = await _run_check(
-        total_amount=None,
-        taxes_amounts=None,
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList([_make_payment("100.00")]),
-            )
+            _advance_payment(percent=None, total=_make_payment("100.00")),
         ],
     )
 
@@ -312,23 +261,13 @@ async def test_total_amounts_succeeds_with_multiple_taxes_when_sum_matches_total
     assert result.errors == []
 
 
-async def test_total_amounts_succeeds_with_multiple_advances_and_nested_payments() -> (
-    None
-):
+async def test_total_amounts_succeeds_with_multiple_advances_summed() -> None:
     result = await _run_check(
         total_amount="300.00",
         taxes_amounts=["300.00"],
         advances=[
-            _advance_payment(
-                percent=Decimal("50.00"),
-                total=_make_payment("150.00"),
-                payments=PaymentList([_make_payment("100.00"), _make_payment("50.00")]),
-            ),
-            _advance_payment(
-                percent=Decimal("50.00"),
-                total=_make_payment("150.00"),
-                payments=PaymentList([_make_payment("120.00"), _make_payment("30.00")]),
-            ),
+            _advance_payment(percent=Decimal("50.00"), total=_make_payment("150.00")),
+            _advance_payment(percent=Decimal("50.00"), total=_make_payment("150.00")),
         ],
     )
 
@@ -336,7 +275,7 @@ async def test_total_amounts_succeeds_with_multiple_advances_and_nested_payments
     assert result.errors == []
 
 
-# --- аванс только с total, без payments ---
+# --- аванс с total ---
 
 
 async def test_advance_with_only_total_matches_contract_success() -> None:
@@ -344,9 +283,7 @@ async def test_advance_with_only_total_matches_contract_success() -> None:
         total_amount="100.00",
         taxes_amounts=None,
         advances=[
-            _advance_payment(
-                percent=None, total=_make_payment("100.00"), payments=PaymentList([])
-            ),
+            _advance_payment(percent=None, total=_make_payment("100.00")),
         ],
     )
     assert result.status == CheckStatus.SUCCESS
@@ -358,70 +295,11 @@ async def test_advance_with_only_total_differs_from_contract_fails() -> None:
         total_amount="100.00",
         taxes_amounts=None,
         advances=[
-            _advance_payment(
-                percent=None, total=_make_payment("90.00"), payments=PaymentList([])
-            ),
+            _advance_payment(percent=None, total=_make_payment("90.00")),
         ],
     )
     assert result.status == CheckStatus.FAILED
     assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
-
-
-# --- аванс только с payments, без total ---
-
-
-async def test_advance_with_only_payments_matches_contract_success() -> None:
-    result = await _run_check(
-        total_amount="100.00",
-        taxes_amounts=None,
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList([_make_payment("60.00"), _make_payment("40.00")]),
-            ),
-        ],
-    )
-    assert result.status == CheckStatus.SUCCESS
-    assert result.errors == []
-
-
-async def test_advance_with_only_payments_differs_from_contract_fails() -> None:
-    result = await _run_check(
-        total_amount="100.00",
-        taxes_amounts=None,
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList([_make_payment("90.00")]),
-            ),
-        ],
-    )
-    assert result.status == CheckStatus.FAILED
-    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
-
-
-# --- смешанные авансы: одни с total, другие с payments ---
-
-
-async def test_mixed_advances_total_only_and_payments_only_success() -> None:
-    result = await _run_check(
-        total_amount="100.00",
-        taxes_amounts=None,
-        advances=[
-            _advance_payment(
-                percent=None, total=_make_payment("60.00"), payments=PaymentList([])
-            ),
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList([_make_payment("40.00")]),
-            ),
-        ],
-    )
-    assert result.status == CheckStatus.SUCCESS
-    assert result.errors == []
 
 
 # --- taxes с частичными None суммами ---
@@ -445,26 +323,7 @@ async def test_errors_collected_from_multiple_sources() -> None:
         total_amount="100.00",
         taxes_amounts=["90.00"],
         advances=[
-            _advance_payment(
-                percent=None, total=_make_payment("80.00"), payments=PaymentList([])
-            ),
-        ],
-    )
-    assert result.status == CheckStatus.FAILED
-    assert len(result.errors) == TWO_ERRORS
-    assert all(isinstance(err, AmountDiscrepancyError) for err in result.errors)
-
-
-async def test_within_advance_and_cross_source_errors_both_collected() -> None:
-    result = await _run_check(
-        total_amount="100.00",
-        taxes_amounts=None,
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=_make_payment("80.00"),
-                payments=PaymentList([_make_payment("70.00")]),
-            ),
+            _advance_payment(percent=None, total=_make_payment("80.00")),
         ],
     )
     assert result.status == CheckStatus.FAILED
@@ -496,88 +355,12 @@ async def test_total_amounts_compares_vat_when_regular_amounts_are_missing() -> 
             _advance_payment(
                 percent=Decimal("100.00"),
                 total=_make_payment(None, vat_amount_value="20.00"),
-                payments=PaymentList([_make_payment(None, vat_amount_value="20.00")]),
             )
         ],
     )
 
     assert result.status is CheckStatus.SUCCESS
     assert result.errors == []
-
-
-async def test_total_amounts_compares_advance_total_and_payments_vat() -> None:
-    result = await _run_payments_check(
-        total=_make_payment(None, vat_amount_value="20.00"),
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=_make_payment(None, vat_amount_value="20.00"),
-                payments=PaymentList(
-                    [
-                        _make_payment(None, vat_amount_value="12.00"),
-                        _make_payment(None, vat_amount_value="3.00"),
-                    ]
-                ),
-            )
-        ],
-    )
-
-    assert result.status is CheckStatus.FAILED
-    assert result.errors == [
-        VatAmountDiscrepancyError(
-            value=Decimal("15.00"),
-            reference_value=Decimal("20.00"),
-            difference=Decimal("5.00"),
-        )
-    ]
-
-
-async def test_total_amounts_sums_advance_payments_vat_without_total() -> None:
-    result = await _run_payments_check(
-        total=_make_payment(None, vat_amount_value="20.00"),
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList(
-                    [
-                        _make_payment(None, vat_amount_value="12.00"),
-                        _make_payment(None, vat_amount_value="8.00"),
-                    ]
-                ),
-            )
-        ],
-    )
-
-    assert result.status is CheckStatus.SUCCESS
-    assert result.errors == []
-
-
-async def test_total_amounts_detects_advance_payments_vat_discrepancy() -> None:
-    result = await _run_payments_check(
-        total=_make_payment(None, vat_amount_value="20.00"),
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList(
-                    [
-                        _make_payment(None, vat_amount_value="12.00"),
-                        _make_payment(None, vat_amount_value="3.00"),
-                    ]
-                ),
-            )
-        ],
-    )
-
-    assert result.status is CheckStatus.FAILED
-    assert result.errors == [
-        VatAmountDiscrepancyError(
-            value=Decimal("15.00"),
-            reference_value=Decimal("20.00"),
-            difference=Decimal("5.00"),
-        )
-    ]
 
 
 async def test_total_amounts_sums_multiple_advance_total_vat_amounts() -> None:
@@ -585,14 +368,10 @@ async def test_total_amounts_sums_multiple_advance_total_vat_amounts() -> None:
         total=_make_payment(None, vat_amount_value="20.00"),
         advances=[
             _advance_payment(
-                percent=None,
-                total=_make_payment(None, vat_amount_value="12.00"),
-                payments=PaymentList([]),
+                percent=None, total=_make_payment(None, vat_amount_value="12.00")
             ),
             _advance_payment(
-                percent=None,
-                total=_make_payment(None, vat_amount_value="8.00"),
-                payments=PaymentList([]),
+                percent=None, total=_make_payment(None, vat_amount_value="8.00")
             ),
         ],
     )
@@ -606,9 +385,7 @@ async def test_total_amounts_detects_advance_total_vat_discrepancy() -> None:
         total=_make_payment(None, vat_amount_value="20.00"),
         advances=[
             _advance_payment(
-                percent=None,
-                total=_make_payment(None, vat_amount_value="10.00"),
-                payments=PaymentList([]),
+                percent=None, total=_make_payment(None, vat_amount_value="10.00")
             )
         ],
     )

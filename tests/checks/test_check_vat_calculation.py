@@ -43,16 +43,13 @@ def _pay(
     )
 
 
-def _advance(
-    *, percent: Decimal | None, total: Payment | None, payments: PaymentList
-) -> AdvancePayment:
+def _advance(*, percent: Decimal | None, total: Payment | None) -> AdvancePayment:
     base = total if total is not None else EMPTY_PAYMENT
     return AdvancePayment(
         percent=percent,
         amount=base.amount,
         vat=base.vat,
         include_vat=base.include_vat,
-        payments=payments,
     )
 
 
@@ -177,36 +174,6 @@ async def test_vat_calculation_allows_zero_vat_rate() -> None:
     assert r.errors == []
 
 
-async def test_vat_calculation_verifies_advance_line_payments() -> None:
-    bad_vat = str(Decimal("10.00") + AMOUNT_TOLERANCE + Decimal("0.01"))
-    r = await _run(
-        total=_pay(
-            amount="120.00",
-            vat_amount="20.00",
-            vat_rate="20.00",
-            include_vat=VatInclusion.INCLUDED,
-        ),
-        advances=[
-            _advance(
-                percent=None,
-                total=None,
-                payments=PaymentList(
-                    [
-                        _pay(
-                            amount="60.00",
-                            vat_amount=bad_vat,
-                            vat_rate="20.00",
-                            include_vat=VatInclusion.INCLUDED,
-                        )
-                    ]
-                ),
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.FAILED
-    assert any(isinstance(e, VatAmountCalculationDiscrepancyError) for e in r.errors)
-
-
 async def test_vat_calculation_verifies_taxes() -> None:
     bad_vat = str(Decimal("20.00") + AMOUNT_TOLERANCE + Decimal("0.01"))
     r = await _run(
@@ -247,7 +214,6 @@ async def test_vat_calculation_verifies_advance_total() -> None:
                     vat_rate="20.00",
                     include_vat=VatInclusion.INCLUDED,
                 ),
-                payments=PaymentList([]),
             ),
         ],
     )

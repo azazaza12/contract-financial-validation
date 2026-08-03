@@ -48,7 +48,7 @@ def _total_amount_field(
 
 
 def _advance_payment(
-    *, percent: Decimal | None, total: Payment | None, payments: PaymentList
+    *, percent: Decimal | None, total: Payment | None
 ) -> AdvancePayment:
     base = total if total is not None else EMPTY_PAYMENT
     return AdvancePayment(
@@ -56,19 +56,12 @@ def _advance_payment(
         amount=base.amount,
         vat=base.vat,
         include_vat=base.include_vat,
-        payments=payments,
     )
 
 
-def _advance(
-    *,
-    total_rate: Decimal | None,
-    payments: list[Payment] | None = None,
-) -> AdvancePayment:
+def _advance(*, total_rate: Decimal | None) -> AdvancePayment:
     total = _payment(vat_rate=total_rate) if total_rate is not None else None
-    return _advance_payment(
-        percent=None, total=total, payments=PaymentList(payments or [])
-    )
+    return _advance_payment(percent=None, total=total)
 
 
 async def _run(
@@ -108,37 +101,6 @@ async def test_no_advances_one_tax_line_both_rates_none_skips() -> None:
     check.advance_payments_field = None
     with pytest.raises(InsufficientCheckDataError):
         await check.execute()
-
-
-async def test_no_rate_in_total_or_taxes_but_advance_has_rate_tax_line_fails() -> None:
-    r = await _run(
-        total_rate=None,
-        tax_rates=[None],
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList([_payment(vat_rate=Decimal(20))]),
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.SUCCESS
-
-
-async def test_no_rate_in_total_no_tax_lines_but_advance_has_rate_success() -> None:
-    r = await _run(
-        total_rate=None,
-        tax_rates=[],
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList([_payment(vat_rate=Decimal(20))]),
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.SUCCESS
-    assert r.errors == []
 
 
 async def test_no_advances_one_tax_line_rates_match_success() -> None:
@@ -205,103 +167,6 @@ async def test_no_advances_multiple_taxes_no_total_but_lines_have_rates_success(
     assert r.status == CheckStatus.SUCCESS
 
 
-async def test_advances_with_payments_match_advance_total() -> None:
-    r = await _run(
-        total_rate=Decimal(20),
-        tax_rates=None,
-        advances=[
-            _advance(
-                total_rate=Decimal(20),
-                payments=[_payment(vat_rate=Decimal(20))],
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.SUCCESS
-
-
-async def test_advances_with_payments_no_advance_total_skips_line_check() -> None:
-    r = await _run(
-        total_rate=Decimal(20),
-        tax_rates=None,
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList(
-                    [
-                        _payment(vat_rate=Decimal(20)),
-                        _payment(vat_rate=Decimal(20)),
-                    ]
-                ),
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.SUCCESS
-
-
-async def test_advances_with_payments_line_differs_from_advance_total_failed() -> None:
-    r = await _run(
-        total_rate=Decimal(20),
-        tax_rates=None,
-        advances=[
-            _advance(
-                total_rate=Decimal(20),
-                payments=[
-                    _payment(vat_rate=Decimal(20)),
-                    _payment(vat_rate=Decimal(10)),
-                ],
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.FAILED
-    err = r.errors[0]
-    assert isinstance(err, PaymentVatRatesDifferError)
-    assert err.rate_one == Decimal(20)
-    assert err.rate_two == Decimal(10)
-
-
-async def test_advances_with_payments_no_advance_total_mixed_rates_success() -> None:
-    r = await _run(
-        total_rate=None,
-        tax_rates=None,
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList(
-                    [
-                        _payment(vat_rate=Decimal(20)),
-                        _payment(vat_rate=Decimal(10)),
-                    ]
-                ),
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.SUCCESS
-
-
-async def test_advances_with_payments_no_advance_total_all_rates_none_not_found() -> (
-    None
-):
-    with pytest.raises(InsufficientCheckDataError):
-        await _run(
-            total_rate=None,
-            tax_rates=None,
-            advances=[
-                _advance_payment(
-                    percent=None,
-                    total=None,
-                    payments=PaymentList(
-                        [
-                            _payment(vat_rate=None),
-                            _payment(vat_rate=None),
-                        ]
-                    ),
-                ),
-            ],
-        )
-
-
 async def test_advances_with_taxes_and_flat_advances_success() -> None:
     r = await _run(
         total_rate=Decimal(20),
@@ -357,7 +222,7 @@ async def test_flat_advances_skip_none_total_success() -> None:
         total_rate=Decimal(20),
         tax_rates=None,
         advances=[
-            _advance_payment(percent=None, total=None, payments=PaymentList([])),
+            _advance_payment(percent=None, total=None),
             _advance(total_rate=Decimal(20)),
         ],
     )
@@ -369,11 +234,7 @@ async def test_flat_advance_total_amount_without_vat_rate_success() -> None:
         total_rate=Decimal(22),
         tax_rates=[],
         advances=[
-            _advance_payment(
-                percent=Decimal(50),
-                total=_payment(vat_rate=None),
-                payments=PaymentList([]),
-            ),
+            _advance_payment(percent=Decimal(50), total=_payment(vat_rate=None)),
         ],
     )
     assert r.status == CheckStatus.SUCCESS
@@ -392,7 +253,7 @@ async def test_taxes_with_none_rate_among_valid_collects_not_found() -> None:
     assert r.status == CheckStatus.SUCCESS
 
 
-# --- Branch A: нет payments, tax_rates не пустой ---
+# --- аванс без своей ставки, ссылка на tax_rates ---
 
 
 async def test_flat_advance_rate_in_tax_rates_success() -> None:
@@ -416,151 +277,6 @@ async def test_flat_advance_rate_not_in_tax_rates_failed() -> None:
     assert err.index == 0
     assert err.rate_one == Decimal(5)
     assert err.rate_two is None
-
-
-# --- Branch B: есть payments, нет aggregate rate ---
-
-
-async def test_advance_payments_no_total_mismatch_contract_rate_failed() -> None:
-    r = await _run(
-        total_rate=Decimal(20),
-        tax_rates=None,
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList(
-                    [
-                        _payment(vat_rate=Decimal(20)),
-                        _payment(vat_rate=Decimal(10)),
-                    ]
-                ),
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.FAILED
-    err = r.errors[0]
-    assert isinstance(err, PaymentVatRatesDifferError)
-    assert err.rate_one == Decimal(20)
-    assert err.rate_two == Decimal(10)
-
-
-async def test_advance_payments_no_total_all_rates_in_tax_rates_success() -> None:
-    r = await _run(
-        total_rate=None,
-        tax_rates=[Decimal(20), Decimal(10)],
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList(
-                    [
-                        _payment(vat_rate=Decimal(20)),
-                        _payment(vat_rate=Decimal(10)),
-                    ]
-                ),
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.SUCCESS
-
-
-async def test_advance_payments_no_total_rate_not_in_tax_rates_failed() -> None:
-    r = await _run(
-        total_rate=None,
-        tax_rates=[Decimal(20)],
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList(
-                    [
-                        _payment(vat_rate=Decimal(20)),
-                        _payment(vat_rate=Decimal(10)),
-                    ]
-                ),
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.FAILED
-    err = r.errors[0]
-    assert isinstance(err, PaymentVatRatesDifferError)
-    assert err.index == 0
-    assert err.rate_one == Decimal(20)
-    assert err.rate_two == Decimal(10)
-
-
-async def test_advance_payments_no_total_mixed_none_valid_collects_not_found() -> None:
-    r = await _run(
-        total_rate=None,
-        tax_rates=None,
-        advances=[
-            _advance_payment(
-                percent=None,
-                total=None,
-                payments=PaymentList(
-                    [_payment(vat_rate=None), _payment(vat_rate=Decimal(20))]
-                ),
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.SUCCESS
-
-
-# --- Branch C: есть payments И aggregate rate ---
-
-
-async def test_advance_total_differs_payments_match_aggregate_failed() -> None:
-    r = await _run(
-        total_rate=Decimal(20),
-        tax_rates=None,
-        advances=[
-            _advance(
-                total_rate=Decimal(10),
-                payments=[_payment(vat_rate=Decimal(10))],
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.FAILED
-    err = r.errors[0]
-    assert isinstance(err, PaymentVatRatesDifferError)
-    assert err.index == 0
-    assert err.rate_one == Decimal(20)
-    assert err.rate_two == Decimal(10)
-
-
-async def test_advance_total_in_tax_rates_payments_match_aggregate_success() -> None:
-    r = await _run(
-        total_rate=None,
-        tax_rates=[Decimal(20), Decimal(10)],
-        advances=[
-            _advance(
-                total_rate=Decimal(20),
-                payments=[_payment(vat_rate=Decimal(20))],
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.SUCCESS
-
-
-async def test_advance_total_in_tax_rates_payment_differs_from_aggregate_failed() -> (
-    None
-):
-    r = await _run(
-        total_rate=None,
-        tax_rates=[Decimal(20), Decimal(10)],
-        advances=[
-            _advance(
-                total_rate=Decimal(20),
-                payments=[_payment(vat_rate=Decimal(10))],
-            ),
-        ],
-    )
-    assert r.status == CheckStatus.FAILED
-    err = r.errors[0]
-    assert isinstance(err, PaymentVatRatesDifferError)
-    assert err.rate_one == Decimal(20)
-    assert err.rate_two == Decimal(10)
 
 
 # --- Сбор всех ошибок по нескольким авансам ---
