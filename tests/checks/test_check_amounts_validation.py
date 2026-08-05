@@ -189,28 +189,24 @@ async def test_total_amounts_succeeds_with_only_total_amount() -> None:
     assert result.errors == []
 
 
-async def test_total_amounts_succeeds_with_only_taxes_amount() -> None:
-    result = await _run_check(
-        total_amount=None,
-        taxes_amounts=["100.00"],
-        advances=None,
-    )
-
-    assert result.status == CheckStatus.SUCCESS
-    assert result.errors == []
+async def test_total_amounts_insufficient_with_only_taxes_amount() -> None:
+    with pytest.raises(InsufficientCheckDataError):
+        await _run_check(
+            total_amount=None,
+            taxes_amounts=["100.00"],
+            advances=None,
+        )
 
 
-async def test_total_amounts_succeeds_with_only_advance_total() -> None:
-    result = await _run_check(
-        total_amount=None,
-        taxes_amounts=None,
-        advances=[
-            _advance_payment(percent=None, total=_make_payment("100.00")),
-        ],
-    )
-
-    assert result.status == CheckStatus.SUCCESS
-    assert result.errors == []
+async def test_total_amounts_insufficient_with_only_advance_total() -> None:
+    with pytest.raises(InsufficientCheckDataError):
+        await _run_check(
+            total_amount=None,
+            taxes_amounts=None,
+            advances=[
+                _advance_payment(percent=None, total=_make_payment("100.00")),
+            ],
+        )
 
 
 async def test_total_amounts_succeeds_with_only_total_vat_amount() -> None:
