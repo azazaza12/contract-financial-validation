@@ -429,14 +429,8 @@ class PaymentList:
             moneys.extend(payment.numeric_moneys())
         return moneys
 
-    def validate_vat_rate(
-        self, reference: list[Decimal], *, index: int | None = None
-    ) -> list[BaseCheckError]:
+    def validate_vat_rate(self, reference: list[Decimal]) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
-        if index is not None:
-            for payment in self._payments:
-                errors.extend(payment.validate_vat_rate(reference, index=index))
-            return errors
         for i, payment in enumerate(self._payments):
             errors.extend(payment.validate_vat_rate(reference, index=i))
         return errors
