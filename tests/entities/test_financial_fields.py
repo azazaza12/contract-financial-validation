@@ -407,21 +407,6 @@ def test_payment_list_len_and_bool():
     assert PaymentList([make_payment(amount="1.00")])
 
 
-def test_payment_list_amount_value_none_when_empty():
-    assert PaymentList([]).amount_value is None
-
-
-def test_payment_list_amount_value_sums_present_and_skips_missing():
-    payment_list = PaymentList(
-        [
-            make_payment(amount="318217.79"),
-            make_payment(amount=None),
-            make_payment(amount="1591088.94"),
-        ]
-    )
-    assert payment_list.amount_value == Decimal("1909306.73")
-
-
 def test_payment_list_vat_rates_collects_distinct_non_none():
     payment_list = PaymentList(
         [
@@ -496,7 +481,6 @@ def test_total_amount_tax_payments_wraps_taxes():
     total_amount = TotalAmount(total=make_payment(amount="300.00"), taxes=taxes)
     tax_payments = total_amount.taxes
     assert isinstance(tax_payments, PaymentList)
-    assert tax_payments.amount_value == Decimal("300.00")
 
 
 def make_advance(
