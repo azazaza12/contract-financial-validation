@@ -29,16 +29,13 @@ class CheckTotalAmountsValidation(BaseCheck):
             "AdvancePaymentsField | None", self.advance_payments_field
         )
 
-        if not total_amount_field.numeric_moneys() and (
-            advance_payments_field is None
-            or not advance_payments_field.numeric_moneys()
-        ):
+        total = total_amount_field.value.total
+        if not total.numeric_moneys():
             raise InsufficientCheckDataError(
                 self.__class__.__name__,
                 "no amount or VAT amount found",
             )
 
-        total = total_amount_field.value.total
         taxes = total_amount_field.value.taxes.summed
         if taxes is not None:
             self.errors.extend(taxes.compare(total, tolerance=self.tolerance))
