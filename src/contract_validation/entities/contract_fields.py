@@ -553,49 +553,17 @@ class AdvancePayment(Payment):
 
 
 @dataclass(frozen=True)
-class AdvancePaymentList:
-    _advance_payments: list[AdvancePayment]
+class AdvancePaymentList(PaymentList):
+    _payments: Sequence[AdvancePayment]
 
     def __iter__(self) -> Iterator[AdvancePayment]:
-        return iter(self._advance_payments)
-
-    def __len__(self) -> int:
-        return len(self._advance_payments)
-
-    def __bool__(self) -> bool:
-        return bool(self._advance_payments)
-
-    def has_vat_calculation_data(self) -> bool:
-        return any(ap.has_vat_calculation_data() for ap in self._advance_payments)
-
-    def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
-        for ap in self._advance_payments:
-            errors.extend(ap.validate_vat_calculation(tolerance=tolerance))
-        return errors
-
-    def numeric_moneys(self) -> list[Money]:
-        moneys: list[Money] = []
-        for ap in self._advance_payments:
-            moneys.extend(ap.numeric_moneys())
-        return moneys
-
-    def has_vat_rate(self) -> bool:
-        return any(ap.has_vat_rate() for ap in self._advance_payments)
-
-    def validate_vat_rate(self, reference: list[Decimal]) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
-        for index, ap in enumerate(self._advance_payments):
-            errors.extend(ap.validate_vat_rate(reference=reference, index=index))
-        return errors
+        return iter(self._payments)
 
     @property
     def summed(self) -> AdvancePayment | None:
-        payment = PaymentList(self._advance_payments).summed
+        payment = super().summed
 
-        percents = [
-            ap.percent for ap in self._advance_payments if ap.percent is not None
-        ]
+        percents = [ap.percent for ap in self if ap.percent is not None]
         percent_sum = sum(percents, Decimal("0.00")) if percents else None
 
         total = payment if payment is not None else EMPTY_PAYMENT
