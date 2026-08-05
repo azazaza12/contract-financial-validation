@@ -436,16 +436,6 @@ class PaymentList:
         return errors
 
     @property
-    def amount_value(self) -> Decimal | None:
-        total: Decimal | None = None
-        for payment in self._payments:
-            value = payment.amount_value
-            if value is None:
-                continue
-            total = (total or Decimal("0.00")) + value
-        return total
-
-    @property
     def vat_rates(self) -> set[Decimal]:
         return {
             payment.vat_rate
