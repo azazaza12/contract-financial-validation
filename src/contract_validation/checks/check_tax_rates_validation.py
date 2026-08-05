@@ -25,9 +25,8 @@ class CheckTaxRatesValidation(BaseCheck):
         ta = total_amount_field.value
         contract_rate = ta.total.vat.rate
         tax_rates = ta.taxes.vat_rates
-        advances_have_rate = (
-            advance_payments_field is not None
-            and bool(advance_payments_field.value.vat_rates)
+        advances_have_rate = advance_payments_field is not None and bool(
+            advance_payments_field.value.vat_rates
         )
 
         if not (contract_rate is not None or tax_rates or advances_have_rate):
