@@ -465,6 +465,37 @@ def test_payment_list_summed_drops_rate_when_rates_differ():
     assert summed.vat_rate is None
 
 
+def test_payment_list_summed_selects_basis_once_for_entire_group():
+    included = make_payment(
+        amount="120.00",
+        rate="20.00",
+        include_vat=VatInclusion.INCLUDED,
+    )
+    excluded_with_rate = make_payment(
+        amount="100.00",
+        rate="10.00",
+        include_vat=VatInclusion.EXCLUDED,
+    )
+    excluded_without_rate = make_payment(
+        amount="50.00",
+        include_vat=VatInclusion.EXCLUDED,
+    )
+
+    results: list[tuple[Decimal | None, VatInclusion]] = []
+    for payments in (
+        [included, excluded_with_rate, excluded_without_rate],
+        [excluded_without_rate, excluded_with_rate, included],
+    ):
+        summed = PaymentList(payments).summed
+        assert summed is not None
+        results.append((summed.amount_value, summed.include_vat))
+
+    assert results == [
+        (Decimal("250.00"), VatInclusion.EXCLUDED),
+        (Decimal("250.00"), VatInclusion.EXCLUDED),
+    ]
+
+
 def test_payment_list_has_amounts_when_any_payment_has_amount():
     payment_list = PaymentList(
         [
@@ -633,6 +664,34 @@ def test_payment_compare_uses_normalized_amounts_in_error():
             reference_value=Decimal("120.00"),
             difference=Decimal("24.00"),
         )
+    ]
+
+
+def test_payment_compare_falls_back_to_raw_amounts_without_common_basis():
+    value = make_payment(
+        amount="120.00",
+        vat_amount="20.00",
+        include_vat=VatInclusion.UNSPECIFIED,
+    )
+    reference = make_payment(
+        amount="100.00",
+        vat_amount="10.00",
+        include_vat=VatInclusion.EXCLUDED,
+    )
+
+    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+
+    assert errors == [
+        AmountDiscrepancyError(
+            value=Decimal("120.00"),
+            reference_value=Decimal("100.00"),
+            difference=Decimal("20.00"),
+        ),
+        VatAmountDiscrepancyError(
+            value=Decimal("20.00"),
+            reference_value=Decimal("10.00"),
+            difference=Decimal("10.00"),
+        ),
     ]
 
 

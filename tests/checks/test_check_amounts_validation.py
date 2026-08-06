@@ -429,6 +429,57 @@ async def test_total_amounts_succeeds_when_total_gross_and_tax_net_match() -> No
     assert result.errors == []
 
 
+async def test_total_amounts_selects_basis_from_tax_items_and_total() -> None:
+    result = await _run_payments_check(
+        total=Payment(
+            amount=Money(value=Decimal("200.00"), transcription=None),
+            vat=Vat(amount=None, rate=None),
+            include_vat=VatInclusion.EXCLUDED,
+        ),
+        taxes=[
+            _make_vat_payment(
+                "120.00",
+                rate="20.00",
+                include_vat=VatInclusion.INCLUDED,
+            ),
+            _make_vat_payment(
+                "100.00",
+                rate="10.00",
+                include_vat=VatInclusion.EXCLUDED,
+            ),
+        ],
+    )
+
+    assert result.status is CheckStatus.SUCCESS
+    assert result.errors == []
+
+
+async def test_total_amounts_falls_back_to_raw_amounts_without_common_basis() -> None:
+    result = await _run_payments_check(
+        total=Payment(
+            amount=Money(value=Decimal("100.00"), transcription=None),
+            vat=Vat(amount=None, rate=None),
+            include_vat=VatInclusion.EXCLUDED,
+        ),
+        taxes=[
+            Payment(
+                amount=Money(value=Decimal("120.00"), transcription=None),
+                vat=Vat(amount=None, rate=None),
+                include_vat=VatInclusion.INCLUDED,
+            )
+        ],
+    )
+
+    assert result.status is CheckStatus.FAILED
+    assert result.errors == [
+        AmountDiscrepancyError(
+            value=Decimal("120.00"),
+            reference_value=Decimal("100.00"),
+            difference=Decimal("20.00"),
+        )
+    ]
+
+
 async def test_total_amounts_falls_back_to_raw_when_tax_lacks_rate() -> None:
     check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
     check.total_amount_field = TotalAmountField(
