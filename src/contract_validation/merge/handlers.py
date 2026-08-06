@@ -12,11 +12,7 @@ from app.domain.entities.merge_types import Source, SourceHeader, ValueCandidate
 
 
 if TYPE_CHECKING:
-    from app.domain.entities.single_supplier_fields import (
-        AdvancePayment,
-        Money,
-        Payment,
-    )
+    from app.domain.entities.single_supplier_fields import Money, Payment
 
     from .registry import MergeRegistry
 
@@ -384,8 +380,20 @@ def merge_advance_payment(
     errors: list[BaseMergeError],
     registry: MergeRegistry,
 ) -> ValueCandidate | None:
-    advances: list[AdvancePayment] = [c.value for c in candidates]
-    merged_total = _merge_payment_core(advances, candidates, path, errors, registry)
+    # percent мержится отдельно ниже; обнулён здесь одинаково у всех
+    # кандидатов, чтобы merge_dataclass_default внутри _merge_payment_core
+    # не увидел на нём конфликт и не задвоил ValuesDiscrepancyError.
+    candidates_without_percent = [
+        ValueCandidate(value=replace(c.value, percent=None), sources=c.sources)
+        for c in candidates
+    ]
+    merged_total = _merge_payment_core(
+        [c.value for c in candidates_without_percent],
+        candidates_without_percent,
+        path,
+        errors,
+        registry,
+    )
     if merged_total is None:
         return None
 
