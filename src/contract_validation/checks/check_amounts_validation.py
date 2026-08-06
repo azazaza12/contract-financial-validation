@@ -36,15 +36,13 @@ class CheckTotalAmountsValidation(BaseCheck):
                 "no amount or VAT amount found",
             )
 
-        taxes = total_amount_field.value.taxes.summed
-        if taxes is not None:
-            self.errors.extend(taxes.compare(total, tolerance=self.tolerance))
+        self.errors.extend(
+            total_amount_field.value.taxes.compare(total, tolerance=self.tolerance)
+        )
 
         if advance_payments_field is not None:
-            advances_sum = advance_payments_field.value.summed
-            if advances_sum is not None:
-                self.errors.extend(
-                    advances_sum.compare(total, tolerance=self.tolerance)
-                )
+            self.errors.extend(
+                advance_payments_field.value.compare(total, tolerance=self.tolerance)
+            )
 
         return self._result(self.errors)
