@@ -310,8 +310,11 @@ class Payment:
             include_vat=inclusion,
         )
 
-    def normalized_amounts(self, other: Payment) -> NormalizedAmounts | None:
-        inclusion = select_common_vat_inclusion([self, other])
+    def normalized_amounts(
+        self, other: Payment, *, inclusion: VatInclusion | None = None
+    ) -> NormalizedAmounts | None:
+        if inclusion is None:
+            inclusion = select_common_vat_inclusion([self, other])
         left = self.amount_as(inclusion)
         right = other.amount_as(inclusion)
         if left is None or right is None:
@@ -335,10 +338,14 @@ class Payment:
         )
 
     def compare(
-        self, reference: Payment, *, tolerance: Decimal
+        self,
+        reference: Payment,
+        *,
+        tolerance: Decimal,
+        inclusion: VatInclusion | None = None,
     ) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
-        normalized = self.normalized_amounts(reference)
+        normalized = self.normalized_amounts(reference, inclusion=inclusion)
         value_vat_amount = self.vat.amount_value
         reference_vat_amount = reference.vat.amount_value
         if normalized is not None:
@@ -443,12 +450,43 @@ class PaymentList:
             if payment.vat_rate is not None
         }
 
+    def _summed_in(self, inclusion: VatInclusion) -> Payment | None:
+        if not self._payments:
+            return None
+        amount_value: Decimal | None = None
+        for payment in self._payments:
+            value = payment.amount_as(inclusion)
+            if value is None:
+                if payment.amount_value is not None:
+                    return None
+                continue
+            amount_value = value if amount_value is None else amount_value + value
+        amount = (
+            Money(value=amount_value, transcription=None)
+            if amount_value is not None
+            else None
+        )
+        vat = reduce(Vat.__add__, (payment.vat for payment in self._payments))
+        result = Payment(amount=amount, vat=vat, include_vat=inclusion)
+        return result if result.has_data() else None
+
     @property
     def summed(self) -> Payment | None:
         if not self._payments:
             return None
-        result = reduce(Payment.__add__, self._payments)
-        return result if result.has_data() else None
+        inclusion = select_common_vat_inclusion(list(self._payments))
+        return self._summed_in(inclusion)
+
+    def compare(
+        self, reference: Payment, *, tolerance: Decimal
+    ) -> list[BaseCheckError]:
+        if not self._payments:
+            return []
+        inclusion = select_common_vat_inclusion([*self._payments, reference])
+        summed = self._summed_in(inclusion)
+        if summed is None:
+            return []
+        return summed.compare(reference, tolerance=tolerance, inclusion=inclusion)
 
 
 @dataclass(kw_only=True, frozen=True)
