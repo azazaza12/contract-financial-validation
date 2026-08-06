@@ -441,3 +441,45 @@ async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match(
 
     assert result.status == CheckStatus.SUCCESS
     assert result.errors == []
+
+
+async def test_payment_percent_falls_back_to_raw_amounts_without_common_basis() -> None:
+    total_payment = Payment(
+        amount=Money(value=Decimal("100.00"), transcription=None),
+        vat=Vat(amount=None, rate=None),
+        include_vat=VatInclusion.EXCLUDED,
+    )
+    advance = _advance(
+        percent=Decimal("100.00"),
+        total=Payment(
+            amount=Money(value=Decimal("120.00"), transcription=None),
+            vat=Vat(amount=None, rate=None),
+            include_vat=VatInclusion.INCLUDED,
+        ),
+    )
+    fields = FieldCollector(
+        [
+            TotalAmountField(
+                value=TotalAmount(total=total_payment, taxes=[]),
+                sources=[],
+            ),
+            AdvancePaymentsField(
+                value=AdvancePaymentList([advance]),
+                sources=[],
+            ),
+        ]
+    )
+    check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
+    check.prepare(fields)
+
+    result = await check.execute()
+
+    assert result.status is CheckStatus.FAILED
+    assert result.errors == [
+        PaymentAmountPercentDiscrepancyError(
+            amount=Decimal("120.00"),
+            expected_amount=Decimal("100.00"),
+            percent=Decimal("100.00"),
+            contract_total_amount=Decimal("100.00"),
+        )
+    ]
