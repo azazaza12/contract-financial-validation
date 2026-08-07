@@ -3,6 +3,7 @@ from decimal import Decimal
 from app.domain.entities import (
     AdvancePayment,
     Amount,
+    Basis,
     Payment,
     PaymentList,
     TotalAmount,
@@ -117,6 +118,28 @@ def test_payment_list_amount_value_sums_present_and_skips_missing():
         ]
     )
     assert payment_list.amount_value == Decimal("1909306.73")
+
+
+def test_payment_list_amount_in_basis_rejects_partial_normalization():
+    payment_list = PaymentList(
+        [
+            make_payment(amount="120.00", include_vat=True),
+            make_payment(amount="100.00", include_vat=False),
+        ]
+    )
+
+    assert payment_list.amount_in_basis(Basis.EXCLUDING_VAT) is None
+
+
+def test_payment_list_amount_in_basis_skips_payment_without_amount():
+    payment_list = PaymentList(
+        [
+            make_payment(amount=None, include_vat=True),
+            make_payment(amount="100.00", include_vat=False),
+        ]
+    )
+
+    assert payment_list.amount_in_basis(Basis.EXCLUDING_VAT) == Decimal("100.00")
 
 
 def test_payment_list_vat_rates_collects_distinct_non_none():
