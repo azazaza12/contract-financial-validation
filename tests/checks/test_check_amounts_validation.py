@@ -344,10 +344,23 @@ async def test_within_advance_and_cross_source_errors_both_collected() -> None:
     assert all(isinstance(err, AmountDiscrepancyError) for err in result.errors)
 
 
-def _make_vat_payment(value: str, *, rate: str, include_vat: bool) -> Payment:
+def _make_vat_payment(
+    value: str,
+    *,
+    rate: str | None = None,
+    vat_amount: str | None = None,
+    include_vat: bool,
+) -> Payment:
     return Payment(
         amount=Amount(value=Decimal(value), transcription=None),
-        vat=Vat(amount=None, rate=Decimal(rate)),
+        vat=Vat(
+            amount=(
+                Amount(value=Decimal(vat_amount), transcription=None)
+                if vat_amount is not None
+                else None
+            ),
+            rate=Decimal(rate) if rate is not None else None,
+        ),
         include_vat=include_vat,
     )
 
@@ -358,6 +371,23 @@ async def test_total_amounts_succeeds_when_total_gross_and_tax_net_match() -> No
         value=TotalAmount(
             total=_make_vat_payment("120.00", rate="20.00", include_vat=True),
             taxes=[_make_vat_payment("100.00", rate="20.00", include_vat=False)],
+        ),
+        sources=[],
+    )
+    check.advance_payments_field = None
+
+    result = await check.execute()
+
+    assert result.status == CheckStatus.SUCCESS
+    assert result.errors == []
+
+
+async def test_total_amounts_uses_vat_amount_when_rate_is_missing() -> None:
+    check = CheckTotalAmountsValidation(tolerance=AMOUNT_TOLERANCE)
+    check.total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=_make_vat_payment("120.00", vat_amount="20.00", include_vat=True),
+            taxes=[_make_vat_payment("100.00", vat_amount="20.00", include_vat=False)],
         ),
         sources=[],
     )
