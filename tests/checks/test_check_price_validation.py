@@ -395,13 +395,21 @@ async def test_check_price_validation_succeeds_when_within_tolerance() -> None:
 def _make_vat_total_amount_field(
     value: str,
     *,
-    rate: str,
+    rate: str | None = None,
+    vat_amount: str | None = None,
     include_vat: bool,
     document: SingleSupplierDocument,
 ) -> TotalAmountField:
     total = Payment(
         amount=Amount(value=Decimal(value), transcription=None),
-        vat=Vat(amount=None, rate=Decimal(rate)),
+        vat=Vat(
+            amount=(
+                Amount(value=Decimal(vat_amount), transcription=None)
+                if vat_amount is not None
+                else None
+            ),
+            rate=Decimal(rate) if rate is not None else None,
+        ),
         include_vat=include_vat,
     )
     return TotalAmountField(
@@ -435,6 +443,36 @@ async def test_check_price_validation_succeeds_when_positions_match_net_total() 
             ),
             _make_vat_total_amount_field(
                 "120.00", rate="20.00", include_vat=True, document=document
+            ),
+        ],
+    )
+
+    errors = await _run_price_check(fields)
+
+    assert errors == []
+
+
+async def test_check_price_validation_uses_vat_amount_when_rate_is_missing() -> None:
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            SpecPositionsField(
+                value=[
+                    SpecPosition(
+                        name="Позиция 1",
+                        quantity=Decimal("1.0"),
+                        unit_price=Decimal("100.00"),
+                        total_price=Decimal("100.00"),
+                        unit_of_measurement="шт",
+                    )
+                ],
+                sources=[Source(document_id=document.id)],
+            ),
+            _make_vat_total_amount_field(
+                "120.00",
+                vat_amount="20.00",
+                include_vat=True,
+                document=document,
             ),
         ],
     )
