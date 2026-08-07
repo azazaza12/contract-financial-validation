@@ -180,6 +180,8 @@ class PaymentList:
         for payment in self._payments:
             value = payment.amount_in_basis(basis)
             if value is None:
+                if payment.amount_value is not None:
+                    return None
                 continue
             total = (total or Decimal("0.00")) + value
         return total
