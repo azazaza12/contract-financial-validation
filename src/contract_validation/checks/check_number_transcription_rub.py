@@ -24,13 +24,26 @@ class CheckNumberTranscriptionRub(BaseCheck):
 
     @staticmethod
     def _amounts_with_transcription(amounts: list[Amount]) -> list[Amount]:
-        return [
-            amount
-            for amount in amounts
-            if amount.value is not None
-            and amount.transcription is not None
-            and amount.transcription.strip()
-        ]
+        result: list[Amount] = []
+        seen: set[tuple[int, str]] = set()
+        for amount in amounts:
+            if (
+                amount.value is None
+                or amount.transcription is None
+                or not amount.transcription.strip()
+            ):
+                continue
+            transcription = " ".join(
+                amount.transcription.replace("\u0451", "\u0435")
+                .replace("\u0401", "\u0415")
+                .split()
+            ).lower()
+            key = (int(amount.value), transcription)
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(amount)
+        return result
 
     @staticmethod
     def _amounts_from_payment(payment: Payment) -> list[Amount]:
