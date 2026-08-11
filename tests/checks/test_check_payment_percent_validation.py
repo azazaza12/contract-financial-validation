@@ -342,10 +342,23 @@ async def test_payment_percent_sum_fails_without_total_when_not_100() -> None:
     )
 
 
-def _vat_payment(value: str, *, rate: str, include_vat: bool) -> Payment:
+def _vat_payment(
+    value: str,
+    *,
+    rate: str | None = None,
+    vat_amount: str | None = None,
+    include_vat: bool,
+) -> Payment:
     return Payment(
         amount=Amount(value=Decimal(value), transcription=None),
-        vat=Vat(amount=None, rate=Decimal(rate)),
+        vat=Vat(
+            amount=(
+                Amount(value=Decimal(vat_amount), transcription=None)
+                if vat_amount is not None
+                else None
+            ),
+            rate=Decimal(rate) if rate is not None else None,
+        ),
         include_vat=include_vat,
     )
 
@@ -498,6 +511,37 @@ async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match(
                 sources=[Source(document_id=document.id)],
             ),
         ],
+    )
+    check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
+    check.prepare(fields)
+
+    result = await check.execute()
+
+    assert result.status == CheckStatus.SUCCESS
+    assert result.errors == []
+
+
+async def test_payment_percent_uses_vat_amount_when_rate_is_missing() -> None:
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    total_payment = _vat_payment("100.00", vat_amount="20.00", include_vat=False)
+    advances = [
+        AdvancePayment(
+            percent=Decimal("100.00"),
+            total=_vat_payment("120.00", vat_amount="20.00", include_vat=True),
+            payments=[],
+        )
+    ]
+    fields = FieldCollector(
+        [
+            TotalAmountField(
+                value=TotalAmount(total=total_payment, taxes=[]),
+                sources=[Source(document_id=document.id)],
+            ),
+            AdvancePaymentsField(
+                value=advances,
+                sources=[Source(document_id=document.id)],
+            ),
+        ]
     )
     check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
     check.prepare(fields)

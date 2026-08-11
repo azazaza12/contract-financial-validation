@@ -95,6 +95,12 @@ class CheckTotalAmountsValidation(BaseCheck):
             "AdvancePaymentsField | None", self.advance_payments_field
         )
 
+        if total_amount_field.value.total.amount_value is None:
+            raise InsufficientCheckDataError(
+                self.__class__.__name__,
+                "no contract total amount found",
+            )
+
         group = [total_amount_field.value.total, *total_amount_field.value.taxes]
         if advance_payments_field is not None:
             for advance_payment in advance_payments_field.value:
