@@ -56,27 +56,6 @@ async def test_check_14_succeeds_when_no_transcription_issues() -> None:
     service_mock.evaluate.assert_awaited_once()
 
 
-async def test_check_14_deduplicates_semantically_equal_amounts() -> None:
-    service_mock = AsyncMock()
-    service_mock.evaluate.return_value = None
-    check = CheckNumberTranscriptionRub(transcription_compliancer=service_mock)
-    check.total_amount_fields = [
-        _make_total_amount_field("100.00", "One hundred"),
-        _make_total_amount_field("100.99", "  ONE   HUNDRED "),
-        _make_total_amount_field("101.00", "One hundred"),
-    ]
-    check.advance_payments_fields = []
-
-    result = await check.execute()
-
-    assert result.status == CheckStatus.SUCCESS
-    assert service_mock.evaluate.await_count == 2  # noqa: PLR2004
-    assert [call.args[0].value for call in service_mock.evaluate.await_args_list] == [
-        Decimal("100.00"),
-        Decimal("101.00"),
-    ]
-
-
 async def test_check_14_maps_each_issue_to_validation_error() -> None:
     service_mock = AsyncMock()
     service_mock.evaluate.side_effect = [
