@@ -163,15 +163,6 @@ class AmountDiscrepancyError(BaseCheckError):
 
 
 @dataclass
-class PositionsComplianceError(BaseCheckError):
-    message: str
-
-    def _compare_same_type(self, error: BaseContractError) -> bool:
-        other = cast("PositionsComplianceError", error)
-        return self.source == other.source and self.message == other.message
-
-
-@dataclass
 class NumberTranscriptionError(BaseCheckError):
     index: int
     value: Decimal
