@@ -10,6 +10,7 @@ from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
 from .errors.checks import (
     AmountDiscrepancyError,
+    AmountNotFoundError,
     AmountNotPositiveError,
     BaseCheckError,
     PaymentAmountPercentDiscrepancyError,
@@ -511,6 +512,11 @@ class TotalAmount:
         errors.extend(self.taxes.validate_positivity())
         return errors
 
+    def validate_presence(self) -> list[BaseCheckError]:
+        if self.total.amount_value is None:
+            return [AmountNotFoundError()]
+        return []
+
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         errors.extend(self.total.validate_vat_calculation(tolerance=tolerance))
@@ -530,6 +536,9 @@ class TotalAmountField(BaseField[TotalAmount]):
 
     def validate_positivity(self) -> list[BaseCheckError]:
         return self.value.validate_positivity()
+
+    def validate_presence(self) -> list[BaseCheckError]:
+        return self.value.validate_presence()
 
     def numeric_moneys(self) -> list[Money]:
         return self.value.numeric_moneys()
