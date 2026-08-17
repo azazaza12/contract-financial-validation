@@ -9,28 +9,6 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class EvaluateResult:
-    text: str | None = None
-    success: bool = False
-    error: str | None = None
-
-
-@dataclass(frozen=True)
-class NumberedPosition:
-    number: int
-    name: str
-
-
-class IPositionsCompliancer(ABC):
-    @abstractmethod
-    async def evaluate(
-        self,
-        document_object: str,
-        positions: list[NumberedPosition],
-    ) -> EvaluateResult: ...
-
-
-@dataclass
 class TranscriptionCheckIssue:
     value: Decimal
     transcription: str
