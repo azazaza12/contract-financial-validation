@@ -130,6 +130,8 @@ class PaymentPercentSumDiscrepancyError(BaseCheckError):
 class PositionCostDiscrepancyError(BaseCheckError):
     count: int
     position_name: str | None
+    quantity: Decimal
+    unit_price: Decimal
     cost: Decimal
     calculated_cost: Decimal
     difference_sum: Decimal
@@ -140,6 +142,8 @@ class PositionCostDiscrepancyError(BaseCheckError):
             self.source == other.source
             and self.count == other.count
             and self.position_name == other.position_name
+            and self.quantity == other.quantity
+            and self.unit_price == other.unit_price
             and self.cost == other.cost
             and self.calculated_cost == other.calculated_cost
             and self.difference_sum == other.difference_sum
