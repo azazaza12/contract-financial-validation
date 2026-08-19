@@ -18,6 +18,7 @@ from app.domain.entities import (
     TotalAmount,
     TotalAmountField,
     Vat,
+    VatInclusion,
 )
 from app.domain.entities.errors import (
     AmountDiscrepancyError,
@@ -34,7 +35,7 @@ def _make_payment(value: str) -> Payment:
     return Payment(
         amount=amount,
         vat=Vat(amount=None, rate=None),
-        include_vat=False,
+        include_vat=VatInclusion.UNSPECIFIED,
     )
 
 
@@ -324,7 +325,7 @@ async def test_check_price_validation_skips_when_no_amounts_at_all() -> None:
                     total=Payment(
                         amount=None,
                         vat=Vat(amount=None, rate=None),
-                        include_vat=False,
+                        include_vat=VatInclusion.UNSPECIFIED,
                     ),
                     taxes=[],
                 ),
@@ -363,7 +364,7 @@ async def test_check_price_validation_validates_positions_without_contract_total
                     total=Payment(
                         amount=None,
                         vat=Vat(amount=None, rate=None),
-                        include_vat=False,
+                        include_vat=VatInclusion.UNSPECIFIED,
                     ),
                     taxes=[],
                 ),
@@ -418,13 +419,21 @@ async def test_check_price_validation_succeeds_when_within_tolerance() -> None:
 def _make_vat_total_amount_field(
     value: str,
     *,
-    rate: str,
-    include_vat: bool,
+    rate: str | None = None,
+    vat_amount: str | None = None,
+    include_vat: VatInclusion,
     document: SingleSupplierDocument,
 ) -> TotalAmountField:
     total = Payment(
         amount=Money(value=Decimal(value), transcription=None),
-        vat=Vat(amount=None, rate=Decimal(rate)),
+        vat=Vat(
+            amount=(
+                Money(value=Decimal(vat_amount), transcription=None)
+                if vat_amount is not None
+                else None
+            ),
+            rate=Decimal(rate) if rate is not None else None,
+        ),
         include_vat=include_vat,
     )
     return TotalAmountField(
@@ -459,7 +468,42 @@ async def test_check_price_validation_succeeds_when_positions_match_net_total() 
                 sources=[Source(document_id=document.id)],
             ),
             _make_vat_total_amount_field(
-                "120.00", rate="20.00", include_vat=True, document=document
+                "120.00",
+                rate="20.00",
+                include_vat=VatInclusion.INCLUDED,
+                document=document,
+            ),
+        ],
+    )
+
+    errors = await _run_price_check(fields)
+
+    assert errors == []
+
+
+async def test_check_price_validation_uses_vat_amount_when_rate_is_missing() -> None:
+    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            SpecPositionsField(
+                value=Specification(
+                    [
+                        SpecPosition(
+                            name="Позиция 1",
+                            quantity=Decimal("1.0"),
+                            unit_price=Decimal("100.00"),
+                            total_price=Decimal("100.00"),
+                            unit_of_measurement="шт",
+                        ),
+                    ]
+                ),
+                sources=[Source(document_id=document.id)],
+            ),
+            _make_vat_total_amount_field(
+                "120.00",
+                vat_amount="20.00",
+                include_vat=VatInclusion.INCLUDED,
+                document=document,
             ),
         ],
     )
@@ -490,7 +534,10 @@ async def test_check_price_validation_succeeds_when_positions_match_gross_total(
                 sources=[Source(document_id=document.id)],
             ),
             _make_vat_total_amount_field(
-                "100.00", rate="20.00", include_vat=False, document=document
+                "100.00",
+                rate="20.00",
+                include_vat=VatInclusion.EXCLUDED,
+                document=document,
             ),
         ],
     )

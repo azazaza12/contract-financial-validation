@@ -357,7 +357,13 @@ async def test_payment_percent_sum_fails_without_total_when_not_100() -> None:
     )
 
 
-def _vat_payment(value: str, *, rate: str, include_vat: bool) -> Payment:
+def _vat_payment(
+    value: str,
+    *,
+    rate: str | None = None,
+    vat_amount: str | None = None,
+    include_vat: bool,
+) -> Payment:
     return Payment(
         amount=Money(value=Decimal(value), transcription=None),
         vat=Vat(amount=None, rate=Decimal(rate)),
