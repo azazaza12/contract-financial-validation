@@ -1,5 +1,7 @@
 from .base import BaseContractError
 from .checks import (
+    AdvanceAmountDiscrepancyError,
+    AdvanceVatAmountDiscrepancyError,
     AmountDiscrepancyError,
     AmountNotFoundError,
     AmountNotPositiveError,
@@ -10,6 +12,10 @@ from .checks import (
     PaymentVatRateNotFoundError,
     PaymentVatRatesDifferError,
     PositionCostDiscrepancyError,
+    PositionsAmountDiscrepancyError,
+    PositionsComplianceError,
+    TaxesAmountDiscrepancyError,
+    TaxesVatAmountDiscrepancyError,
     VatAmountCalculationDiscrepancyError,
     VatAmountDiscrepancyError,
     VatAmountNotPositiveError,
@@ -19,6 +25,8 @@ from .merge import BaseMergeError, ValueNotDefinedError, ValuesDiscrepancyError
 
 
 __all__ = [
+    "AdvanceAmountDiscrepancyError",
+    "AdvanceVatAmountDiscrepancyError",
     "AmountDiscrepancyError",
     "AmountNotFoundError",
     "AmountNotPositiveError",
@@ -31,6 +39,10 @@ __all__ = [
     "PaymentVatRateNotFoundError",
     "PaymentVatRatesDifferError",
     "PositionCostDiscrepancyError",
+    "PositionsAmountDiscrepancyError",
+    "PositionsComplianceError",
+    "TaxesAmountDiscrepancyError",
+    "TaxesVatAmountDiscrepancyError",
     "ValueNotDefinedError",
     "ValuesDiscrepancyError",
     "VatAmountCalculationDiscrepancyError",
