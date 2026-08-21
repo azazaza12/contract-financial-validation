@@ -8,9 +8,11 @@ from app.domain.checks.check_number_transcription_rub import CheckNumberTranscri
 from app.domain.checks.errors import InsufficientCheckDataError
 from app.domain.entities import (
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
-    Amount,
+    Money,
     Payment,
+    PaymentList,
     Source,
     TotalAmount,
     TotalAmountField,
@@ -27,11 +29,11 @@ def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmou
     return TotalAmountField(
         value=TotalAmount(
             total=Payment(
-                amount=Amount(value=Decimal(value), transcription=transcription),
+                amount=Money(value=Decimal(value), transcription=transcription),
                 vat=Vat(amount=None, rate=None),
                 include_vat=False,
             ),
-            taxes=[],
+            taxes=PaymentList([]),
         ),
         sources=[Source(document_id=document.id)],
     )
@@ -78,16 +80,16 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
         TotalAmountField(
             value=TotalAmount(
                 total=Payment(
-                    amount=Amount(value=Decimal("100.00"), transcription="Сто один"),
+                    amount=Money(value=Decimal("100.00"), transcription="Сто один"),
                     vat=Vat(
-                        amount=Amount(
+                        amount=Money(
                             value=Decimal("20.00"), transcription="Двадцать один"
                         ),
                         rate=Decimal("20.00"),
                     ),
                     include_vat=True,
                 ),
-                taxes=[],
+                taxes=PaymentList([]),
             ),
             sources=[Source(document_id=uuid4())],
         )
@@ -125,14 +127,14 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
     total_amount_field = TotalAmountField(
         value=TotalAmount(
             total=Payment(
-                amount=Amount(
+                amount=Money(
                     value=Decimal("1217291.25"),
                     transcription=(
                         "Один миллион двести семнадцать тысяч двести девяносто один"
                     ),
                 ),
                 vat=Vat(
-                    amount=Amount(
+                    amount=Money(
                         value=Decimal("200748.43"),
                         transcription="Двести тысяч семьсот сорок восемь",
                     ),
@@ -140,16 +142,16 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
                 ),
                 include_vat=True,
             ),
-            taxes=[],
+            taxes=PaymentList([]),
         ),
         sources=[Source(document_id=document.id)],
     )
     advance_payments_field = AdvancePaymentsField(
-        value=[
-            AdvancePayment(
-                percent=Decimal("97.69"),
-                total=Payment(
-                    amount=Amount(
+        value=AdvancePaymentList(
+            [
+                AdvancePayment(
+                    percent=Decimal("97.69"),
+                    amount=Money(
                         value=Decimal("1189129.80"),
                         transcription=(
                             "Один миллион сто восемьдесят девять тысяч "
@@ -157,7 +159,7 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
                         ),
                     ),
                     vat=Vat(
-                        amount=Amount(
+                        amount=Money(
                             value=Decimal("198188.30"),
                             transcription=(
                                 "Сто девяносто восемь тысяч сто восемьдесят восемь"
@@ -167,17 +169,14 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
                     ),
                     include_vat=True,
                 ),
-                payments=[],
-            ),
-            AdvancePayment(
-                percent=Decimal("2.31"),
-                total=Payment(
-                    amount=Amount(
+                AdvancePayment(
+                    percent=Decimal("2.31"),
+                    amount=Money(
                         value=Decimal("28161.45"),
                         transcription="Двадцать восемь тысяч сто шестьдесят один",
                     ),
                     vat=Vat(
-                        amount=Amount(
+                        amount=Money(
                             value=Decimal("2560.13"),
                             transcription="Две тысячи пятьсот шестьдесят",
                         ),
@@ -185,9 +184,8 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
                     ),
                     include_vat=True,
                 ),
-                payments=[],
-            ),
-        ],
+            ]
+        ),
         sources=[Source(document_id=document.id)],
     )
 
@@ -230,11 +228,11 @@ async def test_check_14_skips_when_no_amount_transcription_pairs() -> None:
         TotalAmountField(
             value=TotalAmount(
                 total=Payment(
-                    amount=Amount(value=None, transcription="Сто"),
+                    amount=Money(value=None, transcription="Сто"),
                     vat=Vat(amount=None, rate=None),
                     include_vat=False,
                 ),
-                taxes=[],
+                taxes=PaymentList([]),
             ),
             sources=[Source(document_id=document.id)],
         )
