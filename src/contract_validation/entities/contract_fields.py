@@ -431,6 +431,7 @@ class Payment:
             )
         return errors
 
+
     def should_merge_economically(
         self, others: Sequence[Payment], *, tolerance: Decimal
     ) -> bool:
@@ -593,6 +594,17 @@ class BaseTotalAmountField(BaseField[TotalAmount]):
 
     def has_data(self) -> bool:
         return self.value.has_data()
+
+    def validate_positivity(self) -> list[BaseCheckError]:
+        return self.value.validate_positivity()
+
+    def numeric_moneys(self) -> list[Money]:
+        return self.value.numeric_moneys()
+
+
+EMPTY_PAYMENT = Payment(
+    amount=None, vat=Vat(amount=None, rate=None), include_vat=VatInclusion.UNSPECIFIED
+)
 
 
 @dataclass(kw_only=True, frozen=True)
