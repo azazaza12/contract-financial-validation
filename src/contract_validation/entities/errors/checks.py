@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import cast
@@ -160,6 +161,37 @@ class AmountDiscrepancyError(BaseCheckError):
             and self.value == other.value
             and self.difference == other.difference
         )
+
+
+@dataclass
+class BoundAmountError(BaseCheckError, ABC):
+    value: Decimal
+    bound_value: Decimal
+    violation_value: Decimal
+
+    def _compare_bound_amount_error(self, error: BaseContractError) -> bool:
+        other = cast("BoundAmountError", error)
+        return (
+            self.source == other.source
+            and self.value == other.value
+            and self.bound_value == other.bound_value
+            and self.violation_value == other.violation_value
+        )
+
+    @abstractmethod
+    def _compare_same_type(self, error: BaseContractError) -> bool: ...
+
+
+@dataclass
+class UpperBoundAmountError(BoundAmountError):
+    def _compare_same_type(self, error: BaseContractError) -> bool:
+        return self._compare_bound_amount_error(error)
+
+
+@dataclass
+class UpperBoundVatAmountError(BoundAmountError):
+    def _compare_same_type(self, error: BaseContractError) -> bool:
+        return self._compare_bound_amount_error(error)
 
 
 @dataclass

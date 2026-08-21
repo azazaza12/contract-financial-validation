@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
@@ -15,6 +16,8 @@ from .errors.checks import (
     PaymentAmountPercentDiscrepancyError,
     PaymentVatRatesDifferError,
     PositionCostDiscrepancyError,
+    UpperBoundAmountError,
+    UpperBoundVatAmountError,
     VatAmountCalculationDiscrepancyError,
     VatAmountDiscrepancyError,
     VatAmountNotPositiveError,
@@ -121,6 +124,21 @@ class NormalizedAmounts:
     @property
     def difference(self) -> Decimal:
         return self.left - self.right
+
+
+class AmountRelation(StrEnum):
+    EXACT = "exact"
+    AT_MOST = "at_most"
+
+    def is_satisfied(
+        self, actual_value: Decimal, reference_value: Decimal, tolerance: Decimal
+    ) -> bool:
+        difference = actual_value - reference_value
+        match self:
+            case AmountRelation.EXACT:
+                return abs(difference) <= tolerance
+            case AmountRelation.AT_MOST:
+                return difference <= tolerance
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -337,37 +355,80 @@ class Payment:
             include_vat=normalized.inclusion,
         )
 
+    def _make_amount_error(
+        self, relation: AmountRelation, value: Decimal, reference_value: Decimal
+    ) -> AmountDiscrepancyError | UpperBoundAmountError:
+        match relation:
+            case AmountRelation.EXACT:
+                return AmountDiscrepancyError(
+                    reference_value=reference_value,
+                    value=value,
+                    difference=abs(value - reference_value),
+                )
+            case AmountRelation.AT_MOST:
+                return UpperBoundAmountError(
+                    value=value,
+                    bound_value=reference_value,
+                    violation_value=value - reference_value,
+                )
+
+    def _make_vat_amount_error(
+        self, relation: AmountRelation, value: Decimal, reference_value: Decimal
+    ) -> VatAmountDiscrepancyError | UpperBoundVatAmountError:
+        match relation:
+            case AmountRelation.EXACT:
+                return VatAmountDiscrepancyError(
+                    reference_value=reference_value,
+                    value=value,
+                    difference=abs(value - reference_value),
+                )
+            case AmountRelation.AT_MOST:
+                return UpperBoundVatAmountError(
+                    value=value,
+                    bound_value=reference_value,
+                    violation_value=value - reference_value,
+                )
+
     def compare(
         self,
         reference: Payment,
         *,
         tolerance: Decimal,
+        relation: AmountRelation,
         inclusion: VatInclusion | None = None,
     ) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
         normalized = self.normalized_amounts(reference, inclusion=inclusion)
         value_vat_amount = self.vat.amount_value
         reference_vat_amount = reference.vat.amount_value
-        if normalized is not None:
-            amount_difference = abs(normalized.difference)
-            if amount_difference > tolerance:
-                errors.append(
-                    AmountDiscrepancyError(
-                        value=normalized.left,
-                        reference_value=normalized.right,
-                        difference=amount_difference,
-                    )
+        if normalized is not None and not relation.is_satisfied(
+            actual_value=normalized.left,
+            reference_value=normalized.right,
+            tolerance=tolerance,
+        ):
+            errors.append(
+                self._make_amount_error(
+                    relation=relation,
+                    value=normalized.left,
+                    reference_value=normalized.right,
                 )
-        if value_vat_amount is not None and reference_vat_amount is not None:
-            vat_amount_difference = abs(reference_vat_amount - value_vat_amount)
-            if vat_amount_difference > tolerance:
-                errors.append(
-                    VatAmountDiscrepancyError(
-                        value=value_vat_amount,
-                        reference_value=reference_vat_amount,
-                        difference=vat_amount_difference,
-                    )
+            )
+        if (
+            value_vat_amount is not None
+            and reference_vat_amount is not None
+            and not relation.is_satisfied(
+                actual_value=value_vat_amount,
+                reference_value=reference_vat_amount,
+                tolerance=tolerance,
+            )
+        ):
+            errors.append(
+                self._make_vat_amount_error(
+                    relation=relation,
+                    value=value_vat_amount,
+                    reference_value=reference_vat_amount,
                 )
+            )
         return errors
 
     def should_merge_economically(
@@ -486,7 +547,12 @@ class PaymentList:
         summed = self._summed_in(inclusion)
         if summed is None:
             return []
-        return summed.compare(reference, tolerance=tolerance, inclusion=inclusion)
+        return summed.compare(
+            reference,
+            tolerance=tolerance,
+            inclusion=inclusion,
+            relation=AmountRelation.EXACT,
+        )
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -522,7 +588,15 @@ class TotalAmount:
 
 
 @dataclass(kw_only=True, frozen=True)
-class TotalAmountField(BaseField[TotalAmount]):
+class BaseTotalAmountField(BaseField[TotalAmount]):
+    merge_registry = STRICT_REGISTRY
+
+    def has_data(self) -> bool:
+        return self.value.has_data()
+
+
+@dataclass(kw_only=True, frozen=True)
+class TotalAmountField(BaseTotalAmountField):
     merge_registry = STRICT_REGISTRY
 
     def has_data(self) -> bool:
@@ -538,6 +612,25 @@ class TotalAmountField(BaseField[TotalAmount]):
 EMPTY_PAYMENT = Payment(
     amount=None, vat=Vat(amount=None, rate=None), include_vat=VatInclusion.UNSPECIFIED
 )
+
+
+@dataclass(kw_only=True, frozen=True)
+class TotalAmountBoundField(BaseTotalAmountField, ABC):
+    merge_registry = STRICT_REGISTRY
+
+    @abstractmethod
+    def compare(self, actual: Payment, tolerance: Decimal) -> list[BaseCheckError]:
+        pass
+
+
+@dataclass(kw_only=True, frozen=True)
+class TotalAmountUpperBoundField(TotalAmountBoundField):
+    def compare(self, actual: Payment, tolerance: Decimal) -> list[BaseCheckError]:
+        return actual.compare(
+            reference=self.value.total,
+            relation=AmountRelation.AT_MOST,
+            tolerance=tolerance,
+        )
 
 
 @dataclass(kw_only=True, frozen=True)

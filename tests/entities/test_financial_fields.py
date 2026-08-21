@@ -5,6 +5,7 @@ from app.domain.entities import (
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
+    AmountRelation,
     Money,
     Payment,
     PaymentList,
@@ -609,7 +610,9 @@ def test_payment_compare_returns_no_errors_when_values_match():
     value = make_payment(amount="100.00", vat_amount="20.00")
     reference = make_payment(amount="100.00", vat_amount="20.00")
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    errors = value.compare(
+        reference=reference, tolerance=Decimal("1.00"), relation=AmountRelation.EXACT
+    )
 
     assert errors == []
 
@@ -618,7 +621,9 @@ def test_payment_compare_returns_amount_discrepancy():
     value = make_payment(amount="120.00")
     reference = make_payment(amount="100.00")
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    errors = value.compare(
+        reference=reference, tolerance=Decimal("1.00"), relation=AmountRelation.EXACT
+    )
 
     assert errors == [
         AmountDiscrepancyError(
@@ -633,7 +638,9 @@ def test_payment_compare_returns_positive_difference_when_value_is_smaller():
     value = make_payment(amount="100.00")
     reference = make_payment(amount="120.00")
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    errors = value.compare(
+        reference=reference, tolerance=Decimal("1.00"), relation=AmountRelation.EXACT
+    )
 
     assert errors == [
         AmountDiscrepancyError(
@@ -656,7 +663,9 @@ def test_payment_compare_uses_normalized_amounts_in_error():
         include_vat=VatInclusion.INCLUDED,
     )
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    errors = value.compare(
+        reference=reference, tolerance=Decimal("1.00"), relation=AmountRelation.EXACT
+    )
 
     assert errors == [
         AmountDiscrepancyError(
@@ -679,7 +688,9 @@ def test_payment_compare_falls_back_to_raw_amounts_without_common_basis():
         include_vat=VatInclusion.EXCLUDED,
     )
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    errors = value.compare(
+        reference=reference, tolerance=Decimal("1.00"), relation=AmountRelation.EXACT
+    )
 
     assert errors == [
         AmountDiscrepancyError(
@@ -699,7 +710,9 @@ def test_payment_compare_checks_vat_when_amounts_are_missing():
     value = make_payment(amount=None, vat_amount="10.00")
     reference = make_payment(amount=None, vat_amount="20.00")
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    errors = value.compare(
+        reference=reference, tolerance=Decimal("1.00"), relation=AmountRelation.EXACT
+    )
 
     assert errors == [
         VatAmountDiscrepancyError(
@@ -714,7 +727,9 @@ def test_payment_compare_checks_amount_when_vat_amounts_are_missing():
     value = make_payment(amount="120.00", vat_amount=None)
     reference = make_payment(amount="100.00", vat_amount=None)
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    errors = value.compare(
+        reference=reference, tolerance=Decimal("1.00"), relation=AmountRelation.EXACT
+    )
 
     assert errors == [
         AmountDiscrepancyError(
@@ -729,7 +744,9 @@ def test_payment_compare_allows_difference_equal_to_tolerance():
     value = make_payment(amount="101.00", vat_amount="21.00")
     reference = make_payment(amount="100.00", vat_amount="20.00")
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    errors = value.compare(
+        reference=reference, tolerance=Decimal("1.00"), relation=AmountRelation.EXACT
+    )
 
     assert errors == []
 
