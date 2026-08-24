@@ -599,11 +599,6 @@ class BaseTotalAmountField(BaseField[TotalAmount]):
         return self.value.numeric_moneys()
 
 
-EMPTY_PAYMENT = Payment(
-    amount=None, vat=Vat(amount=None, rate=None), include_vat=VatInclusion.UNSPECIFIED
-)
-
-
 @dataclass(kw_only=True, frozen=True)
 class TotalAmountField(BaseTotalAmountField):
     merge_registry = STRICT_REGISTRY
