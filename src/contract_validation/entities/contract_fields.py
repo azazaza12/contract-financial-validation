@@ -140,6 +140,40 @@ class AmountRelation(StrEnum):
             case AmountRelation.AT_MOST:
                 return difference <= tolerance
 
+    def make_amount_error(
+        self, value: Decimal, reference_value: Decimal
+    ) -> AmountDiscrepancyError | UpperBoundAmountError:
+        match self:
+            case AmountRelation.EXACT:
+                return AmountDiscrepancyError(
+                    reference_value=reference_value,
+                    value=value,
+                    difference=abs(value - reference_value),
+                )
+            case AmountRelation.AT_MOST:
+                return UpperBoundAmountError(
+                    value=value,
+                    bound_value=reference_value,
+                    violation_value=value - reference_value,
+                )
+
+    def make_vat_amount_error(
+        self, value: Decimal, reference_value: Decimal
+    ) -> VatAmountDiscrepancyError | UpperBoundVatAmountError:
+        match self:
+            case AmountRelation.EXACT:
+                return VatAmountDiscrepancyError(
+                    reference_value=reference_value,
+                    value=value,
+                    difference=abs(value - reference_value),
+                )
+            case AmountRelation.AT_MOST:
+                return UpperBoundVatAmountError(
+                    value=value,
+                    bound_value=reference_value,
+                    violation_value=value - reference_value,
+                )
+
 
 @dataclass(kw_only=True, frozen=True)
 class Payment:
@@ -355,40 +389,6 @@ class Payment:
             include_vat=normalized.inclusion,
         )
 
-    def _make_amount_error(
-        self, relation: AmountRelation, value: Decimal, reference_value: Decimal
-    ) -> AmountDiscrepancyError | UpperBoundAmountError:
-        match relation:
-            case AmountRelation.EXACT:
-                return AmountDiscrepancyError(
-                    reference_value=reference_value,
-                    value=value,
-                    difference=abs(value - reference_value),
-                )
-            case AmountRelation.AT_MOST:
-                return UpperBoundAmountError(
-                    value=value,
-                    bound_value=reference_value,
-                    violation_value=value - reference_value,
-                )
-
-    def _make_vat_amount_error(
-        self, relation: AmountRelation, value: Decimal, reference_value: Decimal
-    ) -> VatAmountDiscrepancyError | UpperBoundVatAmountError:
-        match relation:
-            case AmountRelation.EXACT:
-                return VatAmountDiscrepancyError(
-                    reference_value=reference_value,
-                    value=value,
-                    difference=abs(value - reference_value),
-                )
-            case AmountRelation.AT_MOST:
-                return UpperBoundVatAmountError(
-                    value=value,
-                    bound_value=reference_value,
-                    violation_value=value - reference_value,
-                )
-
     def compare(
         self,
         reference: Payment,
@@ -407,8 +407,7 @@ class Payment:
             tolerance=tolerance,
         ):
             errors.append(
-                self._make_amount_error(
-                    relation=relation,
+                relation.make_amount_error(
                     value=normalized.left,
                     reference_value=normalized.right,
                 )
@@ -423,14 +422,12 @@ class Payment:
             )
         ):
             errors.append(
-                self._make_vat_amount_error(
-                    relation=relation,
+                relation.make_vat_amount_error(
                     value=value_vat_amount,
                     reference_value=reference_vat_amount,
                 )
             )
         return errors
-
 
     def should_merge_economically(
         self, others: Sequence[Payment], *, tolerance: Decimal
