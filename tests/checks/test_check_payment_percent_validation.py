@@ -7,15 +7,18 @@ from app.domain.checks.check_payment_percent_validation import (
 )
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
+    EMPTY_PAYMENT,
     AdvancePayment,
+    AdvancePaymentList,
     AdvancePaymentsField,
-    Amount,
     FieldCollector,
+    Money,
     Payment,
     Source,
     TotalAmount,
     TotalAmountField,
     Vat,
+    VatInclusion,
 )
 from app.domain.entities.errors import (
     PaymentAmountPercentDiscrepancyError,
@@ -29,11 +32,21 @@ from tests.domain.pipeline.conftest import DummyContract, create_context
 
 
 def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:
-    amount = Amount(value=Decimal(value), transcription=None)
+    amount = Money(value=Decimal(value), transcription=None)
     return Payment(
         amount=amount,
         vat=Vat(amount=amount, rate=Decimal(vat_rate)),
-        include_vat=True,
+        include_vat=VatInclusion.INCLUDED,
+    )
+
+
+def _advance(*, percent: Decimal | None, total: Payment | None) -> AdvancePayment:
+    base = total if total is not None else EMPTY_PAYMENT
+    return AdvancePayment(
+        percent=percent,
+        amount=base.amount,
+        vat=base.vat,
+        include_vat=base.include_vat,
     )
 
 
@@ -43,7 +56,7 @@ def _make_advance(
     payment_value: str | None,
 ) -> AdvancePayment:
     total = _make_payment(payment_value) if payment_value is not None else None
-    return AdvancePayment(percent=percent, total=total, payments=[])
+    return _advance(percent=percent, total=total)
 
 
 async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]):
@@ -54,7 +67,7 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
         total_payment = Payment(
             amount=None,
             vat=Vat(amount=None, rate=Decimal("20.00")),
-            include_vat=True,
+            include_vat=VatInclusion.INCLUDED,
         )
     total_amount_field = TotalAmountField(
         value=TotalAmount(
@@ -64,7 +77,7 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
         sources=[Source(document_id=document.id)],
     )
     advance_payments_field = AdvancePaymentsField(
-        value=advances,
+        value=AdvancePaymentList(advances),
         sources=[Source(document_id=document.id)],
     )
     contract = DummyContract(
@@ -224,7 +237,7 @@ async def test_payment_percent_skips_when_advance_list_is_empty() -> None:
                     sources=[Source(document_id=document.id)],
                 ),
                 AdvancePaymentsField(
-                    value=[],
+                    value=AdvancePaymentList([]),
                     sources=[Source(document_id=document.id)],
                 ),
             ],
@@ -262,10 +275,12 @@ async def test_payment_percent_skips_when_no_advance_has_percent() -> None:
                     sources=[Source(document_id=document.id)],
                 ),
                 AdvancePaymentsField(
-                    value=[
-                        _make_advance(percent=None, payment_value="50.00"),
-                        _make_advance(percent=None, payment_value="50.00"),
-                    ],
+                    value=AdvancePaymentList(
+                        [
+                            _make_advance(percent=None, payment_value="50.00"),
+                            _make_advance(percent=None, payment_value="50.00"),
+                        ]
+                    ),
                     sources=[Source(document_id=document.id)],
                 ),
             ],
@@ -350,31 +365,25 @@ def _vat_payment(
     include_vat: bool,
 ) -> Payment:
     return Payment(
-        amount=Amount(value=Decimal(value), transcription=None),
-        vat=Vat(
-            amount=(
-                Amount(value=Decimal(vat_amount), transcription=None)
-                if vat_amount is not None
-                else None
-            ),
-            rate=Decimal(rate) if rate is not None else None,
-        ),
+        amount=Money(value=Decimal(value), transcription=None),
+        vat=Vat(amount=None, rate=Decimal(rate)),
         include_vat=include_vat,
     )
 
 
 async def test_payment_percent_falls_back_to_raw_when_advance_lacks_rate() -> None:
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    total_payment = _vat_payment("100.00", rate="20.00", include_vat=False)
+    total_payment = _vat_payment(
+        "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
+    )
     advances = [
-        AdvancePayment(
+        _advance(
             percent=Decimal("100.00"),
             total=Payment(
-                amount=Amount(value=Decimal("100.00"), transcription=None),
+                amount=Money(value=Decimal("100.00"), transcription=None),
                 vat=Vat(amount=None, rate=None),
-                include_vat=False,
+                include_vat=VatInclusion.EXCLUDED,
             ),
-            payments=[],
         ),
     ]
     fields = FieldCollector(
@@ -384,92 +393,7 @@ async def test_payment_percent_falls_back_to_raw_when_advance_lacks_rate() -> No
                 sources=[Source(document_id=document.id)],
             ),
             AdvancePaymentsField(
-                value=advances,
-                sources=[Source(document_id=document.id)],
-            ),
-        ],
-    )
-    check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
-    check.prepare(fields)
-
-    result = await check.execute()
-
-    assert result.status == CheckStatus.SUCCESS
-    assert result.errors == []
-
-
-async def test_payment_percent_uses_advance_payments_for_basis_when_total_has_no_number() -> (  # noqa: E501
-    None
-):
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    total_payment = _vat_payment("100.00", rate="20.00", include_vat=False)
-    numberless_total = Payment(
-        amount=None,
-        vat=Vat(amount=None, rate=Decimal("20.00")),
-        include_vat=False,
-    )
-    non_grossable_line = Payment(
-        amount=Amount(value=Decimal("50.00"), transcription=None),
-        vat=Vat(amount=None, rate=None),
-        include_vat=False,
-    )
-    advances = [
-        AdvancePayment(
-            percent=Decimal("100.00"),
-            total=numberless_total,
-            payments=[
-                _vat_payment("50.00", rate="20.00", include_vat=False),
-                non_grossable_line,
-            ],
-        ),
-    ]
-    fields = FieldCollector(
-        [
-            TotalAmountField(
-                value=TotalAmount(total=total_payment, taxes=[]),
-                sources=[Source(document_id=document.id)],
-            ),
-            AdvancePaymentsField(
-                value=advances,
-                sources=[Source(document_id=document.id)],
-            ),
-        ],
-    )
-    check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
-    check.prepare(fields)
-
-    result = await check.execute()
-
-    assert result.status == CheckStatus.SUCCESS
-    assert result.errors == []
-
-
-async def test_payment_percent_basis_ignores_advance_payments_when_total_has_number() -> (  # noqa: E501
-    None
-):
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    total_payment = _vat_payment("100.00", rate="20.00", include_vat=False)
-    advance_total = _vat_payment("120.00", rate="20.00", include_vat=True)
-    non_grossable_line = Payment(
-        amount=Amount(value=Decimal("77.00"), transcription=None),
-        vat=Vat(amount=None, rate=None),
-        include_vat=False,
-    )
-    advances = [
-        AdvancePayment(
-            percent=Decimal("100.00"),
-            total=advance_total,
-            payments=[non_grossable_line],
-        ),
-    ]
-    fields = FieldCollector(
-        [
-            TotalAmountField(
-                value=TotalAmount(total=total_payment, taxes=[]),
-                sources=[Source(document_id=document.id)],
-            ),
-            AdvancePaymentsField(
-                value=advances,
+                value=AdvancePaymentList(advances),
                 sources=[Source(document_id=document.id)],
             ),
         ],
@@ -487,17 +411,21 @@ async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match(
     None
 ):
     document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    total_payment = _vat_payment("100.00", rate="20.00", include_vat=False)
+    total_payment = _vat_payment(
+        "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
+    )
     advances = [
-        AdvancePayment(
+        _advance(
             percent=Decimal("50.00"),
-            total=_vat_payment("60.00", rate="20.00", include_vat=True),
-            payments=[],
+            total=_vat_payment(
+                "60.00", rate="20.00", include_vat=VatInclusion.INCLUDED
+            ),
         ),
-        AdvancePayment(
+        _advance(
             percent=Decimal("50.00"),
-            total=_vat_payment("60.00", rate="20.00", include_vat=True),
-            payments=[],
+            total=_vat_payment(
+                "60.00", rate="20.00", include_vat=VatInclusion.INCLUDED
+            ),
         ),
     ]
     fields = FieldCollector(
@@ -507,7 +435,7 @@ async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match(
                 sources=[Source(document_id=document.id)],
             ),
             AdvancePaymentsField(
-                value=advances,
+                value=AdvancePaymentList(advances),
                 sources=[Source(document_id=document.id)],
             ),
         ],
@@ -521,25 +449,29 @@ async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match(
     assert result.errors == []
 
 
-async def test_payment_percent_uses_vat_amount_when_rate_is_missing() -> None:
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    total_payment = _vat_payment("100.00", vat_amount="20.00", include_vat=False)
-    advances = [
-        AdvancePayment(
-            percent=Decimal("100.00"),
-            total=_vat_payment("120.00", vat_amount="20.00", include_vat=True),
-            payments=[],
-        )
-    ]
+async def test_payment_percent_falls_back_to_raw_amounts_without_common_basis() -> None:
+    total_payment = Payment(
+        amount=Money(value=Decimal("100.00"), transcription=None),
+        vat=Vat(amount=None, rate=None),
+        include_vat=VatInclusion.EXCLUDED,
+    )
+    advance = _advance(
+        percent=Decimal("100.00"),
+        total=Payment(
+            amount=Money(value=Decimal("120.00"), transcription=None),
+            vat=Vat(amount=None, rate=None),
+            include_vat=VatInclusion.INCLUDED,
+        ),
+    )
     fields = FieldCollector(
         [
             TotalAmountField(
                 value=TotalAmount(total=total_payment, taxes=[]),
-                sources=[Source(document_id=document.id)],
+                sources=[],
             ),
             AdvancePaymentsField(
-                value=advances,
-                sources=[Source(document_id=document.id)],
+                value=AdvancePaymentList([advance]),
+                sources=[],
             ),
         ]
     )
@@ -548,5 +480,12 @@ async def test_payment_percent_uses_vat_amount_when_rate_is_missing() -> None:
 
     result = await check.execute()
 
-    assert result.status == CheckStatus.SUCCESS
-    assert result.errors == []
+    assert result.status is CheckStatus.FAILED
+    assert result.errors == [
+        PaymentAmountPercentDiscrepancyError(
+            amount=Decimal("120.00"),
+            expected_amount=Decimal("100.00"),
+            percent=Decimal("100.00"),
+            contract_total_amount=Decimal("100.00"),
+        )
+    ]

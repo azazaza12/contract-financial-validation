@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities import Amount, Basis, Payment, Vat
+from app.domain.entities import Money, Payment, Vat, VatInclusion
 
 
 def _payment(
@@ -9,14 +9,14 @@ def _payment(
     *,
     rate: str | None = None,
     vat_amount: str | None = None,
-    include_vat: bool,
+    include_vat: VatInclusion,
 ) -> Payment:
-    amount = Amount(value=Decimal(value), transcription=None)
+    amount = Money(value=Decimal(value), transcription=None)
     return Payment(
         amount=amount,
         vat=Vat(
             amount=(
-                Amount(value=Decimal(vat_amount), transcription=None)
+                Money(value=Decimal(vat_amount), transcription=None)
                 if vat_amount is not None
                 else None
             ),
@@ -27,7 +27,7 @@ def _payment(
 
 
 def test_zero_rate_is_valid_and_computes() -> None:
-    payment = _payment("100.00", rate="0", include_vat=True)
+    payment = _payment("100.00", rate="0", include_vat=VatInclusion.INCLUDED)
 
     assert payment.expected_vat_amount == Decimal("0.00")
     assert payment.amount_excluding_vat == Decimal("100.00")
@@ -35,22 +35,22 @@ def test_zero_rate_is_valid_and_computes() -> None:
 
 
 def test_rate_minus_hundred_returns_none_instead_of_dividing_by_zero() -> None:
-    payment = _payment("120.00", rate="-100", include_vat=True)
+    payment = _payment("120.00", rate="-100", include_vat=VatInclusion.INCLUDED)
 
     assert payment.expected_vat_amount is None
     assert payment.amount_excluding_vat is None
 
 
 def test_rate_below_minus_hundred_returns_none() -> None:
-    payment = _payment("120.00", rate="-150", include_vat=True)
+    payment = _payment("120.00", rate="-150", include_vat=VatInclusion.INCLUDED)
 
     assert payment.expected_vat_amount is None
     assert payment.amount_excluding_vat is None
 
 
 def test_same_footing_rate_minus_hundred_does_not_merge_economically() -> None:
-    payment = _payment("120.00", rate="-100", include_vat=True)
-    other = _payment("120.00", rate="-100", include_vat=True)
+    payment = _payment("120.00", rate="-100", include_vat=VatInclusion.INCLUDED)
+    other = _payment("120.00", rate="-100", include_vat=VatInclusion.INCLUDED)
 
     assert (
         payment.should_merge_economically([other], tolerance=AMOUNT_TOLERANCE) is False
@@ -58,51 +58,35 @@ def test_same_footing_rate_minus_hundred_does_not_merge_economically() -> None:
 
 
 def test_stated_net_keeps_amount_excluding_and_adds_vat_for_including() -> None:
-    payment = _payment("100.00", rate="20", include_vat=False)
+    payment = _payment("100.00", rate="20", include_vat=VatInclusion.EXCLUDED)
 
     assert payment.amount_excluding_vat == Decimal("100.00")
     assert payment.amount_including_vat == Decimal("120.00")
 
 
 def test_stated_gross_keeps_amount_including_and_strips_vat_for_excluding() -> None:
-    payment = _payment("120.00", rate="20", include_vat=True)
+    payment = _payment("120.00", rate="20", include_vat=VatInclusion.INCLUDED)
 
     assert payment.amount_including_vat == Decimal("120.00")
     assert payment.amount_excluding_vat == Decimal("100.00")
 
 
 def test_stated_gross_uses_vat_amount_when_rate_is_missing() -> None:
-    payment = _payment("120.00", vat_amount="20.00", include_vat=True)
+    payment = _payment("120.00", vat_amount="20.00", include_vat=VatInclusion.INCLUDED)
 
     assert payment.amount_including_vat == Decimal("120.00")
     assert payment.amount_excluding_vat == Decimal("100.00")
 
 
 def test_stated_net_uses_vat_amount_when_rate_is_missing() -> None:
-    payment = _payment("100.00", vat_amount="20.00", include_vat=False)
+    payment = _payment("100.00", vat_amount="20.00", include_vat=VatInclusion.EXCLUDED)
 
     assert payment.amount_excluding_vat == Decimal("100.00")
     assert payment.amount_including_vat == Decimal("120.00")
 
 
 def test_vat_amount_without_rate_allows_economic_comparison() -> None:
-    gross = _payment("120.00", vat_amount="20.00", include_vat=True)
-    net = _payment("100.00", vat_amount="20.00", include_vat=False)
+    gross = _payment("120.00", vat_amount="20.00", include_vat=VatInclusion.INCLUDED)
+    net = _payment("100.00", vat_amount="20.00", include_vat=VatInclusion.EXCLUDED)
 
     assert gross.should_merge_economically([net], tolerance=AMOUNT_TOLERANCE)
-
-
-def test_amount_in_basis_covers_all_three_bases_for_net_payment() -> None:
-    payment = _payment("100.00", rate="20", include_vat=False)
-
-    assert payment.amount_in_basis(Basis.INCLUDING_VAT) == Decimal("120.00")
-    assert payment.amount_in_basis(Basis.EXCLUDING_VAT) == Decimal("100.00")
-    assert payment.amount_in_basis(Basis.RAW) == Decimal("100.00")
-
-
-def test_amount_in_basis_covers_all_three_bases_for_gross_payment() -> None:
-    payment = _payment("120.00", rate="20", include_vat=True)
-
-    assert payment.amount_in_basis(Basis.INCLUDING_VAT) == Decimal("120.00")
-    assert payment.amount_in_basis(Basis.EXCLUDING_VAT) == Decimal("100.00")
-    assert payment.amount_in_basis(Basis.RAW) == Decimal("120.00")
