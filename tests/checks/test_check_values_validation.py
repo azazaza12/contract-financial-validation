@@ -19,6 +19,7 @@ from app.domain.entities import (
     VatInclusion,
 )
 from app.domain.entities.errors.checks import (
+    AmountNotFoundError,
     AmountNotPositiveError,
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
@@ -53,14 +54,33 @@ def _make_payment(
     )
 
 
-async def test_values_validation_succeeds_without_optional_fields() -> None:
+async def test_values_validation_reports_missing_total_amount_field() -> None:
     check = CheckValuesValidation()
     check.prepare([])
 
     result = await check.execute()
 
-    assert result.status is CheckStatus.SUCCESS
-    assert result.errors == []
+    assert result.status is CheckStatus.FAILED
+    assert result.errors == [AmountNotFoundError()]
+
+
+async def test_values_validation_reports_missing_total_amount_when_only_vat_known() -> (
+    None
+):
+    total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=_make_payment(vat_amount="100", vat_rate="20"),
+            taxes=PaymentList([]),
+        ),
+        sources=[],
+    )
+    check = CheckValuesValidation()
+    check.prepare([total_amount_field])
+
+    result = await check.execute()
+
+    assert result.status is CheckStatus.FAILED
+    assert result.errors == [AmountNotFoundError()]
 
 
 async def test_values_validation_rejects_zero_amounts() -> None:
@@ -101,7 +121,7 @@ async def test_values_validation_rejects_zero_amounts() -> None:
 async def test_values_validation_allows_zero_vat_amount() -> None:
     total_amount_field = TotalAmountField(
         value=TotalAmount(
-            total=_make_payment(vat_amount="0"),
+            total=_make_payment(amount="1", vat_amount="0"),
             taxes=PaymentList([]),
         ),
         sources=[],
