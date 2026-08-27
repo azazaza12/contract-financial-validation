@@ -4,8 +4,7 @@ from decimal import Decimal
 from typing import cast
 from warnings import deprecated
 
-from app.domain.entities.amount_comparison import AmountOperand
-from app.domain.entities.vat_inclusion import VatInclusion
+from app.domain.entities.amount_comparison import NormalizedAmountContext
 
 from .base import BaseContractError
 
@@ -196,28 +195,24 @@ class PositionsAmountDiscrepancyError(BaseAmountDiscrepancyError):
 
 @dataclass
 class BaseNormalizedAmountDiscrepancyError(BaseAmountDiscrepancyError):
-    target_inclusion: VatInclusion
-    operands: tuple[AmountOperand, ...]
-    reference_operand: AmountOperand
+    normalized_context: NormalizedAmountContext
 
     def _compare_same_type(self, error: BaseContractError) -> bool:
         other = cast("BaseNormalizedAmountDiscrepancyError", error)
         return (
             super()._compare_same_type(error)
-            and self.target_inclusion == other.target_inclusion
-            and self.operands == other.operands
-            and self.reference_operand == other.reference_operand
+            and self.normalized_context == other.normalized_context
         )
 
 
 @dataclass
-class BoundAmountError(BaseCheckError, ABC):
+class BaseBoundAmountError(BaseCheckError, ABC):
     value: Decimal
     bound_value: Decimal
     violation_value: Decimal
 
     def _compare_bound_amount_error(self, error: BaseContractError) -> bool:
-        other = cast("BoundAmountError", error)
+        other = cast("BaseBoundAmountError", error)
         return (
             self.source == other.source
             and self.value == other.value
@@ -230,23 +225,19 @@ class BoundAmountError(BaseCheckError, ABC):
 
 
 @dataclass
-class UpperBoundAmountError(BoundAmountError):
-    target_inclusion: VatInclusion
-    operands: tuple[AmountOperand, ...]
-    reference_operand: AmountOperand
+class UpperBoundAmountError(BaseBoundAmountError):
+    normalized_context: NormalizedAmountContext
 
     def _compare_same_type(self, error: BaseContractError) -> bool:
         other = cast("UpperBoundAmountError", error)
         return (
             self._compare_bound_amount_error(error)
-            and self.target_inclusion == other.target_inclusion
-            and self.operands == other.operands
-            and self.reference_operand == other.reference_operand
+            and self.normalized_context == other.normalized_context
         )
 
 
 @dataclass
-class UpperBoundVatAmountError(BoundAmountError):
+class UpperBoundVatAmountError(BaseBoundAmountError):
     def _compare_same_type(self, error: BaseContractError) -> bool:
         return self._compare_bound_amount_error(error)
 

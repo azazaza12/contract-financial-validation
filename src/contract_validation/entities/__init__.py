@@ -3,6 +3,7 @@ from .amount_comparison import (
     AmountOperand,
     ComparisonResult,
     ComparisonStatus,
+    NormalizedAmountContext,
     NormalizedAmountDiscrepancy,
     PaymentComparison,
 )
@@ -48,6 +49,7 @@ __all__ = [
     "DocumentObjectField",
     "FieldCollector",
     "Money",
+    "NormalizedAmountContext",
     "NormalizedAmountDiscrepancy",
     "Payment",
     "PaymentComparison",
