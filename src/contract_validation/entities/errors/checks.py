@@ -4,7 +4,8 @@ from decimal import Decimal
 from typing import cast
 from warnings import deprecated
 
-from app.domain.entities.amount_comparison import NormalizedAmountContext
+from app.domain.entities.amount_comparison import AmountOperand
+from app.domain.entities.vat_inclusion import VatInclusion
 
 from .base import BaseContractError
 
@@ -195,13 +196,17 @@ class PositionsAmountDiscrepancyError(BaseAmountDiscrepancyError):
 
 @dataclass
 class BaseNormalizedAmountDiscrepancyError(BaseAmountDiscrepancyError):
-    normalized_context: NormalizedAmountContext
+    target_inclusion: VatInclusion
+    operands: tuple[AmountOperand, ...]
+    reference_operand: AmountOperand
 
     def _compare_same_type(self, error: BaseContractError) -> bool:
         other = cast("BaseNormalizedAmountDiscrepancyError", error)
         return (
             super()._compare_same_type(error)
-            and self.normalized_context == other.normalized_context
+            and self.target_inclusion == other.target_inclusion
+            and self.operands == other.operands
+            and self.reference_operand == other.reference_operand
         )
 
 
@@ -226,13 +231,17 @@ class BaseBoundAmountError(BaseCheckError, ABC):
 
 @dataclass
 class UpperBoundAmountError(BaseBoundAmountError):
-    normalized_context: NormalizedAmountContext
+    target_inclusion: VatInclusion
+    operands: tuple[AmountOperand, ...]
+    reference_operand: AmountOperand
 
     def _compare_same_type(self, error: BaseContractError) -> bool:
         other = cast("UpperBoundAmountError", error)
         return (
             self._compare_bound_amount_error(error)
-            and self.normalized_context == other.normalized_context
+            and self.target_inclusion == other.target_inclusion
+            and self.operands == other.operands
+            and self.reference_operand == other.reference_operand
         )
 
 

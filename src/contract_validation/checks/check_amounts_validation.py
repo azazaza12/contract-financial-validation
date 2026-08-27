@@ -43,7 +43,9 @@ def _comparison_errors(
                 value=amount_discrepancy.value,
                 reference_value=amount_discrepancy.reference_value,
                 difference=amount_discrepancy.difference,
-                normalized_context=amount_discrepancy.normalized_context,
+                target_inclusion=amount_discrepancy.target_inclusion,
+                operands=amount_discrepancy.operands,
+                reference_operand=amount_discrepancy.reference_operand,
             )
         )
     if comparison.vat_amount.status is ComparisonStatus.NOT_OK:

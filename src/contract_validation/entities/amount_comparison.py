@@ -32,13 +32,6 @@ class AmountOperand:
 
 
 @dataclass(frozen=True, kw_only=True)
-class NormalizedAmountContext:
-    target_inclusion: VatInclusion
-    operands: tuple[AmountOperand, ...]
-    reference_operand: AmountOperand
-
-
-@dataclass(frozen=True, kw_only=True)
 class AmountDiscrepancy:
     value: Decimal
     reference_value: Decimal
@@ -47,7 +40,9 @@ class AmountDiscrepancy:
 
 @dataclass(frozen=True, kw_only=True)
 class NormalizedAmountDiscrepancy(AmountDiscrepancy):
-    normalized_context: NormalizedAmountContext
+    target_inclusion: VatInclusion
+    operands: tuple[AmountOperand, ...]
+    reference_operand: AmountOperand
 
 
 @dataclass(frozen=True, kw_only=True)

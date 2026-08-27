@@ -12,7 +12,6 @@ from app.domain.entities import (
     AdvancePaymentsField,
     AmountOperand,
     Money,
-    NormalizedAmountContext,
     Payment,
     PaymentList,
     TotalAmount,
@@ -481,22 +480,20 @@ async def test_total_amounts_falls_back_to_raw_amounts_without_common_basis() ->
             value=Decimal("120.00"),
             reference_value=Decimal("100.00"),
             difference=Decimal("20.00"),
-            normalized_context=NormalizedAmountContext(
-                target_inclusion=VatInclusion.MIXED,
-                operands=(
-                    AmountOperand(
-                        value=Decimal("120.00"),
-                        vat_amount=None,
-                        vat_rate=None,
-                        vat_inclusion=VatInclusion.INCLUDED,
-                    ),
-                ),
-                reference_operand=AmountOperand(
-                    value=Decimal("100.00"),
+            target_inclusion=VatInclusion.MIXED,
+            operands=(
+                AmountOperand(
+                    value=Decimal("120.00"),
                     vat_amount=None,
                     vat_rate=None,
-                    vat_inclusion=VatInclusion.EXCLUDED,
+                    vat_inclusion=VatInclusion.INCLUDED,
                 ),
+            ),
+            reference_operand=AmountOperand(
+                value=Decimal("100.00"),
+                vat_amount=None,
+                vat_rate=None,
+                vat_inclusion=VatInclusion.EXCLUDED,
             ),
         )
     ]
@@ -550,22 +547,20 @@ async def test_total_amounts_fails_when_grossed_amounts_differ() -> None:
             value=Decimal("144.00"),
             reference_value=Decimal("120.00"),
             difference=Decimal("24.00"),
-            normalized_context=NormalizedAmountContext(
-                target_inclusion=VatInclusion.INCLUDED,
-                operands=(
-                    AmountOperand(
-                        value=Decimal("120.00"),
-                        vat_amount=None,
-                        vat_rate=Decimal("20.00"),
-                        vat_inclusion=VatInclusion.EXCLUDED,
-                    ),
-                ),
-                reference_operand=AmountOperand(
+            target_inclusion=VatInclusion.INCLUDED,
+            operands=(
+                AmountOperand(
                     value=Decimal("120.00"),
                     vat_amount=None,
                     vat_rate=Decimal("20.00"),
-                    vat_inclusion=VatInclusion.INCLUDED,
+                    vat_inclusion=VatInclusion.EXCLUDED,
                 ),
+            ),
+            reference_operand=AmountOperand(
+                value=Decimal("120.00"),
+                vat_amount=None,
+                vat_rate=Decimal("20.00"),
+                vat_inclusion=VatInclusion.INCLUDED,
             ),
         )
     ]
