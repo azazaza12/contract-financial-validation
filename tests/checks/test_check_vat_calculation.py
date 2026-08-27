@@ -126,7 +126,16 @@ async def test_vat_calculation_fails_when_formula_is_incorrect() -> None:
         ),
     )
     assert r.status == CheckStatus.FAILED
-    assert any(isinstance(e, VatAmountCalculationDiscrepancyError) for e in r.errors)
+    errors = [
+        e for e in r.errors if isinstance(e, VatAmountCalculationDiscrepancyError)
+    ]
+    assert len(errors) == 1
+    error = errors[0]
+    assert error.amount == Decimal("120.00")
+    assert error.rate == Decimal("20.00")
+    assert error.include_vat is True
+    assert error.expected_vat_amount == Decimal("20.00")
+    assert error.vat_amount == Decimal(bad_vat)
 
 
 async def test_vat_calculation_tolerance_allows_difference_within_one_ruble() -> None:

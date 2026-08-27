@@ -1,21 +1,32 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from enum import StrEnum
 from functools import reduce
+from typing import cast
 
 from app.domain.merge.defaults import STRICT_REGISTRY
 from app.domain.merge.handlers import merge_advance_payment, merge_payment
 from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
+from .amount_comparison import (
+    AmountDiscrepancy,
+    AmountOperand,
+    ComparisonResult,
+    ComparisonStatus,
+    NormalizedAmountDiscrepancy,
+    PaymentComparison,
+)
 from .errors.checks import (
     AmountDiscrepancyError,
+    AmountNotFoundError,
     AmountNotPositiveError,
     BaseCheckError,
     PaymentAmountPercentDiscrepancyError,
     PaymentVatRatesDifferError,
     PositionCostDiscrepancyError,
+    PositionsAmountDiscrepancyError,
     UpperBoundAmountError,
     UpperBoundVatAmountError,
     VatAmountCalculationDiscrepancyError,
@@ -24,13 +35,7 @@ from .errors.checks import (
     VatRateNotPositiveError,
 )
 from .field import BaseField
-
-
-class VatInclusion(StrEnum):
-    INCLUDED = "included"
-    EXCLUDED = "excluded"
-    UNSPECIFIED = "unspecified"
-    MIXED = "mixed"
+from .vat_inclusion import VatInclusion
 
 
 class DocumentObjectField(BaseField[str]):
@@ -175,6 +180,36 @@ class AmountRelation(StrEnum):
                 )
 
 
+def _compare_amounts(
+    value: Decimal | None,
+    reference_value: Decimal | None,
+    *,
+    tolerance: Decimal,
+    relation: AmountRelation,
+) -> ComparisonResult[AmountDiscrepancy]:
+    if value is None or reference_value is None:
+        return ComparisonResult(status=ComparisonStatus.UNKNOWN)
+    if relation.is_satisfied(
+        actual_value=value,
+        reference_value=reference_value,
+        tolerance=tolerance,
+    ):
+        return ComparisonResult(status=ComparisonStatus.OK)
+    difference = (
+        value - reference_value
+        if relation is AmountRelation.AT_MOST
+        else abs(reference_value - value)
+    )
+    return ComparisonResult(
+        status=ComparisonStatus.NOT_OK,
+        discrepancy=AmountDiscrepancy(
+            value=value,
+            reference_value=reference_value,
+            difference=difference,
+        ),
+    )
+
+
 @dataclass(kw_only=True, frozen=True)
 class Payment:
     amount: Money | None
@@ -212,6 +247,9 @@ class Payment:
             return []
         return [
             VatAmountCalculationDiscrepancyError(
+                amount=cast("Decimal", self.amount_value),
+                rate=cast("Decimal", self.vat.rate),
+                include_vat=self.include_vat is VatInclusion.INCLUDED,
                 expected_vat_amount=expected,
                 vat_amount=vat_amount,
                 difference=difference,
@@ -249,6 +287,18 @@ class Payment:
     @property
     def vat_rate(self) -> Decimal | None:
         return self.vat.rate
+
+    @property
+    def amount_operand(self) -> AmountOperand | None:
+        value = self.amount_value
+        if value is None:
+            return None
+        return AmountOperand(
+            value=value,
+            vat_amount=self.vat.amount_value,
+            vat_rate=self.vat.rate,
+            vat_inclusion=self.include_vat,
+        )
 
     @property
     def expected_vat_amount(self) -> Decimal | None:
@@ -396,38 +446,48 @@ class Payment:
         tolerance: Decimal,
         relation: AmountRelation,
         inclusion: VatInclusion | None = None,
-    ) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
+    ) -> PaymentComparison:
         normalized = self.normalized_amounts(reference, inclusion=inclusion)
-        value_vat_amount = self.vat.amount_value
-        reference_vat_amount = reference.vat.amount_value
-        if normalized is not None and not relation.is_satisfied(
-            actual_value=normalized.left,
-            reference_value=normalized.right,
-            tolerance=tolerance,
-        ):
-            errors.append(
-                relation.make_amount_error(
-                    value=normalized.left,
-                    reference_value=normalized.right,
-                )
+        if normalized is None:
+            amount_result = ComparisonResult[NormalizedAmountDiscrepancy](
+                status=ComparisonStatus.UNKNOWN
             )
-        if (
-            value_vat_amount is not None
-            and reference_vat_amount is not None
-            and not relation.is_satisfied(
-                actual_value=value_vat_amount,
-                reference_value=reference_vat_amount,
+        else:
+            amount_comparison = _compare_amounts(
+                normalized.left,
+                normalized.right,
                 tolerance=tolerance,
+                relation=relation,
             )
-        ):
-            errors.append(
-                relation.make_vat_amount_error(
-                    value=value_vat_amount,
-                    reference_value=reference_vat_amount,
+            discrepancy = amount_comparison.discrepancy
+            if discrepancy is None:
+                amount_result = ComparisonResult[NormalizedAmountDiscrepancy](
+                    status=amount_comparison.status
                 )
-            )
-        return errors
+            else:
+                amount_result = ComparisonResult(
+                    status=ComparisonStatus.NOT_OK,
+                    discrepancy=NormalizedAmountDiscrepancy(
+                        value=discrepancy.value,
+                        reference_value=discrepancy.reference_value,
+                        difference=discrepancy.difference,
+                        target_inclusion=normalized.inclusion,
+                        operands=(cast("AmountOperand", self.amount_operand),),
+                        reference_operand=cast(
+                            "AmountOperand", reference.amount_operand
+                        ),
+                    ),
+                )
+        vat_amount_result = _compare_amounts(
+            self.vat.amount_value,
+            reference.vat.amount_value,
+            tolerance=tolerance,
+            relation=relation,
+        )
+        return PaymentComparison(
+            amount=amount_result,
+            vat_amount=vat_amount_result,
+        )
 
     def should_merge_economically(
         self, others: Sequence[Payment], *, tolerance: Decimal
@@ -536,20 +596,37 @@ class PaymentList:
         inclusion = select_common_vat_inclusion(list(self._payments))
         return self._summed_in(inclusion)
 
-    def compare(
+    def compare_sum(
         self, reference: Payment, *, tolerance: Decimal
-    ) -> list[BaseCheckError]:
+    ) -> PaymentComparison:
         if not self._payments:
-            return []
+            return PaymentComparison.unknown()
         inclusion = select_common_vat_inclusion([*self._payments, reference])
         summed = self._summed_in(inclusion)
         if summed is None:
-            return []
-        return summed.compare(
+            return PaymentComparison.unknown()
+        comparison = summed.compare(
             reference,
             tolerance=tolerance,
             inclusion=inclusion,
             relation=AmountRelation.EXACT,
+        )
+        discrepancy = comparison.amount.discrepancy
+        if discrepancy is None:
+            return comparison
+
+        operands = tuple(
+            operand
+            for payment in self._payments
+            if (operand := payment.amount_operand) is not None
+        )
+        amount_result = replace(
+            comparison.amount,
+            discrepancy=replace(discrepancy, operands=operands),
+        )
+        return PaymentComparison(
+            amount=amount_result,
+            vat_amount=comparison.vat_amount,
         )
 
 
@@ -574,6 +651,11 @@ class TotalAmount:
         errors.extend(self.total.validate_positivity())
         errors.extend(self.taxes.validate_positivity())
         return errors
+
+    def validate_presence(self) -> list[BaseCheckError]:
+        if self.total.amount_value is None:
+            return [AmountNotFoundError()]
+        return []
 
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
@@ -609,6 +691,9 @@ class TotalAmountField(BaseTotalAmountField):
     def validate_positivity(self) -> list[BaseCheckError]:
         return self.value.validate_positivity()
 
+    def validate_presence(self) -> list[BaseCheckError]:
+        return self.value.validate_presence()
+
     def numeric_moneys(self) -> list[Money]:
         return self.value.numeric_moneys()
 
@@ -630,11 +715,33 @@ class TotalAmountBoundField(BaseTotalAmountField, ABC):
 @dataclass(kw_only=True, frozen=True)
 class TotalAmountUpperBoundField(TotalAmountBoundField):
     def compare(self, actual: Payment, tolerance: Decimal) -> list[BaseCheckError]:
-        return actual.compare(
+        comparison = actual.compare(
             reference=self.value.total,
             relation=AmountRelation.AT_MOST,
             tolerance=tolerance,
         )
+        errors: list[BaseCheckError] = []
+        if comparison.amount.status is ComparisonStatus.NOT_OK:
+            discrepancy = cast(
+                "NormalizedAmountDiscrepancy", comparison.amount.discrepancy
+            )
+            errors.append(
+                UpperBoundAmountError(
+                    value=discrepancy.value,
+                    bound_value=discrepancy.reference_value,
+                    violation_value=discrepancy.difference,
+                )
+            )
+        if comparison.vat_amount.status is ComparisonStatus.NOT_OK:
+            discrepancy = cast("AmountDiscrepancy", comparison.vat_amount.discrepancy)
+            errors.append(
+                UpperBoundVatAmountError(
+                    value=discrepancy.value,
+                    bound_value=discrepancy.reference_value,
+                    violation_value=discrepancy.difference,
+                )
+            )
+        return errors
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -755,6 +862,8 @@ class SpecPosition:
             PositionCostDiscrepancyError(
                 count=index,
                 position_name=self.name,
+                quantity=self.quantity,
+                unit_price=self.unit_price,
                 cost=self.total_price,
                 calculated_cost=calculated,
                 difference_sum=difference,
@@ -813,7 +922,7 @@ class Specification:
         if difference <= tolerance:
             return []
         return [
-            AmountDiscrepancyError(
+            PositionsAmountDiscrepancyError(
                 reference_value=closest,
                 value=positions_total,
                 difference=difference,

@@ -1,3 +1,11 @@
+from .amount_comparison import (
+    AmountDiscrepancy,
+    AmountOperand,
+    ComparisonResult,
+    ComparisonStatus,
+    NormalizedAmountDiscrepancy,
+    PaymentComparison,
+)
 from .contract import BaseContract
 from .document import BaseDocument
 from .field import BaseField, FieldCollector
@@ -19,9 +27,9 @@ from .single_supplier_fields import (
     TotalAmountField,
     TotalAmountUpperBoundField,
     Vat,
-    VatInclusion,
 )
 from .user import User
+from .vat_inclusion import VatInclusion
 
 
 __all__ = [
@@ -30,13 +38,19 @@ __all__ = [
     "AdvancePaymentList",
     "AdvancePaymentsField",
     "AmountRelation",
+    "AmountDiscrepancy",
+    "AmountOperand",
     "BaseContract",
     "BaseDocument",
     "BaseField",
+    "ComparisonResult",
+    "ComparisonStatus",
     "DocumentObjectField",
     "FieldCollector",
     "Money",
+    "NormalizedAmountDiscrepancy",
     "Payment",
+    "PaymentComparison",
     "PaymentList",
     "Source",
     "SourceHeader",

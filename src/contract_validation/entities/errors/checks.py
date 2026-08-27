@@ -2,6 +2,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import cast
+from warnings import deprecated
+
+from app.domain.entities.amount_comparison import AmountOperand
+from app.domain.entities.vat_inclusion import VatInclusion
 
 from .base import BaseContractError
 
@@ -87,13 +91,13 @@ class PaymentAmountPercentDiscrepancyError(BaseCheckError):
 
 
 @dataclass
-class VatAmountDiscrepancyError(BaseCheckError):
+class BaseAmountDiscrepancyError(BaseCheckError):
     value: Decimal
     reference_value: Decimal
     difference: Decimal
 
     def _compare_same_type(self, error: BaseContractError) -> bool:
-        other = cast("VatAmountDiscrepancyError", error)
+        other = cast("BaseAmountDiscrepancyError", error)
         return (
             self.source == other.source
             and self.value == other.value
@@ -102,8 +106,39 @@ class VatAmountDiscrepancyError(BaseCheckError):
         )
 
 
+@deprecated(
+    "Use a context-specific amount discrepancy error instead.",
+    category=None,
+)
+@dataclass
+class AmountDiscrepancyError(BaseAmountDiscrepancyError):
+    pass
+
+
+@deprecated(
+    "Use a context-specific VAT amount discrepancy error instead.",
+    category=None,
+)
+@dataclass
+class VatAmountDiscrepancyError(BaseAmountDiscrepancyError):
+    pass
+
+
+@dataclass
+class TaxesVatAmountDiscrepancyError(BaseAmountDiscrepancyError):
+    pass
+
+
+@dataclass
+class AdvanceVatAmountDiscrepancyError(BaseAmountDiscrepancyError):
+    pass
+
+
 @dataclass
 class VatAmountCalculationDiscrepancyError(BaseCheckError):
+    amount: Decimal
+    rate: Decimal
+    include_vat: bool
     expected_vat_amount: Decimal
     vat_amount: Decimal
     difference: Decimal
@@ -112,6 +147,9 @@ class VatAmountCalculationDiscrepancyError(BaseCheckError):
         other = cast("VatAmountCalculationDiscrepancyError", error)
         return (
             self.source == other.source
+            and self.amount == other.amount
+            and self.rate == other.rate
+            and self.include_vat == other.include_vat
             and self.expected_vat_amount == other.expected_vat_amount
             and self.vat_amount == other.vat_amount
             and self.difference == other.difference
@@ -131,6 +169,8 @@ class PaymentPercentSumDiscrepancyError(BaseCheckError):
 class PositionCostDiscrepancyError(BaseCheckError):
     count: int
     position_name: str | None
+    quantity: Decimal
+    unit_price: Decimal
     cost: Decimal
     calculated_cost: Decimal
     difference_sum: Decimal
@@ -141,6 +181,8 @@ class PositionCostDiscrepancyError(BaseCheckError):
             self.source == other.source
             and self.count == other.count
             and self.position_name == other.position_name
+            and self.quantity == other.quantity
+            and self.unit_price == other.unit_price
             and self.cost == other.cost
             and self.calculated_cost == other.calculated_cost
             and self.difference_sum == other.difference_sum
@@ -148,18 +190,23 @@ class PositionCostDiscrepancyError(BaseCheckError):
 
 
 @dataclass
-class AmountDiscrepancyError(BaseCheckError):
-    reference_value: Decimal
-    value: Decimal
-    difference: Decimal
+class PositionsAmountDiscrepancyError(BaseAmountDiscrepancyError):
+    pass
+
+
+@dataclass
+class BaseNormalizedAmountDiscrepancyError(BaseAmountDiscrepancyError):
+    target_inclusion: VatInclusion
+    operands: tuple[AmountOperand, ...]
+    reference_operand: AmountOperand
 
     def _compare_same_type(self, error: BaseContractError) -> bool:
-        other = cast("AmountDiscrepancyError", error)
+        other = cast("BaseNormalizedAmountDiscrepancyError", error)
         return (
-            self.source == other.source
-            and self.reference_value == other.reference_value
-            and self.value == other.value
-            and self.difference == other.difference
+            super()._compare_same_type(error)
+            and self.target_inclusion == other.target_inclusion
+            and self.operands == other.operands
+            and self.reference_operand == other.reference_operand
         )
 
 
@@ -192,6 +239,23 @@ class UpperBoundAmountError(BoundAmountError):
 class UpperBoundVatAmountError(BoundAmountError):
     def _compare_same_type(self, error: BaseContractError) -> bool:
         return self._compare_bound_amount_error(error)
+
+class TaxesAmountDiscrepancyError(BaseNormalizedAmountDiscrepancyError):
+    pass
+
+
+@dataclass
+class AdvanceAmountDiscrepancyError(BaseNormalizedAmountDiscrepancyError):
+    pass
+
+
+@dataclass
+class PositionsComplianceError(BaseCheckError):
+    message: str
+
+    def _compare_same_type(self, error: BaseContractError) -> bool:
+        other = cast("PositionsComplianceError", error)
+        return self.source == other.source and self.message == other.message
 
 
 @dataclass
