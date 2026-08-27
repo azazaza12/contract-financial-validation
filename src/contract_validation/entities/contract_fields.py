@@ -143,6 +143,7 @@ class AmountRelation(StrEnum):
             case AmountRelation.AT_MOST:
                 return difference <= tolerance
 
+
 def _compare_amounts(
     value: Decimal | None,
     reference_value: Decimal | None,
@@ -648,17 +649,8 @@ class BaseTotalAmountField(BaseField[TotalAmount]):
 class TotalAmountField(BaseTotalAmountField):
     merge_registry = STRICT_REGISTRY
 
-    def has_data(self) -> bool:
-        return self.value.has_data()
-
-    def validate_positivity(self) -> list[BaseCheckError]:
-        return self.value.validate_positivity()
-
     def validate_presence(self) -> list[BaseCheckError]:
         return self.value.validate_presence()
-
-    def numeric_moneys(self) -> list[Money]:
-        return self.value.numeric_moneys()
 
 
 EMPTY_PAYMENT = Payment(
@@ -699,12 +691,14 @@ class TotalAmountUpperBoundField(TotalAmountBoundField):
                 )
             )
         if comparison.vat_amount.status is ComparisonStatus.NOT_OK:
-            discrepancy = cast("AmountDiscrepancy", comparison.vat_amount.discrepancy)
+            vat_discrepancy = cast(
+                "AmountDiscrepancy", comparison.vat_amount.discrepancy
+            )
             errors.append(
                 UpperBoundVatAmountError(
-                    value=discrepancy.value,
-                    bound_value=discrepancy.reference_value,
-                    violation_value=discrepancy.difference,
+                    value=vat_discrepancy.value,
+                    bound_value=vat_discrepancy.reference_value,
+                    violation_value=vat_discrepancy.difference,
                 )
             )
         return errors
