@@ -9,6 +9,7 @@ from .amount_comparison import (
 from .contract import BaseContract
 from .document import BaseDocument
 from .field import BaseField, FieldCollector
+from .field_location import FieldLocation
 from .merge_types import Source, SourceHeader, ValueCandidate
 from .single_supplier_fields import (
     EMPTY_PAYMENT,
@@ -44,6 +45,7 @@ __all__ = [
     "ComparisonStatus",
     "DocumentObjectField",
     "FieldCollector",
+    "FieldLocation",
     "Money",
     "NormalizedAmountDiscrepancy",
     "Payment",
