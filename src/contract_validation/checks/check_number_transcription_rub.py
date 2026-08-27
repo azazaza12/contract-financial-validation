@@ -3,7 +3,7 @@ from typing import cast
 from app.domain.entities.errors.checks import NumberTranscriptionError
 from app.domain.entities.single_supplier_fields import (
     AdvancePaymentsField,
-    Money,
+    LocatedAmount,
     TotalAmountField,
 )
 from app.domain.entities.validation import CheckExecutionResult
@@ -22,11 +22,14 @@ class CheckNumberTranscriptionRub(BaseCheck):
         self.transcription_compliancer = transcription_compliancer
 
     @staticmethod
-    def _amounts_with_transcription(amounts: list[Money]) -> list[Money]:
+    def _amounts_with_transcription(
+        amounts: list[LocatedAmount],
+    ) -> list[LocatedAmount]:
         return [
             amount
             for amount in amounts
-            if amount.transcription is not None and amount.transcription.strip()
+            if amount.money.transcription is not None
+            and amount.money.transcription.strip()
         ]
 
     async def execute(self) -> CheckExecutionResult:
@@ -42,9 +45,11 @@ class CheckNumberTranscriptionRub(BaseCheck):
             *total_amount_fields,
             *advance_payments_fields,
         ]
-        extracted_amounts: list[Money] = []
-        for field in fields:
-            extracted_amounts.extend(field.numeric_moneys())
+        extracted_amounts = [
+            amount
+            for field in fields
+            for amount in field.located_amounts()
+        ]
         checkable_amounts = self._amounts_with_transcription(extracted_amounts)
         if not checkable_amounts:
             raise InsufficientCheckDataError(
@@ -53,9 +58,9 @@ class CheckNumberTranscriptionRub(BaseCheck):
             )
 
         errors: list[NumberTranscriptionError] = []
-        for index, amount in enumerate(checkable_amounts):
+        for index, located_amount in enumerate(checkable_amounts):
             issue = await self.transcription_compliancer.evaluate(
-                amount,
+                located_amount.money,
             )
             if issue is None:
                 continue
@@ -65,6 +70,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
                     value=issue.value,
                     transcription=issue.transcription,
                     expected_transcription=issue.expected_transcription,
+                    location=located_amount.location,
                 )
             )
         return self._result(errors)

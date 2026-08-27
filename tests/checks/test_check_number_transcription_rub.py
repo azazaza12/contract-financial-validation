@@ -14,6 +14,7 @@ from app.domain.entities import (
     Payment,
     PaymentList,
     Source,
+    SourceHeader,
     TotalAmount,
     TotalAmountField,
     Vat,
@@ -76,6 +77,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
     check = CheckNumberTranscriptionRub(
         transcription_compliancer=service_mock,
     )
+    field_source = Source(document_id=uuid4(), header=SourceHeader.BODY)
     check.total_amount_fields = [
         TotalAmountField(
             value=TotalAmount(
@@ -91,7 +93,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
                 ),
                 taxes=PaymentList([]),
             ),
-            sources=[Source(document_id=uuid4())],
+            sources=[field_source],
         )
     ]
     check.advance_payments_fields = []
@@ -108,10 +110,18 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
     assert first.value == Decimal("100.00")
     assert first.transcription == "Сто один"
     assert first.expected_transcription == "Сто"
+    assert first.location is not None
+    assert first.location.full_path == "TotalAmountField.value.total.amount.value"
+    assert first.location.sources == (field_source,)
     assert second.index == 1
     assert second.value == Decimal("20.00")
     assert second.transcription == "Двадцать один"
     assert second.expected_transcription == "Двадцать"
+    assert second.location is not None
+    assert second.location.full_path == (
+        "TotalAmountField.value.total.vat.amount.value"
+    )
+    assert second.location.sources == (field_source,)
     assert service_mock.evaluate.await_count == 2  # noqa: PLR2004
 
 
@@ -218,6 +228,78 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
         (Decimal("2560.13"), "Две тысячи пятьсот шестьдесят"),
     }
     assert passed_pairs == expected_pairs
+
+
+async def test_check_14_identifies_payment_and_advance_amounts() -> None:
+    service_mock = AsyncMock()
+    service_mock.evaluate.side_effect = lambda amount: TranscriptionCheckIssue(
+        value=amount.value,
+        transcription=amount.transcription,
+        expected_transcription="Ожидаемое значение",
+    )
+    source = Source(document_id=uuid4(), header=SourceHeader.AFTER_SPEC)
+    check = CheckNumberTranscriptionRub(transcription_compliancer=service_mock)
+    check.total_amount_fields = [
+        TotalAmountField(
+            value=TotalAmount(
+                total=Payment(
+                    amount=None,
+                    vat=Vat(amount=None, rate=None),
+                    include_vat=False,
+                ),
+                taxes=PaymentList(
+                    [
+                        Payment(
+                            amount=Money(value=Decimal(100), transcription="Сто"),
+                            vat=Vat(
+                                amount=Money(
+                                    value=Decimal(20), transcription="Двадцать"
+                                ),
+                                rate=Decimal(20),
+                            ),
+                            include_vat=True,
+                        )
+                    ]
+                ),
+            ),
+            sources=[source],
+        )
+    ]
+    check.advance_payments_fields = [
+        AdvancePaymentsField(
+            value=AdvancePaymentList(
+                [
+                    AdvancePayment(
+                        percent=Decimal(50),
+                        amount=Money(
+                            value=Decimal(50), transcription="Пятьдесят"
+                        ),
+                        vat=Vat(
+                            amount=Money(
+                                value=Decimal(10), transcription="Десять"
+                            ),
+                            rate=Decimal(20),
+                        ),
+                        include_vat=True,
+                    )
+                ]
+            ),
+            sources=[source],
+        )
+    ]
+
+    result = await check.execute()
+
+    assert [error.location.full_path for error in result.errors if error.location] == [
+        "TotalAmountField.value.taxes._payments[0].amount.value",
+        "TotalAmountField.value.taxes._payments[0].vat.amount.value",
+        "AdvancePaymentsField.value._payments[0].amount.value",
+        "AdvancePaymentsField.value._payments[0].vat.amount.value",
+    ]
+    assert all(
+        error.location is not None and error.location.sources == (source,)
+        for error in result.errors
+    )
 
 
 async def test_check_14_skips_when_no_amount_transcription_pairs() -> None:
