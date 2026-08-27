@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum
 from functools import reduce
+from typing import cast
 
 from app.domain.merge.defaults import STRICT_REGISTRY
 from app.domain.merge.handlers import merge_advance_payment, merge_payment
@@ -161,6 +162,9 @@ class Payment:
             return []
         return [
             VatAmountCalculationDiscrepancyError(
+                amount=cast("Decimal", self.amount_value),
+                rate=cast("Decimal", self.vat.rate),
+                include_vat=self.include_vat is VatInclusion.INCLUDED,
                 expected_vat_amount=expected,
                 vat_amount=vat_amount,
                 difference=difference,
