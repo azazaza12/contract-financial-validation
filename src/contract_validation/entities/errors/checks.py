@@ -231,8 +231,18 @@ class BoundAmountError(BaseCheckError, ABC):
 
 @dataclass
 class UpperBoundAmountError(BoundAmountError):
+    target_inclusion: VatInclusion | None
+    operands: tuple[AmountOperand, ...]
+    reference_operand: AmountOperand | None
+
     def _compare_same_type(self, error: BaseContractError) -> bool:
-        return self._compare_bound_amount_error(error)
+        other = cast("UpperBoundAmountError", error)
+        return (
+            self._compare_bound_amount_error(error)
+            and self.target_inclusion == other.target_inclusion
+            and self.operands == other.operands
+            and self.reference_operand == other.reference_operand
+        )
 
 
 @dataclass

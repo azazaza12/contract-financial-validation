@@ -156,10 +156,12 @@ class AmountRelation(StrEnum):
                     difference=abs(value - reference_value),
                 )
             case AmountRelation.AT_MOST:
-                return UpperBoundAmountError(
+                return self.make_bound_amount_error(
                     value=value,
                     bound_value=reference_value,
-                    violation_value=value - reference_value,
+                    target_inclusion=None,
+                    operands=(),
+                    reference_operand=None,
                 )
 
     def make_vat_amount_error(
@@ -178,6 +180,26 @@ class AmountRelation(StrEnum):
                     bound_value=reference_value,
                     violation_value=value - reference_value,
                 )
+
+    def make_bound_amount_error(
+        self,
+        *,
+        value: Decimal,
+        bound_value: Decimal,
+        target_inclusion: VatInclusion | None,
+        operands: tuple[AmountOperand, ...],
+        reference_operand: AmountOperand | None,
+    ) -> UpperBoundAmountError:
+        if self is not AmountRelation.AT_MOST:
+            raise ValueError("Bound errors can only be created for AT_MOST relation")
+        return UpperBoundAmountError(
+            value=value,
+            bound_value=bound_value,
+            violation_value=value - bound_value,
+            target_inclusion=target_inclusion,
+            operands=operands,
+            reference_operand=reference_operand,
+        )
 
 
 def _compare_amounts(
@@ -726,10 +748,12 @@ class TotalAmountUpperBoundField(TotalAmountBoundField):
                 "NormalizedAmountDiscrepancy", comparison.amount.discrepancy
             )
             errors.append(
-                UpperBoundAmountError(
+                AmountRelation.AT_MOST.make_bound_amount_error(
                     value=discrepancy.value,
                     bound_value=discrepancy.reference_value,
-                    violation_value=discrepancy.difference,
+                    target_inclusion=discrepancy.target_inclusion,
+                    operands=discrepancy.operands,
+                    reference_operand=discrepancy.reference_operand,
                 )
             )
         if comparison.vat_amount.status is ComparisonStatus.NOT_OK:
