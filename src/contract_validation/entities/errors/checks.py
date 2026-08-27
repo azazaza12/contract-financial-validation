@@ -135,6 +135,9 @@ class AdvanceVatAmountDiscrepancyError(BaseAmountDiscrepancyError):
 
 @dataclass
 class VatAmountCalculationDiscrepancyError(BaseCheckError):
+    amount: Decimal
+    rate: Decimal
+    include_vat: bool
     expected_vat_amount: Decimal
     vat_amount: Decimal
     difference: Decimal
@@ -143,6 +146,9 @@ class VatAmountCalculationDiscrepancyError(BaseCheckError):
         other = cast("VatAmountCalculationDiscrepancyError", error)
         return (
             self.source == other.source
+            and self.amount == other.amount
+            and self.rate == other.rate
+            and self.include_vat == other.include_vat
             and self.expected_vat_amount == other.expected_vat_amount
             and self.vat_amount == other.vat_amount
             and self.difference == other.difference

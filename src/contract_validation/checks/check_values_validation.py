@@ -1,6 +1,6 @@
 from typing import cast
 
-from app.domain.entities.errors.checks import BaseCheckError
+from app.domain.entities.errors.checks import AmountNotFoundError, BaseCheckError
 from app.domain.entities.single_supplier_fields import (
     AdvancePaymentsField,
     SpecPositionsField,
@@ -30,6 +30,9 @@ class CheckValuesValidation(BaseCheck):
 
         if total_amount_field is not None:
             errors.extend(total_amount_field.validate_positivity())
+            errors.extend(total_amount_field.validate_presence())
+        else:
+            errors.append(AmountNotFoundError())
         if advance_payments_field is not None:
             errors.extend(advance_payments_field.validate_positivity())
         if spec_positions_field is not None:
