@@ -252,6 +252,15 @@ def test_select_common_vat_inclusion_returns_shared_value_when_homogeneous():
     assert select_common_vat_inclusion(payments) is VatInclusion.EXCLUDED
 
 
+def test_select_common_vat_inclusion_returns_unspecified_when_basis_is_unknown():
+    payments = [
+        make_payment(amount="10.00", include_vat=VatInclusion.UNSPECIFIED),
+        make_payment(amount="20.00", include_vat=VatInclusion.EXCLUDED),
+    ]
+
+    assert select_common_vat_inclusion(payments) is VatInclusion.UNSPECIFIED
+
+
 def test_select_common_vat_inclusion_converts_to_included_when_possible():
     payments = [
         make_payment(amount="120.00", rate="20", include_vat=VatInclusion.INCLUDED),
@@ -784,7 +793,7 @@ def test_payment_compare_preserves_vat_amount_used_for_normalization():
     )
 
 
-def test_payment_compare_falls_back_to_raw_amounts_without_common_basis():
+def test_payment_compare_falls_back_to_raw_amounts_when_basis_is_unspecified():
     value = make_payment(
         amount="120.00",
         vat_amount="20.00",
@@ -808,7 +817,7 @@ def test_payment_compare_falls_back_to_raw_amounts_without_common_basis():
         reference_value=Decimal("100.00"),
         difference=Decimal("20.00"),
         normalized_context=NormalizedAmountContext(
-            target_inclusion=VatInclusion.MIXED,
+            target_inclusion=VatInclusion.UNSPECIFIED,
             operands=(
                 AmountOperand(
                     value=Decimal("120.00"),
