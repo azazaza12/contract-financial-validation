@@ -133,45 +133,34 @@ class AmountRelation(StrEnum):
     EXACT = "exact"
     AT_MOST = "at_most"
 
-    def is_satisfied(
-        self, actual_value: Decimal, reference_value: Decimal, tolerance: Decimal
-    ) -> bool:
-        difference = actual_value - reference_value
+    def compare(
+        self,
+        actual_value: Decimal | None,
+        reference_value: Decimal | None,
+        *,
+        tolerance: Decimal,
+    ) -> ComparisonResult[AmountDiscrepancy]:
+        if actual_value is None or reference_value is None:
+            return ComparisonResult(status=ComparisonStatus.UNKNOWN)
+
+        raw_difference = actual_value - reference_value
         match self:
             case AmountRelation.EXACT:
-                return abs(difference) <= tolerance
+                difference = abs(raw_difference)
             case AmountRelation.AT_MOST:
-                return difference <= tolerance
+                difference = raw_difference
 
+        if difference <= tolerance:
+            return ComparisonResult(status=ComparisonStatus.OK)
 
-def _compare_amounts(
-    value: Decimal | None,
-    reference_value: Decimal | None,
-    *,
-    tolerance: Decimal,
-    relation: AmountRelation,
-) -> ComparisonResult[AmountDiscrepancy]:
-    if value is None or reference_value is None:
-        return ComparisonResult(status=ComparisonStatus.UNKNOWN)
-    if relation.is_satisfied(
-        actual_value=value,
-        reference_value=reference_value,
-        tolerance=tolerance,
-    ):
-        return ComparisonResult(status=ComparisonStatus.OK)
-    difference = (
-        value - reference_value
-        if relation is AmountRelation.AT_MOST
-        else abs(reference_value - value)
-    )
-    return ComparisonResult(
-        status=ComparisonStatus.NOT_OK,
-        discrepancy=AmountDiscrepancy(
-            value=value,
-            reference_value=reference_value,
-            difference=difference,
-        ),
-    )
+        return ComparisonResult(
+            status=ComparisonStatus.NOT_OK,
+            discrepancy=AmountDiscrepancy(
+                value=actual_value,
+                reference_value=reference_value,
+                difference=difference,
+            ),
+        )
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -417,11 +406,10 @@ class Payment:
                 status=ComparisonStatus.UNKNOWN
             )
         else:
-            amount_comparison = _compare_amounts(
-                normalized.left,
-                normalized.right,
+            amount_comparison = relation.compare(
+                actual_value=normalized.left,
+                reference_value=normalized.right,
                 tolerance=tolerance,
-                relation=relation,
             )
             discrepancy = amount_comparison.discrepancy
             if discrepancy is None:
@@ -442,11 +430,10 @@ class Payment:
                         ),
                     ),
                 )
-        vat_amount_result = _compare_amounts(
-            self.vat.amount_value,
-            reference.vat.amount_value,
+        vat_amount_result = relation.compare(
+            actual_value=self.vat.amount_value,
+            reference_value=reference.vat.amount_value,
             tolerance=tolerance,
-            relation=relation,
         )
         return PaymentComparison(
             amount=amount_result,
