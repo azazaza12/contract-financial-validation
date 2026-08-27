@@ -162,7 +162,7 @@ async def test_consistency_negative_amounts_still_flagged_when_sums_match() -> N
 
 
 async def test_consistency_allows_zero_vat_amount() -> None:
-    r = await _run(total=_pay(amount=None, vat_amount="0.00"))
+    r = await _run(total=_pay(vat_amount="0.00"))
     assert r.status == CheckStatus.SUCCESS
     assert r.errors == []
 
@@ -209,7 +209,7 @@ async def test_consistency_negative_vat_excluded_from_sum() -> None:
 
 async def test_consistency_multiple_advance_totals_summed() -> None:
     r = await _run(
-        total=_pay(amount=None, vat_amount="20.00"),
+        total=_pay(vat_amount="20.00"),
         advances=[
             _advance(
                 percent=None,
