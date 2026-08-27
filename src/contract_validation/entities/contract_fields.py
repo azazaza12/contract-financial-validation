@@ -722,6 +722,8 @@ class SpecPosition:
             PositionCostDiscrepancyError(
                 count=index,
                 position_name=self.name,
+                quantity=self.quantity,
+                unit_price=self.unit_price,
                 cost=self.total_price,
                 calculated_cost=calculated,
                 difference_sum=difference,
