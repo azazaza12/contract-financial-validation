@@ -1,6 +1,7 @@
 from .amount_comparison import (
     AmountDiscrepancy,
     AmountOperand,
+    AmountRelation,
     ComparisonResult,
     ComparisonStatus,
     NormalizedAmountDiscrepancy,
@@ -15,7 +16,6 @@ from .single_supplier_fields import (
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
-    AmountRelation,
     DocumentObjectField,
     Money,
     Payment,

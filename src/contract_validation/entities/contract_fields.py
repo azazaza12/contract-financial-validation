@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, replace
 from decimal import Decimal
-from enum import StrEnum
 from functools import reduce
 from typing import cast
 
@@ -13,6 +12,7 @@ from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 from .amount_comparison import (
     AmountDiscrepancy,
     AmountOperand,
+    AmountRelation,
     ComparisonResult,
     ComparisonStatus,
     NormalizedAmountDiscrepancy,
@@ -127,40 +127,6 @@ class NormalizedAmounts:
     @property
     def difference(self) -> Decimal:
         return self.left - self.right
-
-
-class AmountRelation(StrEnum):
-    EXACT = "exact"
-    AT_MOST = "at_most"
-
-    def compare(
-        self,
-        actual_value: Decimal | None,
-        reference_value: Decimal | None,
-        *,
-        tolerance: Decimal,
-    ) -> ComparisonResult[AmountDiscrepancy]:
-        if actual_value is None or reference_value is None:
-            return ComparisonResult(status=ComparisonStatus.UNKNOWN)
-
-        raw_difference = actual_value - reference_value
-        match self:
-            case AmountRelation.EXACT:
-                difference = abs(raw_difference)
-            case AmountRelation.AT_MOST:
-                difference = raw_difference
-
-        if difference <= tolerance:
-            return ComparisonResult(status=ComparisonStatus.OK)
-
-        return ComparisonResult(
-            status=ComparisonStatus.NOT_OK,
-            discrepancy=AmountDiscrepancy(
-                value=actual_value,
-                reference_value=reference_value,
-                difference=difference,
-            ),
-        )
 
 
 @dataclass(kw_only=True, frozen=True)
