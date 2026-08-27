@@ -7,6 +7,7 @@ from app.domain.checks.check_total_amount_upper_bound import (
 )
 from app.domain.constants import AMOUNT_TOLERANCE
 from app.domain.entities import (
+    AmountOperand,
     Money,
     Payment,
     PaymentList,
@@ -106,6 +107,21 @@ async def test_upper_bound_fails_when_tolerance_exceeded() -> None:
             value=Decimal("101.01"),
             bound_value=Decimal("100.00"),
             violation_value=Decimal("1.01"),
+            target_inclusion=VatInclusion.EXCLUDED,
+            operands=(
+                AmountOperand(
+                    value=Decimal("101.01"),
+                    vat_amount=None,
+                    vat_rate=None,
+                    vat_inclusion=VatInclusion.EXCLUDED,
+                ),
+            ),
+            reference_operand=AmountOperand(
+                value=Decimal("100.00"),
+                vat_amount=None,
+                vat_rate=None,
+                vat_inclusion=VatInclusion.EXCLUDED,
+            ),
         )
     ]
 
