@@ -8,11 +8,16 @@ from app.domain.entities import (
     Payment,
     PaymentList,
     TotalAmount,
+    TotalAmountField,
     TotalAmountUpperBoundField,
     Vat,
     VatInclusion,
 )
-from app.domain.entities.errors import UpperBoundAmountError, UpperBoundVatAmountError
+from app.domain.entities.errors import (
+    UpperBoundAmountError,
+    UpperBoundVatAmountError,
+    VatAmountCalculationDiscrepancyError,
+)
 
 
 def make_payment(
@@ -45,6 +50,61 @@ def make_upper_bound_field(bound: Payment) -> TotalAmountUpperBoundField:
         value=TotalAmount(total=bound, taxes=PaymentList([])),
         sources=[],
     )
+
+
+@pytest.mark.parametrize(
+    "field_type",
+    [TotalAmountField, TotalAmountUpperBoundField],
+)
+def test_total_amount_fields_detect_vat_calculation_data(
+    field_type: type[TotalAmountField | TotalAmountUpperBoundField],
+) -> None:
+    field = field_type(
+        value=TotalAmount(
+            total=make_payment(
+                "120.00",
+                vat_amount="20.00",
+                vat_rate="20.00",
+                inclusion=VatInclusion.INCLUDED,
+            ),
+            taxes=PaymentList([]),
+        ),
+        sources=[],
+    )
+
+    assert field.has_vat_calculation_data()
+
+
+@pytest.mark.parametrize(
+    "field_type",
+    [TotalAmountField, TotalAmountUpperBoundField],
+)
+def test_total_amount_fields_validate_vat_calculation(
+    field_type: type[TotalAmountField | TotalAmountUpperBoundField],
+) -> None:
+    field = field_type(
+        value=TotalAmount(
+            total=make_payment(
+                "120.00",
+                vat_amount="22.00",
+                vat_rate="20.00",
+                inclusion=VatInclusion.INCLUDED,
+            ),
+            taxes=PaymentList([]),
+        ),
+        sources=[],
+    )
+
+    assert field.validate_vat_calculation(tolerance=Decimal("1.00")) == [
+        VatAmountCalculationDiscrepancyError(
+            amount=Decimal("120.00"),
+            rate=Decimal("20.00"),
+            include_vat=True,
+            expected_vat_amount=Decimal("20.00"),
+            vat_amount=Decimal("22.00"),
+            difference=Decimal("2.00"),
+        )
+    ]
 
 
 @pytest.mark.parametrize("actual_amount", ["90.00", "100.00", "101.00"])
