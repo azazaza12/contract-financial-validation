@@ -21,8 +21,8 @@ from app.domain.entities import (
     VatInclusion,
 )
 from app.domain.entities.errors import (
-    AmountDiscrepancyError,
     PositionCostDiscrepancyError,
+    PositionsAmountDiscrepancyError,
 )
 from app.domain.entities.single_supplier import SingleSupplierDocument
 from app.domain.pipeline import TaskStatus
@@ -235,7 +235,9 @@ async def test_check_price_validation_fails_when_total_amount_mismatch() -> None
     await CheckTask(check=check).run(ctx)
 
     called_errors = contract_repo.save_errors.call_args.args[1]
-    assert any(isinstance(err, AmountDiscrepancyError) for err in called_errors)
+    assert any(
+        isinstance(err, PositionsAmountDiscrepancyError) for err in called_errors
+    )
 
 
 async def test_check_price_validation_succeeds_when_zero_values_are_consistent() -> (
