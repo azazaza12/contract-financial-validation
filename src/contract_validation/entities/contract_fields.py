@@ -592,8 +592,14 @@ class BaseTotalAmountField(BaseField[TotalAmount]):
     def has_data(self) -> bool:
         return self.value.has_data()
 
+    def has_vat_calculation_data(self) -> bool:
+        return self.value.has_vat_calculation_data()
+
     def validate_positivity(self) -> list[BaseCheckError]:
         return self.value.validate_positivity()
+
+    def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
+        return self.value.validate_vat_calculation(tolerance=tolerance)
 
     def numeric_moneys(self) -> list[Money]:
         return self.value.numeric_moneys()
