@@ -15,7 +15,6 @@ from .amount_comparison import (
     AmountOperand,
     ComparisonResult,
     ComparisonStatus,
-    NormalizedAmountContext,
     NormalizedAmountDiscrepancy,
     PaymentComparison,
 )
@@ -436,12 +435,10 @@ class Payment:
                         value=discrepancy.value,
                         reference_value=discrepancy.reference_value,
                         difference=discrepancy.difference,
-                        normalized_context=NormalizedAmountContext(
-                            target_inclusion=normalized.inclusion,
-                            operands=(cast("AmountOperand", self.amount_operand),),
-                            reference_operand=cast(
-                                "AmountOperand", reference.amount_operand
-                            ),
+                        target_inclusion=normalized.inclusion,
+                        operands=(cast("AmountOperand", self.amount_operand),),
+                        reference_operand=cast(
+                            "AmountOperand", reference.amount_operand
                         ),
                     ),
                 )
@@ -591,13 +588,7 @@ class PaymentList:
         )
         amount_result = replace(
             comparison.amount,
-            discrepancy=replace(
-                discrepancy,
-                normalized_context=replace(
-                    discrepancy.normalized_context,
-                    operands=operands,
-                ),
-            ),
+            discrepancy=replace(discrepancy, operands=operands),
         )
         return PaymentComparison(
             amount=amount_result,
@@ -696,7 +687,9 @@ class TotalAmountUpperBoundField(TotalAmountBoundField):
                     value=discrepancy.value,
                     bound_value=discrepancy.reference_value,
                     violation_value=discrepancy.difference,
-                    normalized_context=discrepancy.normalized_context,
+                    target_inclusion=discrepancy.target_inclusion,
+                    operands=discrepancy.operands,
+                    reference_operand=discrepancy.reference_operand,
                 )
             )
         if comparison.vat_amount.status is ComparisonStatus.NOT_OK:

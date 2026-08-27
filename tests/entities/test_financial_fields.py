@@ -10,7 +10,6 @@ from app.domain.entities import (
     AmountRelation,
     ComparisonStatus,
     Money,
-    NormalizedAmountContext,
     NormalizedAmountDiscrepancy,
     Payment,
     PaymentList,
@@ -649,22 +648,20 @@ def test_payment_compare_returns_amount_discrepancy():
         value=Decimal("120.00"),
         reference_value=Decimal("100.00"),
         difference=Decimal("20.00"),
-        normalized_context=NormalizedAmountContext(
-            target_inclusion=VatInclusion.EXCLUDED,
-            operands=(
-                AmountOperand(
-                    value=Decimal("120.00"),
-                    vat_amount=None,
-                    vat_rate=None,
-                    vat_inclusion=VatInclusion.EXCLUDED,
-                ),
-            ),
-            reference_operand=AmountOperand(
-                value=Decimal("100.00"),
+        target_inclusion=VatInclusion.EXCLUDED,
+        operands=(
+            AmountOperand(
+                value=Decimal("120.00"),
                 vat_amount=None,
                 vat_rate=None,
                 vat_inclusion=VatInclusion.EXCLUDED,
             ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("100.00"),
+            vat_amount=None,
+            vat_rate=None,
+            vat_inclusion=VatInclusion.EXCLUDED,
         ),
     )
     assert comparison.vat_amount.status is ComparisonStatus.UNKNOWN
@@ -685,22 +682,20 @@ def test_payment_compare_returns_positive_difference_when_value_is_smaller():
         value=Decimal("100.00"),
         reference_value=Decimal("120.00"),
         difference=Decimal("20.00"),
-        normalized_context=NormalizedAmountContext(
-            target_inclusion=VatInclusion.EXCLUDED,
-            operands=(
-                AmountOperand(
-                    value=Decimal("100.00"),
-                    vat_amount=None,
-                    vat_rate=None,
-                    vat_inclusion=VatInclusion.EXCLUDED,
-                ),
-            ),
-            reference_operand=AmountOperand(
-                value=Decimal("120.00"),
+        target_inclusion=VatInclusion.EXCLUDED,
+        operands=(
+            AmountOperand(
+                value=Decimal("100.00"),
                 vat_amount=None,
                 vat_rate=None,
                 vat_inclusion=VatInclusion.EXCLUDED,
             ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("120.00"),
+            vat_amount=None,
+            vat_rate=None,
+            vat_inclusion=VatInclusion.EXCLUDED,
         ),
     )
     assert comparison.vat_amount.status is ComparisonStatus.UNKNOWN
@@ -729,22 +724,20 @@ def test_payment_compare_uses_normalized_amounts_in_error():
         value=Decimal("144.00"),
         reference_value=Decimal("120.00"),
         difference=Decimal("24.00"),
-        normalized_context=NormalizedAmountContext(
-            target_inclusion=VatInclusion.INCLUDED,
-            operands=(
-                AmountOperand(
-                    value=Decimal("120.00"),
-                    vat_amount=None,
-                    vat_rate=Decimal("20.00"),
-                    vat_inclusion=VatInclusion.EXCLUDED,
-                ),
-            ),
-            reference_operand=AmountOperand(
+        target_inclusion=VatInclusion.INCLUDED,
+        operands=(
+            AmountOperand(
                 value=Decimal("120.00"),
                 vat_amount=None,
                 vat_rate=Decimal("20.00"),
-                vat_inclusion=VatInclusion.INCLUDED,
+                vat_inclusion=VatInclusion.EXCLUDED,
             ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("120.00"),
+            vat_amount=None,
+            vat_rate=Decimal("20.00"),
+            vat_inclusion=VatInclusion.INCLUDED,
         ),
     )
     assert comparison.vat_amount.status is ComparisonStatus.UNKNOWN
@@ -773,22 +766,20 @@ def test_payment_compare_preserves_vat_amount_used_for_normalization():
         value=Decimal("144.00"),
         reference_value=Decimal("120.00"),
         difference=Decimal("24.00"),
-        normalized_context=NormalizedAmountContext(
-            target_inclusion=VatInclusion.INCLUDED,
-            operands=(
-                AmountOperand(
-                    value=Decimal("120.00"),
-                    vat_amount=Decimal("24.00"),
-                    vat_rate=None,
-                    vat_inclusion=VatInclusion.EXCLUDED,
-                ),
-            ),
-            reference_operand=AmountOperand(
+        target_inclusion=VatInclusion.INCLUDED,
+        operands=(
+            AmountOperand(
                 value=Decimal("120.00"),
-                vat_amount=Decimal("20.00"),
+                vat_amount=Decimal("24.00"),
                 vat_rate=None,
-                vat_inclusion=VatInclusion.INCLUDED,
+                vat_inclusion=VatInclusion.EXCLUDED,
             ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("120.00"),
+            vat_amount=Decimal("20.00"),
+            vat_rate=None,
+            vat_inclusion=VatInclusion.INCLUDED,
         ),
     )
 
@@ -816,22 +807,20 @@ def test_payment_compare_falls_back_to_raw_amounts_when_basis_is_unspecified():
         value=Decimal("120.00"),
         reference_value=Decimal("100.00"),
         difference=Decimal("20.00"),
-        normalized_context=NormalizedAmountContext(
-            target_inclusion=VatInclusion.UNSPECIFIED,
-            operands=(
-                AmountOperand(
-                    value=Decimal("120.00"),
-                    vat_amount=Decimal("20.00"),
-                    vat_rate=None,
-                    vat_inclusion=VatInclusion.UNSPECIFIED,
-                ),
-            ),
-            reference_operand=AmountOperand(
-                value=Decimal("100.00"),
-                vat_amount=Decimal("10.00"),
+        target_inclusion=VatInclusion.UNSPECIFIED,
+        operands=(
+            AmountOperand(
+                value=Decimal("120.00"),
+                vat_amount=Decimal("20.00"),
                 vat_rate=None,
-                vat_inclusion=VatInclusion.EXCLUDED,
+                vat_inclusion=VatInclusion.UNSPECIFIED,
             ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("100.00"),
+            vat_amount=Decimal("10.00"),
+            vat_rate=None,
+            vat_inclusion=VatInclusion.EXCLUDED,
         ),
     )
     assert comparison.vat_amount.status is ComparisonStatus.NOT_OK
@@ -877,22 +866,20 @@ def test_payment_compare_checks_amount_when_vat_amounts_are_missing():
         value=Decimal("120.00"),
         reference_value=Decimal("100.00"),
         difference=Decimal("20.00"),
-        normalized_context=NormalizedAmountContext(
-            target_inclusion=VatInclusion.EXCLUDED,
-            operands=(
-                AmountOperand(
-                    value=Decimal("120.00"),
-                    vat_amount=None,
-                    vat_rate=None,
-                    vat_inclusion=VatInclusion.EXCLUDED,
-                ),
-            ),
-            reference_operand=AmountOperand(
-                value=Decimal("100.00"),
+        target_inclusion=VatInclusion.EXCLUDED,
+        operands=(
+            AmountOperand(
+                value=Decimal("120.00"),
                 vat_amount=None,
                 vat_rate=None,
                 vat_inclusion=VatInclusion.EXCLUDED,
             ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("100.00"),
+            vat_amount=None,
+            vat_rate=None,
+            vat_inclusion=VatInclusion.EXCLUDED,
         ),
     )
     assert comparison.vat_amount.status is ComparisonStatus.UNKNOWN
@@ -972,28 +959,26 @@ def test_payment_list_compare_sum_preserves_operands_before_normalization():
         value=Decimal("240.00"),
         reference_value=Decimal("200.00"),
         difference=Decimal("40.00"),
-        normalized_context=NormalizedAmountContext(
-            target_inclusion=VatInclusion.INCLUDED,
-            operands=(
-                AmountOperand(
-                    value=Decimal("100.00"),
-                    vat_amount=None,
-                    vat_rate=Decimal("20.00"),
-                    vat_inclusion=VatInclusion.EXCLUDED,
-                ),
-                AmountOperand(
-                    value=Decimal("120.00"),
-                    vat_amount=None,
-                    vat_rate=Decimal("20.00"),
-                    vat_inclusion=VatInclusion.INCLUDED,
-                ),
+        target_inclusion=VatInclusion.INCLUDED,
+        operands=(
+            AmountOperand(
+                value=Decimal("100.00"),
+                vat_amount=None,
+                vat_rate=Decimal("20.00"),
+                vat_inclusion=VatInclusion.EXCLUDED,
             ),
-            reference_operand=AmountOperand(
-                value=Decimal("200.00"),
+            AmountOperand(
+                value=Decimal("120.00"),
                 vat_amount=None,
                 vat_rate=Decimal("20.00"),
                 vat_inclusion=VatInclusion.INCLUDED,
             ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("200.00"),
+            vat_amount=None,
+            vat_rate=Decimal("20.00"),
+            vat_inclusion=VatInclusion.INCLUDED,
         ),
     )
 
