@@ -19,9 +19,9 @@ from .amount_comparison import (
     PaymentComparison,
 )
 from .errors.checks import (
-    AmountDiscrepancyError,
     AmountNotFoundError,
     AmountNotPositiveError,
+    BaseAmountDiscrepancyError,
     BaseCheckError,
     PaymentAmountPercentDiscrepancyError,
     PaymentVatRatesDifferError,
@@ -30,7 +30,6 @@ from .errors.checks import (
     UpperBoundAmountError,
     UpperBoundVatAmountError,
     VatAmountCalculationDiscrepancyError,
-    VatAmountDiscrepancyError,
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
 )
@@ -147,10 +146,10 @@ class AmountRelation(StrEnum):
 
     def make_amount_error(
         self, value: Decimal, reference_value: Decimal
-    ) -> AmountDiscrepancyError | UpperBoundAmountError:
+    ) -> BaseAmountDiscrepancyError | UpperBoundAmountError:
         match self:
             case AmountRelation.EXACT:
-                return AmountDiscrepancyError(
+                return BaseAmountDiscrepancyError(
                     reference_value=reference_value,
                     value=value,
                     difference=abs(value - reference_value),
@@ -166,10 +165,10 @@ class AmountRelation(StrEnum):
 
     def make_vat_amount_error(
         self, value: Decimal, reference_value: Decimal
-    ) -> VatAmountDiscrepancyError | UpperBoundVatAmountError:
+    ) -> BaseAmountDiscrepancyError | UpperBoundVatAmountError:
         match self:
             case AmountRelation.EXACT:
-                return VatAmountDiscrepancyError(
+                return BaseAmountDiscrepancyError(
                     reference_value=reference_value,
                     value=value,
                     difference=abs(value - reference_value),
