@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, replace
 from decimal import Decimal
@@ -614,16 +613,7 @@ EMPTY_PAYMENT = Payment(
 
 
 @dataclass(kw_only=True, frozen=True)
-class TotalAmountBoundField(BaseTotalAmountField, ABC):
-    merge_registry = STRICT_REGISTRY
-
-    @abstractmethod
-    def compare(self, actual: Payment, tolerance: Decimal) -> list[BaseCheckError]:
-        pass
-
-
-@dataclass(kw_only=True, frozen=True)
-class TotalAmountUpperBoundField(TotalAmountBoundField):
+class TotalAmountUpperBoundField(BaseTotalAmountField):
     def compare(self, actual: Payment, tolerance: Decimal) -> list[BaseCheckError]:
         comparison = actual.compare(
             reference=self.value.total,
