@@ -479,6 +479,8 @@ def select_common_vat_inclusion(payments: list[Payment]) -> VatInclusion:
     if not numbered:
         return VatInclusion.UNSPECIFIED
     common = {p.include_vat for p in numbered}
+    if VatInclusion.UNSPECIFIED in common:
+        return VatInclusion.UNSPECIFIED
     if len(common) == 1:
         return common.pop()
     if all(p.amount_including_vat is not None for p in numbered):
