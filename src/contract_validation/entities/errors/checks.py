@@ -4,6 +4,7 @@ from typing import cast
 from warnings import deprecated
 
 from app.domain.entities.amount_comparison import AmountOperand
+from app.domain.entities.field_location import FieldLocation
 from app.domain.entities.vat_inclusion import VatInclusion
 
 from .base import BaseContractError
@@ -14,6 +15,17 @@ class BaseCheckError(BaseContractError):
     kind = "check"
 
 
+@dataclass(kw_only=True)
+class LocatedCheckError(BaseCheckError):
+    location: FieldLocation | None = None
+
+    def compare(self, error: BaseContractError) -> bool:
+        if not super().compare(error):
+            return False
+        other = cast("LocatedCheckError", error)
+        return self.location == other.location
+
+
 @dataclass
 class AmountNotFoundError(BaseCheckError):
     def _compare_same_type(self, error: BaseContractError) -> bool:
@@ -22,7 +34,7 @@ class AmountNotFoundError(BaseCheckError):
 
 
 @dataclass
-class AmountNotPositiveError(BaseCheckError):
+class AmountNotPositiveError(LocatedCheckError):
     value: Decimal
 
     def _compare_same_type(self, error: BaseContractError) -> bool:
@@ -31,7 +43,7 @@ class AmountNotPositiveError(BaseCheckError):
 
 
 @dataclass
-class VatAmountNotPositiveError(BaseCheckError):
+class VatAmountNotPositiveError(LocatedCheckError):
     value: Decimal
 
     def _compare_same_type(self, error: BaseContractError) -> bool:
@@ -229,7 +241,7 @@ class PositionsComplianceError(BaseCheckError):
 
 
 @dataclass
-class NumberTranscriptionError(BaseCheckError):
+class NumberTranscriptionError(LocatedCheckError):
     index: int
     value: Decimal
     transcription: str

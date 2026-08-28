@@ -1,4 +1,5 @@
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 
@@ -7,9 +8,12 @@ from app.domain.entities import (
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
+    FieldLocation,
     Money,
     Payment,
     PaymentList,
+    Source,
+    SourceHeader,
     Specification,
     SpecPosition,
     SpecPositionsField,
@@ -112,9 +116,30 @@ async def test_values_validation_rejects_zero_amounts() -> None:
 
     assert result.status is CheckStatus.FAILED
     assert result.errors == [
-        AmountNotPositiveError(value=Decimal(0)),
-        AmountNotPositiveError(value=Decimal(0)),
-        AmountNotPositiveError(value=Decimal(0)),
+        AmountNotPositiveError(
+            value=Decimal(0),
+            location=FieldLocation(
+                field_name="TotalAmountField",
+                path="value.total.amount.value",
+                sources=(),
+            ),
+        ),
+        AmountNotPositiveError(
+            value=Decimal(0),
+            location=FieldLocation(
+                field_name="SpecPositionsField",
+                path="value._positions[0].unit_price",
+                sources=(),
+            ),
+        ),
+        AmountNotPositiveError(
+            value=Decimal(0),
+            location=FieldLocation(
+                field_name="SpecPositionsField",
+                path="value._positions[0].total_price",
+                sources=(),
+            ),
+        ),
     ]
 
 
@@ -184,12 +209,85 @@ async def test_values_validation_collects_errors_from_all_models() -> None:
 
     assert result.status is CheckStatus.FAILED
     assert result.errors == [
-        AmountNotPositiveError(value=Decimal(0)),
+        AmountNotPositiveError(
+            value=Decimal(0),
+            location=FieldLocation(
+                field_name="TotalAmountField",
+                path="value.total.amount.value",
+                sources=(),
+            ),
+        ),
         VatRateNotPositiveError(value=Decimal(-1)),
-        VatAmountNotPositiveError(value=Decimal(-2)),
-        AmountNotPositiveError(value=Decimal(-3)),
+        VatAmountNotPositiveError(
+            value=Decimal(-2),
+            location=FieldLocation(
+                field_name="TotalAmountField",
+                path="value.total.vat.amount.value",
+                sources=(),
+            ),
+        ),
+        AmountNotPositiveError(
+            value=Decimal(-3),
+            location=FieldLocation(
+                field_name="AdvancePaymentsField",
+                path="value._payments[0].amount.value",
+                sources=(),
+            ),
+        ),
         VatRateNotPositiveError(value=Decimal(-4)),
-        VatAmountNotPositiveError(value=Decimal(-5)),
-        AmountNotPositiveError(value=Decimal(-6)),
-        AmountNotPositiveError(value=Decimal(-7)),
+        VatAmountNotPositiveError(
+            value=Decimal(-5),
+            location=FieldLocation(
+                field_name="AdvancePaymentsField",
+                path="value._payments[0].vat.amount.value",
+                sources=(),
+            ),
+        ),
+        AmountNotPositiveError(
+            value=Decimal(-6),
+            location=FieldLocation(
+                field_name="SpecPositionsField",
+                path="value._positions[0].unit_price",
+                sources=(),
+            ),
+        ),
+        AmountNotPositiveError(
+            value=Decimal(-7),
+            location=FieldLocation(
+                field_name="SpecPositionsField",
+                path="value._positions[0].total_price",
+                sources=(),
+            ),
+        ),
     ]
+
+
+async def test_values_validation_identifies_payments_with_different_vat_rates() -> None:
+    field_source = Source(document_id=uuid4(), header=SourceHeader.BODY)
+    total_amount_field = TotalAmountField(
+        value=TotalAmount(
+            total=_make_payment(amount="100"),
+            taxes=PaymentList(
+                [
+                    _make_payment(amount="-20", vat_amount="-4", vat_rate="20"),
+                    _make_payment(amount="-10", vat_amount="-1", vat_rate="10"),
+                ]
+            ),
+        ),
+        sources=[field_source],
+    )
+    check = CheckValuesValidation()
+    check.prepare([total_amount_field])
+
+    result = await check.execute()
+
+    assert [error.location.full_path for error in result.errors if error.location] == [
+        "TotalAmountField.value.taxes._payments[0].amount.value",
+        "TotalAmountField.value.taxes._payments[0].vat.amount.value",
+        "TotalAmountField.value.taxes._payments[1].amount.value",
+        "TotalAmountField.value.taxes._payments[1].vat.amount.value",
+    ]
+    assert all(
+        error.location is not None and error.location.sources == (field_source,)
+        for error in result.errors
+    )

@@ -29,6 +29,7 @@ from .errors.checks import (
     VatRateNotPositiveError,
 )
 from .field import BaseField
+from .field_location import FieldLocation
 from .vat_inclusion import VatInclusion
 
 
@@ -49,13 +50,6 @@ class Money:
             return True
         return bool(self.transcription is not None and self.transcription.strip() != "")
 
-    def validate_positivity(self) -> list[BaseCheckError]:
-        if self.value is None:
-            return []
-        if self.value <= 0:
-            return [AmountNotPositiveError(value=self.value)]
-        return []
-
     def __add__(self, other: Money) -> Money:
         if self.value is None:
             value = other.value
@@ -73,6 +67,25 @@ class Money:
         return Money(value=value, transcription=None)
 
 
+@dataclass(frozen=True, slots=True)
+class LocatedAmount:
+    money: Money
+    location: FieldLocation
+    is_vat_amount: bool = False
+
+    def validate_positivity(self) -> list[BaseCheckError]:
+        value = self.money.value
+        if value is None:
+            return []
+        if self.is_vat_amount:
+            if value >= 0:
+                return []
+            return [VatAmountNotPositiveError(value=value, location=self.location)]
+        if value > 0:
+            return []
+        return [AmountNotPositiveError(value=value, location=self.location)]
+
+
 @dataclass(kw_only=True, frozen=True)
 class Vat:
     amount: Money | None
@@ -87,14 +100,10 @@ class Vat:
             return True
         return self.rate is not None
 
-    def validate_positivity(self) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
+    def validate_rate_positivity(self) -> list[BaseCheckError]:
         if self.rate is not None and self.rate < 0:
-            errors.append(VatRateNotPositiveError(value=self.rate))
-        amount = self.amount_value
-        if amount is not None and amount < 0:
-            errors.append(VatAmountNotPositiveError(value=amount))
-        return errors
+            return [VatRateNotPositiveError(value=self.rate)]
+        return []
 
     def __add__(self, other: Vat) -> Vat:
         if self.amount is None:
@@ -161,14 +170,6 @@ class Payment:
             and self.vat_amount_value is not None
             and self.vat_rate is not None
         )
-
-    def validate_positivity(self) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
-        if self.amount is not None:
-            errors.extend(self.amount.validate_positivity())
-        if self.vat is not None:
-            errors.extend(self.vat.validate_positivity())
-        return errors
 
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
         expected = self.expected_vat_amount
@@ -430,6 +431,43 @@ class Payment:
         return all(abs(amount - amounts[0]) <= tolerance for amount in amounts[1:])
 
 
+def _located_payment_amounts[T](
+    field: BaseField[T], payment: Payment, *, path: str
+) -> list[LocatedAmount]:
+    amounts: list[LocatedAmount] = []
+    if (amount := payment.amount) is not None and amount.value is not None:
+        amounts.append(
+            LocatedAmount(
+                money=amount,
+                location=field.location(f"{path}.amount.value"),
+            )
+        )
+    if (vat_amount := payment.vat.amount) is not None and vat_amount.value is not None:
+        amounts.append(
+            LocatedAmount(
+                money=vat_amount,
+                location=field.location(f"{path}.vat.amount.value"),
+                is_vat_amount=True,
+            )
+        )
+    return amounts
+
+
+def _validate_positivity[T](
+    field: BaseField[T], payment: Payment, *, path: str
+) -> list[BaseCheckError]:
+    amounts = _located_payment_amounts(field, payment, path=path)
+    errors: list[BaseCheckError] = []
+    for amount in amounts:
+        if not amount.is_vat_amount:
+            errors.extend(amount.validate_positivity())
+    errors.extend(payment.vat.validate_rate_positivity())
+    for amount in amounts:
+        if amount.is_vat_amount:
+            errors.extend(amount.validate_positivity())
+    return errors
+
+
 def select_common_vat_inclusion(payments: list[Payment]) -> VatInclusion:
     numbered = [p for p in payments if p.amount_value is not None]
     if not numbered:
@@ -459,12 +497,6 @@ class PaymentList:
 
     def has_vat_calculation_data(self) -> bool:
         return any(payment.has_vat_calculation_data() for payment in self._payments)
-
-    def validate_positivity(self) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
-        for payment in self._payments:
-            errors.extend(payment.validate_positivity())
-        return errors
 
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
@@ -561,12 +593,6 @@ class TotalAmount:
             or self.taxes.has_vat_calculation_data()
         )
 
-    def validate_positivity(self) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
-        errors.extend(self.total.validate_positivity())
-        errors.extend(self.taxes.validate_positivity())
-        return errors
-
     def validate_presence(self) -> list[BaseCheckError]:
         if self.total.amount_value is None:
             return [AmountNotFoundError()]
@@ -590,7 +616,36 @@ class TotalAmountField(BaseField[TotalAmount]):
         return self.value.has_data()
 
     def validate_positivity(self) -> list[BaseCheckError]:
-        return self.value.validate_positivity()
+        errors = _validate_positivity(
+            self,
+            self.value.total,
+            path="value.total",
+        )
+        for index, payment in enumerate(self.value.taxes):
+            errors.extend(
+                _validate_positivity(
+                    self,
+                    payment,
+                    path=f"value.taxes._payments[{index}]",
+                )
+            )
+        return errors
+
+    def located_amounts(self) -> list[LocatedAmount]:
+        amounts = _located_payment_amounts(
+            self,
+            self.value.total,
+            path="value.total",
+        )
+        for index, payment in enumerate(self.value.taxes):
+            amounts.extend(
+                _located_payment_amounts(
+                    self,
+                    payment,
+                    path=f"value.taxes._payments[{index}]",
+                )
+            )
+        return amounts
 
     def validate_presence(self) -> list[BaseCheckError]:
         return self.value.validate_presence()
@@ -677,9 +732,27 @@ class AdvancePaymentsField(BaseField[AdvancePaymentList]):
 
     def validate_positivity(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
-        for advance_payment in self.value:
-            errors.extend(advance_payment.validate_positivity())
+        for index, payment in enumerate(self.value):
+            errors.extend(
+                _validate_positivity(
+                    self,
+                    payment,
+                    path=f"value._payments[{index}]",
+                )
+            )
         return errors
+
+    def located_amounts(self) -> list[LocatedAmount]:
+        amounts: list[LocatedAmount] = []
+        for index, payment in enumerate(self.value):
+            amounts.extend(
+                _located_payment_amounts(
+                    self,
+                    payment,
+                    path=f"value._payments[{index}]",
+                )
+            )
+        return amounts
 
     def numeric_moneys(self) -> list[Money]:
         return self.value.numeric_moneys()
@@ -701,13 +774,6 @@ class SpecPosition:
             or self.unit_price is not None
             or self.total_price is not None
         )
-
-    def validate_positivity(self) -> list[BaseCheckError]:
-        return [
-            AmountNotPositiveError(value=value)
-            for value in (self.unit_price, self.total_price)
-            if value is not None and value <= 0
-        ]
 
     def validate_cost_calculation(
         self, *, index: int, tolerance: Decimal
@@ -799,9 +865,36 @@ class SpecPositionsField(BaseField[Specification]):
 
     def validate_positivity(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
-        for position in self.value:
-            errors.extend(position.validate_positivity())
+        for amount in self.located_amounts():
+            errors.extend(amount.validate_positivity())
         return errors
+
+    def located_amounts(self) -> list[LocatedAmount]:
+        amounts: list[LocatedAmount] = []
+        for index, position in enumerate(self.value):
+            if position.unit_price is not None:
+                amounts.append(
+                    LocatedAmount(
+                        money=Money(
+                            value=position.unit_price,
+                            transcription=None,
+                        ),
+                        location=self.location(f"value._positions[{index}].unit_price"),
+                    )
+                )
+            if position.total_price is not None:
+                amounts.append(
+                    LocatedAmount(
+                        money=Money(
+                            value=position.total_price,
+                            transcription=None,
+                        ),
+                        location=self.location(
+                            f"value._positions[{index}].total_price"
+                        ),
+                    )
+                )
+        return amounts
 
 
 @dataclass(kw_only=True, frozen=True)
