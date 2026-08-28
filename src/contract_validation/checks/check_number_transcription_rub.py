@@ -46,9 +46,7 @@ class CheckNumberTranscriptionRub(BaseCheck):
             *advance_payments_fields,
         ]
         extracted_amounts = [
-            amount
-            for field in fields
-            for amount in field.located_amounts()
+            amount for field in fields for amount in field.located_amounts()
         ]
         checkable_amounts = self._amounts_with_transcription(extracted_amounts)
         if not checkable_amounts:
