@@ -5,24 +5,31 @@ from app.domain.entities import (
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
+    AmountDiscrepancy,
+    AmountOperand,
+    ComparisonStatus,
+    FieldLocation,
     Money,
+    NormalizedAmountDiscrepancy,
     Payment,
     PaymentList,
     Specification,
     SpecPosition,
     SpecPositionsField,
     TotalAmount,
+    TotalAmountField,
     Vat,
     VatInclusion,
 )
 from app.domain.entities.errors.checks import (
-    AmountDiscrepancyError,
     AmountNotPositiveError,
-    VatAmountDiscrepancyError,
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
 )
-from app.domain.entities.single_supplier_fields import select_common_vat_inclusion
+from app.domain.entities.single_supplier_fields import (
+    LocatedAmount,
+    select_common_vat_inclusion,
+)
 
 
 def make_payment(
@@ -532,16 +539,6 @@ def test_advance_payment_has_no_amounts_when_only_percent_present():
     assert not advance.numeric_moneys()
 
 
-def test_advance_payment_validate_collects_total_errors():
-    advance = make_advance(total=make_payment(amount="-100.00", rate="-20.00"))
-
-    errors = advance.validate_positivity()
-
-    assert len(errors) == 2  # noqa: PLR2004
-    assert any(isinstance(error, AmountNotPositiveError) for error in errors)
-    assert any(isinstance(error, VatRateNotPositiveError) for error in errors)
-
-
 def test_advance_payments_field_validate_collects_all_advance_errors():
     field = AdvancePaymentsField(
         value=AdvancePaymentList(
@@ -560,46 +557,77 @@ def test_advance_payments_field_validate_collects_all_advance_errors():
     assert any(isinstance(error, VatRateNotPositiveError) for error in errors)
 
 
-# ---------- Money ----------
+# ---------- LocatedAmount ----------
 
 
-def test_money_is_correct_accepts_positive_value():
-    money = Money(value=Decimal(100), transcription=None)
+def test_located_amount_validate_positivity_accepts_positive_value():
+    amount = LocatedAmount(
+        money=Money(value=Decimal(100), transcription=None),
+        location=FieldLocation(field_name="Test", path="value", sources=()),
+    )
 
-    assert money.validate_positivity() == []
-
-
-def test_money_is_correct_rejects_zero_by_default():
-    money = Money(value=Decimal(0), transcription=None)
-
-    errors = money.validate_positivity()
-
-    assert len(errors) == 1
-    assert isinstance(errors[0], AmountNotPositiveError)
+    assert amount.validate_positivity() == []
 
 
-def test_money_is_correct_rejects_negative():
-    money = Money(value=Decimal(-1), transcription=None)
+def test_located_amount_validate_positivity_rejects_zero():
+    location = FieldLocation(field_name="Test", path="value", sources=())
+    amount = LocatedAmount(
+        money=Money(value=Decimal(0), transcription=None),
+        location=location,
+    )
 
-    errors = money.validate_positivity()
+    assert amount.validate_positivity() == [
+        AmountNotPositiveError(value=Decimal(0), location=location),
+    ]
 
-    assert len(errors) == 1
-    assert isinstance(errors[0], AmountNotPositiveError)
+
+def test_located_amount_validate_positivity_rejects_negative():
+    location = FieldLocation(field_name="Test", path="value", sources=())
+    amount = LocatedAmount(
+        money=Money(value=Decimal(-1), transcription=None),
+        location=location,
+    )
+
+    assert amount.validate_positivity() == [
+        AmountNotPositiveError(value=Decimal(-1), location=location),
+    ]
+
+
+def test_located_amount_validate_positivity_accepts_zero_vat_amount():
+    amount = LocatedAmount(
+        money=Money(value=Decimal(0), transcription=None),
+        location=FieldLocation(field_name="Test", path="value", sources=()),
+        is_vat_amount=True,
+    )
+
+    assert amount.validate_positivity() == []
+
+
+def test_located_amount_validate_positivity_rejects_negative_vat_amount():
+    location = FieldLocation(field_name="Test", path="value", sources=())
+    amount = LocatedAmount(
+        money=Money(value=Decimal(-1), transcription=None),
+        location=location,
+        is_vat_amount=True,
+    )
+
+    assert amount.validate_positivity() == [
+        VatAmountNotPositiveError(value=Decimal(-1), location=location),
+    ]
 
 
 # ---------- Vat ----------
 
 
-def test_vat_is_correct_returns_rate_and_amount_errors():
+def test_vat_validate_rate_positivity_rejects_negative_rate():
     vat = Vat(
         amount=Money(value=Decimal(-10), transcription=None),
         rate=Decimal(-20),
     )
 
-    errors = vat.validate_positivity()
+    errors = vat.validate_rate_positivity()
 
-    assert any(isinstance(e, VatRateNotPositiveError) for e in errors)
-    assert any(isinstance(e, VatAmountNotPositiveError) for e in errors)
+    assert errors == [VatRateNotPositiveError(value=Decimal(-20))]
 
 
 # ---------- Payment ----------
@@ -609,39 +637,72 @@ def test_payment_compare_returns_no_errors_when_values_match():
     value = make_payment(amount="100.00", vat_amount="20.00")
     reference = make_payment(amount="100.00", vat_amount="20.00")
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
 
-    assert errors == []
+    assert comparison.amount.status is ComparisonStatus.OK
+    assert comparison.amount.discrepancy is None
+    assert comparison.vat_amount.status is ComparisonStatus.OK
+    assert comparison.vat_amount.discrepancy is None
 
 
 def test_payment_compare_returns_amount_discrepancy():
     value = make_payment(amount="120.00")
     reference = make_payment(amount="100.00")
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
 
-    assert errors == [
-        AmountDiscrepancyError(
-            value=Decimal("120.00"),
-            reference_value=Decimal("100.00"),
-            difference=Decimal("20.00"),
-        )
-    ]
+    assert comparison.amount.status is ComparisonStatus.NOT_OK
+    assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
+        value=Decimal("120.00"),
+        reference_value=Decimal("100.00"),
+        difference=Decimal("20.00"),
+        target_inclusion=VatInclusion.EXCLUDED,
+        operands=(
+            AmountOperand(
+                value=Decimal("120.00"),
+                vat_amount=None,
+                vat_rate=None,
+                vat_inclusion=VatInclusion.EXCLUDED,
+            ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("100.00"),
+            vat_amount=None,
+            vat_rate=None,
+            vat_inclusion=VatInclusion.EXCLUDED,
+        ),
+    )
+    assert comparison.vat_amount.status is ComparisonStatus.UNKNOWN
 
 
 def test_payment_compare_returns_positive_difference_when_value_is_smaller():
     value = make_payment(amount="100.00")
     reference = make_payment(amount="120.00")
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
 
-    assert errors == [
-        AmountDiscrepancyError(
-            value=Decimal("100.00"),
-            reference_value=Decimal("120.00"),
-            difference=Decimal("20.00"),
-        )
-    ]
+    assert comparison.amount.status is ComparisonStatus.NOT_OK
+    assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
+        value=Decimal("100.00"),
+        reference_value=Decimal("120.00"),
+        difference=Decimal("20.00"),
+        target_inclusion=VatInclusion.EXCLUDED,
+        operands=(
+            AmountOperand(
+                value=Decimal("100.00"),
+                vat_amount=None,
+                vat_rate=None,
+                vat_inclusion=VatInclusion.EXCLUDED,
+            ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("120.00"),
+            vat_amount=None,
+            vat_rate=None,
+            vat_inclusion=VatInclusion.EXCLUDED,
+        ),
+    )
+    assert comparison.vat_amount.status is ComparisonStatus.UNKNOWN
 
 
 def test_payment_compare_uses_normalized_amounts_in_error():
@@ -656,15 +717,67 @@ def test_payment_compare_uses_normalized_amounts_in_error():
         include_vat=VatInclusion.INCLUDED,
     )
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
 
-    assert errors == [
-        AmountDiscrepancyError(
-            value=Decimal("144.00"),
-            reference_value=Decimal("120.00"),
-            difference=Decimal("24.00"),
-        )
-    ]
+    assert comparison.amount.status is ComparisonStatus.NOT_OK
+    assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
+        value=Decimal("144.00"),
+        reference_value=Decimal("120.00"),
+        difference=Decimal("24.00"),
+        target_inclusion=VatInclusion.INCLUDED,
+        operands=(
+            AmountOperand(
+                value=Decimal("120.00"),
+                vat_amount=None,
+                vat_rate=Decimal("20.00"),
+                vat_inclusion=VatInclusion.EXCLUDED,
+            ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("120.00"),
+            vat_amount=None,
+            vat_rate=Decimal("20.00"),
+            vat_inclusion=VatInclusion.INCLUDED,
+        ),
+    )
+    assert comparison.vat_amount.status is ComparisonStatus.UNKNOWN
+
+
+def test_payment_compare_preserves_vat_amount_used_for_normalization():
+    value = make_payment(
+        amount="120.00",
+        vat_amount="24.00",
+        include_vat=VatInclusion.EXCLUDED,
+    )
+    reference = make_payment(
+        amount="120.00",
+        vat_amount="20.00",
+        include_vat=VatInclusion.INCLUDED,
+    )
+
+    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
+
+    assert comparison.amount.status is ComparisonStatus.NOT_OK
+    assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
+        value=Decimal("144.00"),
+        reference_value=Decimal("120.00"),
+        difference=Decimal("24.00"),
+        target_inclusion=VatInclusion.INCLUDED,
+        operands=(
+            AmountOperand(
+                value=Decimal("120.00"),
+                vat_amount=Decimal("24.00"),
+                vat_rate=None,
+                vat_inclusion=VatInclusion.EXCLUDED,
+            ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("120.00"),
+            vat_amount=Decimal("20.00"),
+            vat_rate=None,
+            vat_inclusion=VatInclusion.INCLUDED,
+        ),
+    )
 
 
 def test_payment_compare_falls_back_to_raw_amounts_without_common_basis():
@@ -679,126 +792,190 @@ def test_payment_compare_falls_back_to_raw_amounts_without_common_basis():
         include_vat=VatInclusion.EXCLUDED,
     )
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
 
-    assert errors == [
-        AmountDiscrepancyError(
-            value=Decimal("120.00"),
-            reference_value=Decimal("100.00"),
-            difference=Decimal("20.00"),
+    assert comparison.amount.status is ComparisonStatus.NOT_OK
+    assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
+        value=Decimal("120.00"),
+        reference_value=Decimal("100.00"),
+        difference=Decimal("20.00"),
+        target_inclusion=VatInclusion.MIXED,
+        operands=(
+            AmountOperand(
+                value=Decimal("120.00"),
+                vat_amount=Decimal("20.00"),
+                vat_rate=None,
+                vat_inclusion=VatInclusion.UNSPECIFIED,
+            ),
         ),
-        VatAmountDiscrepancyError(
-            value=Decimal("20.00"),
-            reference_value=Decimal("10.00"),
-            difference=Decimal("10.00"),
+        reference_operand=AmountOperand(
+            value=Decimal("100.00"),
+            vat_amount=Decimal("10.00"),
+            vat_rate=None,
+            vat_inclusion=VatInclusion.EXCLUDED,
         ),
-    ]
+    )
+    assert comparison.vat_amount.status is ComparisonStatus.NOT_OK
+    assert comparison.vat_amount.discrepancy == AmountDiscrepancy(
+        value=Decimal("20.00"),
+        reference_value=Decimal("10.00"),
+        difference=Decimal("10.00"),
+    )
 
 
 def test_payment_compare_checks_vat_when_amounts_are_missing():
     value = make_payment(amount=None, vat_amount="10.00")
     reference = make_payment(amount=None, vat_amount="20.00")
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
 
-    assert errors == [
-        VatAmountDiscrepancyError(
-            value=Decimal("10.00"),
-            reference_value=Decimal("20.00"),
-            difference=Decimal("10.00"),
-        )
-    ]
+    assert comparison.amount.status is ComparisonStatus.UNKNOWN
+    assert comparison.amount.discrepancy is None
+    assert comparison.vat_amount.status is ComparisonStatus.NOT_OK
+    assert comparison.vat_amount.discrepancy == AmountDiscrepancy(
+        value=Decimal("10.00"),
+        reference_value=Decimal("20.00"),
+        difference=Decimal("10.00"),
+    )
 
 
 def test_payment_compare_checks_amount_when_vat_amounts_are_missing():
     value = make_payment(amount="120.00", vat_amount=None)
     reference = make_payment(amount="100.00", vat_amount=None)
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
 
-    assert errors == [
-        AmountDiscrepancyError(
-            value=Decimal("120.00"),
-            reference_value=Decimal("100.00"),
-            difference=Decimal("20.00"),
-        )
-    ]
+    assert comparison.amount.status is ComparisonStatus.NOT_OK
+    assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
+        value=Decimal("120.00"),
+        reference_value=Decimal("100.00"),
+        difference=Decimal("20.00"),
+        target_inclusion=VatInclusion.EXCLUDED,
+        operands=(
+            AmountOperand(
+                value=Decimal("120.00"),
+                vat_amount=None,
+                vat_rate=None,
+                vat_inclusion=VatInclusion.EXCLUDED,
+            ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("100.00"),
+            vat_amount=None,
+            vat_rate=None,
+            vat_inclusion=VatInclusion.EXCLUDED,
+        ),
+    )
+    assert comparison.vat_amount.status is ComparisonStatus.UNKNOWN
 
 
 def test_payment_compare_allows_difference_equal_to_tolerance():
     value = make_payment(amount="101.00", vat_amount="21.00")
     reference = make_payment(amount="100.00", vat_amount="20.00")
 
-    errors = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
 
-    assert errors == []
-
-
-def test_payment_is_correct_collects_errors_from_amount_and_vat():
-    payment = Payment(
-        amount=Money(value=Decimal(-100), transcription=None),
-        vat=Vat(
-            amount=Money(value=Decimal(-20), transcription=None),
-            rate=Decimal(-20),
-        ),
-        include_vat=VatInclusion.INCLUDED,
-    )
-
-    errors = payment.validate_positivity()
-
-    assert len(errors) == 3  # noqa: PLR2004
-    assert sum(isinstance(e, AmountNotPositiveError) for e in errors) == 1
-    assert sum(isinstance(e, VatAmountNotPositiveError) for e in errors) == 1
-    assert sum(isinstance(e, VatRateNotPositiveError) for e in errors) == 1
+    assert comparison.amount.status is ComparisonStatus.OK
+    assert comparison.amount.discrepancy is None
+    assert comparison.vat_amount.status is ComparisonStatus.OK
+    assert comparison.vat_amount.discrepancy is None
 
 
 # ---------- PaymentList ----------
 
 
-def test_payment_list_is_correct_collects_errors_from_all_payments():
+def test_payment_list_compare_sum_returns_unknown_when_empty():
+    reference = make_payment(amount="100.00")
+
+    comparison = PaymentList([]).compare_sum(reference, tolerance=Decimal("1.00"))
+
+    assert comparison.amount.status is ComparisonStatus.UNKNOWN
+    assert comparison.vat_amount.status is ComparisonStatus.UNKNOWN
+
+
+def test_payment_list_compare_sum_preserves_operands_before_normalization():
     payment_list = PaymentList(
         [
-            make_payment(amount="100"),
-            Payment(
-                amount=Money(value=Decimal(-1), transcription=None),
-                vat=Vat(amount=None, rate=Decimal(-20)),
+            make_payment(
+                amount="100.00",
+                rate="20.00",
                 include_vat=VatInclusion.EXCLUDED,
+            ),
+            make_payment(
+                amount="120.00",
+                rate="20.00",
+                include_vat=VatInclusion.INCLUDED,
             ),
         ]
     )
+    reference = make_payment(
+        amount="200.00",
+        rate="20.00",
+        include_vat=VatInclusion.INCLUDED,
+    )
 
-    errors = payment_list.validate_positivity()
+    comparison = payment_list.compare_sum(reference, tolerance=Decimal("1.00"))
 
-    assert len(errors) == 2  # noqa: PLR2004
+    assert comparison.amount.status is ComparisonStatus.NOT_OK
+    assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
+        value=Decimal("240.00"),
+        reference_value=Decimal("200.00"),
+        difference=Decimal("40.00"),
+        target_inclusion=VatInclusion.INCLUDED,
+        operands=(
+            AmountOperand(
+                value=Decimal("100.00"),
+                vat_amount=None,
+                vat_rate=Decimal("20.00"),
+                vat_inclusion=VatInclusion.EXCLUDED,
+            ),
+            AmountOperand(
+                value=Decimal("120.00"),
+                vat_amount=None,
+                vat_rate=Decimal("20.00"),
+                vat_inclusion=VatInclusion.INCLUDED,
+            ),
+        ),
+        reference_operand=AmountOperand(
+            value=Decimal("200.00"),
+            vat_amount=None,
+            vat_rate=Decimal("20.00"),
+            vat_inclusion=VatInclusion.INCLUDED,
+        ),
+    )
 
 
 # ---------- TotalAmount ----------
 
 
-def test_total_amount_is_correct_collects_errors_from_total_and_taxes():
-    total = TotalAmount(
-        total=Payment(
-            amount=Money(value=Decimal(-100), transcription=None),
-            vat=Vat(amount=None, rate=None),
-            include_vat=VatInclusion.EXCLUDED,
+def test_total_amount_field_validate_positivity_collects_errors_from_total_and_taxes():
+    field = TotalAmountField(
+        value=TotalAmount(
+            total=make_payment(amount="-100.00"),
+            taxes=PaymentList([make_payment(vat_amount="-20.00", rate="-20.00")]),
         ),
-        taxes=PaymentList(
-            [
-                Payment(
-                    amount=None,
-                    vat=Vat(
-                        amount=Money(value=Decimal(-20), transcription=None),
-                        rate=Decimal(-20),
-                    ),
-                    include_vat=VatInclusion.INCLUDED,
-                )
-            ]
-        ),
+        sources=[],
     )
 
-    errors = total.validate_positivity()
-
-    assert len(errors) == 3  # noqa: PLR2004
+    assert field.validate_positivity() == [
+        AmountNotPositiveError(
+            value=Decimal("-100.00"),
+            location=FieldLocation(
+                field_name="TotalAmountField",
+                path="value.total.amount.value",
+                sources=(),
+            ),
+        ),
+        VatRateNotPositiveError(value=Decimal("-20.00")),
+        VatAmountNotPositiveError(
+            value=Decimal("-20.00"),
+            location=FieldLocation(
+                field_name="TotalAmountField",
+                path="value.taxes._payments[0].vat.amount.value",
+                sources=(),
+            ),
+        ),
+    ]
 
 
 def test_total_amount_moneys_returns_total_and_tax_moneys():
@@ -819,33 +996,6 @@ def test_total_amount_moneys_returns_total_and_tax_moneys():
 
 
 # ---------- SpecPosition ----------
-
-
-def test_spec_position_validate_rejects_non_positive_amount_values():
-    position = SpecPosition(
-        name="Position",
-        quantity=Decimal(0),
-        unit_price=Decimal(-10),
-        total_price=Decimal(-20),
-        unit_of_measurement="piece",
-    )
-
-    assert position.validate_positivity() == [
-        AmountNotPositiveError(value=Decimal(-10)),
-        AmountNotPositiveError(value=Decimal(-20)),
-    ]
-
-
-def test_spec_position_validate_does_not_validate_quantity():
-    position = SpecPosition(
-        name="Position",
-        quantity=Decimal(-1),
-        unit_price=Decimal(10),
-        total_price=Decimal(20),
-        unit_of_measurement="piece",
-    )
-
-    assert position.validate_positivity() == []
 
 
 def test_spec_positions_field_validate_collects_errors_from_all_positions():
@@ -872,5 +1022,12 @@ def test_spec_positions_field_validate_collects_errors_from_all_positions():
     )
 
     assert field.validate_positivity() == [
-        AmountNotPositiveError(value=Decimal(0)),
+        AmountNotPositiveError(
+            value=Decimal(0),
+            location=FieldLocation(
+                field_name="SpecPositionsField",
+                path="value._positions[1].total_price",
+                sources=(),
+            ),
+        ),
     ]

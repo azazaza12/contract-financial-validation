@@ -10,6 +10,7 @@ from app.domain.entities import (
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
+    AmountOperand,
     Money,
     Payment,
     PaymentList,
@@ -19,8 +20,10 @@ from app.domain.entities import (
     VatInclusion,
 )
 from app.domain.entities.errors import (
-    AmountDiscrepancyError,
-    VatAmountDiscrepancyError,
+    AdvanceAmountDiscrepancyError,
+    AdvanceVatAmountDiscrepancyError,
+    TaxesAmountDiscrepancyError,
+    TaxesVatAmountDiscrepancyError,
 )
 from app.domain.entities.validation import CheckStatus
 
@@ -142,7 +145,7 @@ async def test_total_amounts_fails_when_total_and_taxes_differ() -> None:
     )
 
     assert result.status == CheckStatus.FAILED
-    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
+    assert any(isinstance(err, TaxesAmountDiscrepancyError) for err in result.errors)
 
 
 async def test_total_amounts_skips_none_amounts_without_crash() -> None:
@@ -175,7 +178,7 @@ async def test_total_amounts_fails_when_tolerance_exceeded() -> None:
     )
 
     assert result.status == CheckStatus.FAILED
-    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
+    assert any(isinstance(err, TaxesAmountDiscrepancyError) for err in result.errors)
 
 
 async def test_total_amounts_succeeds_with_only_total_amount() -> None:
@@ -295,7 +298,7 @@ async def test_advance_with_only_total_differs_from_contract_fails() -> None:
         ],
     )
     assert result.status == CheckStatus.FAILED
-    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
+    assert any(isinstance(err, AdvanceAmountDiscrepancyError) for err in result.errors)
 
 
 # --- taxes с частичными None суммами ---
@@ -324,7 +327,8 @@ async def test_errors_collected_from_multiple_sources() -> None:
     )
     assert result.status == CheckStatus.FAILED
     assert len(result.errors) == TWO_ERRORS
-    assert all(isinstance(err, AmountDiscrepancyError) for err in result.errors)
+    assert any(isinstance(err, TaxesAmountDiscrepancyError) for err in result.errors)
+    assert any(isinstance(err, AdvanceAmountDiscrepancyError) for err in result.errors)
 
 
 async def test_total_amounts_compares_total_and_taxes_vat_amounts() -> None:
@@ -335,7 +339,7 @@ async def test_total_amounts_compares_total_and_taxes_vat_amounts() -> None:
 
     assert result.status is CheckStatus.FAILED
     assert result.errors == [
-        VatAmountDiscrepancyError(
+        TaxesVatAmountDiscrepancyError(
             value=Decimal("10.00"),
             reference_value=Decimal("20.00"),
             difference=Decimal("10.00"),
@@ -388,7 +392,7 @@ async def test_total_amounts_detects_advance_total_vat_discrepancy() -> None:
 
     assert result.status is CheckStatus.FAILED
     assert result.errors == [
-        VatAmountDiscrepancyError(
+        AdvanceVatAmountDiscrepancyError(
             value=Decimal("10.00"),
             reference_value=Decimal("20.00"),
             difference=Decimal("10.00"),
@@ -472,10 +476,25 @@ async def test_total_amounts_falls_back_to_raw_amounts_without_common_basis() ->
 
     assert result.status is CheckStatus.FAILED
     assert result.errors == [
-        AmountDiscrepancyError(
+        TaxesAmountDiscrepancyError(
             value=Decimal("120.00"),
             reference_value=Decimal("100.00"),
             difference=Decimal("20.00"),
+            target_inclusion=VatInclusion.MIXED,
+            operands=(
+                AmountOperand(
+                    value=Decimal("120.00"),
+                    vat_amount=None,
+                    vat_rate=None,
+                    vat_inclusion=VatInclusion.INCLUDED,
+                ),
+            ),
+            reference_operand=AmountOperand(
+                value=Decimal("100.00"),
+                vat_amount=None,
+                vat_rate=None,
+                vat_inclusion=VatInclusion.EXCLUDED,
+            ),
         )
     ]
 
@@ -521,7 +540,30 @@ async def test_total_amounts_fails_when_grossed_amounts_differ() -> None:
     result = await check.execute()
 
     assert result.status == CheckStatus.FAILED
-    assert any(isinstance(err, AmountDiscrepancyError) for err in result.errors)
+    # total = 120.00 "в т.ч. НДС" (брутто), taxes = 120.00 "без НДС" (нетто);
+    # на общей базе INCLUDED это 120.00 vs 144.00, а не 120.00 vs 120.00
+    assert result.errors == [
+        TaxesAmountDiscrepancyError(
+            value=Decimal("144.00"),
+            reference_value=Decimal("120.00"),
+            difference=Decimal("24.00"),
+            target_inclusion=VatInclusion.INCLUDED,
+            operands=(
+                AmountOperand(
+                    value=Decimal("120.00"),
+                    vat_amount=None,
+                    vat_rate=Decimal("20.00"),
+                    vat_inclusion=VatInclusion.EXCLUDED,
+                ),
+            ),
+            reference_operand=AmountOperand(
+                value=Decimal("120.00"),
+                vat_amount=None,
+                vat_rate=Decimal("20.00"),
+                vat_inclusion=VatInclusion.INCLUDED,
+            ),
+        )
+    ]
 
 
 async def test_total_amounts_uses_excluding_vat_when_gross_unavailable() -> None:
