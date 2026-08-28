@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, ClassVar, Self
 
 from app.domain.merge.defaults import DEFAULT_REGISTRY
 
+from .field_location import FieldLocation
 from .merge_types import Source, ValueCandidate
 
 
@@ -22,6 +23,13 @@ class BaseField[T]:
     value: T
     sources: list[Source]
     is_correct: bool = True
+
+    def location(self, path: str) -> FieldLocation:
+        return FieldLocation(
+            field_name=type(self).__name__,
+            path=path,
+            sources=tuple(self.sources),
+        )
 
     @classmethod
     def solve_collision(
