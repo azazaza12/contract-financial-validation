@@ -1,33 +1,36 @@
 from collections.abc import Iterator, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
-from enum import StrEnum
 from functools import reduce
+from typing import cast
 
 from app.domain.merge.defaults import STRICT_REGISTRY
 from app.domain.merge.handlers import merge_advance_payment, merge_payment
 from app.domain.ports.nomenclature_classifier import NomenclatureArticle
 
+from .amount_comparison import (
+    AmountDiscrepancy,
+    AmountOperand,
+    ComparisonResult,
+    ComparisonStatus,
+    NormalizedAmountDiscrepancy,
+    PaymentComparison,
+)
 from .errors.checks import (
-    AmountDiscrepancyError,
+    AmountNotFoundError,
     AmountNotPositiveError,
     BaseCheckError,
     PaymentAmountPercentDiscrepancyError,
     PaymentVatRatesDifferError,
     PositionCostDiscrepancyError,
+    PositionsAmountDiscrepancyError,
     VatAmountCalculationDiscrepancyError,
-    VatAmountDiscrepancyError,
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
 )
 from .field import BaseField
-
-
-class VatInclusion(StrEnum):
-    INCLUDED = "included"
-    EXCLUDED = "excluded"
-    UNSPECIFIED = "unspecified"
-    MIXED = "mixed"
+from .field_location import FieldLocation
+from .vat_inclusion import VatInclusion
 
 
 class DocumentObjectField(BaseField[str]):
@@ -47,13 +50,6 @@ class Money:
             return True
         return bool(self.transcription is not None and self.transcription.strip() != "")
 
-    def validate_positivity(self) -> list[BaseCheckError]:
-        if self.value is None:
-            return []
-        if self.value <= 0:
-            return [AmountNotPositiveError(value=self.value)]
-        return []
-
     def __add__(self, other: Money) -> Money:
         if self.value is None:
             value = other.value
@@ -71,6 +67,25 @@ class Money:
         return Money(value=value, transcription=None)
 
 
+@dataclass(frozen=True, slots=True)
+class LocatedAmount:
+    money: Money
+    location: FieldLocation
+    is_vat_amount: bool = False
+
+    def validate_positivity(self) -> list[BaseCheckError]:
+        value = self.money.value
+        if value is None:
+            return []
+        if self.is_vat_amount:
+            if value >= 0:
+                return []
+            return [VatAmountNotPositiveError(value=value, location=self.location)]
+        if value > 0:
+            return []
+        return [AmountNotPositiveError(value=value, location=self.location)]
+
+
 @dataclass(kw_only=True, frozen=True)
 class Vat:
     amount: Money | None
@@ -85,14 +100,10 @@ class Vat:
             return True
         return self.rate is not None
 
-    def validate_positivity(self) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
+    def validate_rate_positivity(self) -> list[BaseCheckError]:
         if self.rate is not None and self.rate < 0:
-            errors.append(VatRateNotPositiveError(value=self.rate))
-        amount = self.amount_value
-        if amount is not None and amount < 0:
-            errors.append(VatAmountNotPositiveError(value=amount))
-        return errors
+            return [VatRateNotPositiveError(value=self.rate)]
+        return []
 
     def __add__(self, other: Vat) -> Vat:
         if self.amount is None:
@@ -123,6 +134,24 @@ class NormalizedAmounts:
         return self.left - self.right
 
 
+def _compare_amounts(
+    value: Decimal | None, reference_value: Decimal | None, *, tolerance: Decimal
+) -> ComparisonResult[AmountDiscrepancy]:
+    if value is None or reference_value is None:
+        return ComparisonResult(status=ComparisonStatus.UNKNOWN)
+    difference = abs(reference_value - value)
+    if difference <= tolerance:
+        return ComparisonResult(status=ComparisonStatus.OK)
+    return ComparisonResult(
+        status=ComparisonStatus.NOT_OK,
+        discrepancy=AmountDiscrepancy(
+            value=value,
+            reference_value=reference_value,
+            difference=difference,
+        ),
+    )
+
+
 @dataclass(kw_only=True, frozen=True)
 class Payment:
     amount: Money | None
@@ -142,14 +171,6 @@ class Payment:
             and self.vat_rate is not None
         )
 
-    def validate_positivity(self) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
-        if self.amount is not None:
-            errors.extend(self.amount.validate_positivity())
-        if self.vat is not None:
-            errors.extend(self.vat.validate_positivity())
-        return errors
-
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
         expected = self.expected_vat_amount
         vat_amount = self.vat_amount_value
@@ -160,6 +181,9 @@ class Payment:
             return []
         return [
             VatAmountCalculationDiscrepancyError(
+                amount=cast("Decimal", self.amount_value),
+                rate=cast("Decimal", self.vat.rate),
+                include_vat=self.include_vat is VatInclusion.INCLUDED,
                 expected_vat_amount=expected,
                 vat_amount=vat_amount,
                 difference=difference,
@@ -197,6 +221,18 @@ class Payment:
     @property
     def vat_rate(self) -> Decimal | None:
         return self.vat.rate
+
+    @property
+    def amount_operand(self) -> AmountOperand | None:
+        value = self.amount_value
+        if value is None:
+            return None
+        return AmountOperand(
+            value=value,
+            vat_amount=self.vat.amount_value,
+            vat_rate=self.vat.rate,
+            vat_inclusion=self.include_vat,
+        )
 
     @property
     def expected_vat_amount(self) -> Decimal | None:
@@ -343,32 +379,39 @@ class Payment:
         *,
         tolerance: Decimal,
         inclusion: VatInclusion | None = None,
-    ) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
+    ) -> PaymentComparison:
         normalized = self.normalized_amounts(reference, inclusion=inclusion)
-        value_vat_amount = self.vat.amount_value
-        reference_vat_amount = reference.vat.amount_value
-        if normalized is not None:
-            amount_difference = abs(normalized.difference)
-            if amount_difference > tolerance:
-                errors.append(
-                    AmountDiscrepancyError(
-                        value=normalized.left,
-                        reference_value=normalized.right,
-                        difference=amount_difference,
-                    )
+        if normalized is None:
+            amount = ComparisonResult[NormalizedAmountDiscrepancy](
+                status=ComparisonStatus.UNKNOWN
+            )
+        else:
+            amount_comparison = _compare_amounts(
+                normalized.left, normalized.right, tolerance=tolerance
+            )
+            discrepancy = amount_comparison.discrepancy
+            if discrepancy is None:
+                amount = ComparisonResult[NormalizedAmountDiscrepancy](
+                    status=amount_comparison.status
                 )
-        if value_vat_amount is not None and reference_vat_amount is not None:
-            vat_amount_difference = abs(reference_vat_amount - value_vat_amount)
-            if vat_amount_difference > tolerance:
-                errors.append(
-                    VatAmountDiscrepancyError(
-                        value=value_vat_amount,
-                        reference_value=reference_vat_amount,
-                        difference=vat_amount_difference,
-                    )
+            else:
+                amount = ComparisonResult(
+                    status=ComparisonStatus.NOT_OK,
+                    discrepancy=NormalizedAmountDiscrepancy(
+                        value=discrepancy.value,
+                        reference_value=discrepancy.reference_value,
+                        difference=discrepancy.difference,
+                        target_inclusion=normalized.inclusion,
+                        operands=(cast("AmountOperand", self.amount_operand),),
+                        reference_operand=cast(
+                            "AmountOperand", reference.amount_operand
+                        ),
+                    ),
                 )
-        return errors
+        vat_amount = _compare_amounts(
+            self.vat.amount_value, reference.vat.amount_value, tolerance=tolerance
+        )
+        return PaymentComparison(amount=amount, vat_amount=vat_amount)
 
     def should_merge_economically(
         self, others: Sequence[Payment], *, tolerance: Decimal
@@ -386,6 +429,43 @@ class Payment:
                 return False
             amounts.append(amount)
         return all(abs(amount - amounts[0]) <= tolerance for amount in amounts[1:])
+
+
+def _located_payment_amounts[T](
+    field: BaseField[T], payment: Payment, *, path: str
+) -> list[LocatedAmount]:
+    amounts: list[LocatedAmount] = []
+    if (amount := payment.amount) is not None and amount.value is not None:
+        amounts.append(
+            LocatedAmount(
+                money=amount,
+                location=field.location(f"{path}.amount.value"),
+            )
+        )
+    if (vat_amount := payment.vat.amount) is not None and vat_amount.value is not None:
+        amounts.append(
+            LocatedAmount(
+                money=vat_amount,
+                location=field.location(f"{path}.vat.amount.value"),
+                is_vat_amount=True,
+            )
+        )
+    return amounts
+
+
+def _validate_positivity[T](
+    field: BaseField[T], payment: Payment, *, path: str
+) -> list[BaseCheckError]:
+    amounts = _located_payment_amounts(field, payment, path=path)
+    errors: list[BaseCheckError] = []
+    for amount in amounts:
+        if not amount.is_vat_amount:
+            errors.extend(amount.validate_positivity())
+    errors.extend(payment.vat.validate_rate_positivity())
+    for amount in amounts:
+        if amount.is_vat_amount:
+            errors.extend(amount.validate_positivity())
+    return errors
 
 
 def select_common_vat_inclusion(payments: list[Payment]) -> VatInclusion:
@@ -417,12 +497,6 @@ class PaymentList:
 
     def has_vat_calculation_data(self) -> bool:
         return any(payment.has_vat_calculation_data() for payment in self._payments)
-
-    def validate_positivity(self) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
-        for payment in self._payments:
-            errors.extend(payment.validate_positivity())
-        return errors
 
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
@@ -477,16 +551,30 @@ class PaymentList:
         inclusion = select_common_vat_inclusion(list(self._payments))
         return self._summed_in(inclusion)
 
-    def compare(
+    def compare_sum(
         self, reference: Payment, *, tolerance: Decimal
-    ) -> list[BaseCheckError]:
+    ) -> PaymentComparison:
         if not self._payments:
-            return []
+            return PaymentComparison.unknown()
         inclusion = select_common_vat_inclusion([*self._payments, reference])
         summed = self._summed_in(inclusion)
         if summed is None:
-            return []
-        return summed.compare(reference, tolerance=tolerance, inclusion=inclusion)
+            return PaymentComparison.unknown()
+        comparison = summed.compare(reference, tolerance=tolerance, inclusion=inclusion)
+        discrepancy = comparison.amount.discrepancy
+        if discrepancy is None:
+            return comparison
+
+        operands = tuple(
+            operand
+            for payment in self._payments
+            if (operand := payment.amount_operand) is not None
+        )
+        amount = replace(
+            comparison.amount,
+            discrepancy=replace(discrepancy, operands=operands),
+        )
+        return PaymentComparison(amount=amount, vat_amount=comparison.vat_amount)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -505,11 +593,10 @@ class TotalAmount:
             or self.taxes.has_vat_calculation_data()
         )
 
-    def validate_positivity(self) -> list[BaseCheckError]:
-        errors: list[BaseCheckError] = []
-        errors.extend(self.total.validate_positivity())
-        errors.extend(self.taxes.validate_positivity())
-        return errors
+    def validate_presence(self) -> list[BaseCheckError]:
+        if self.total.amount_value is None:
+            return [AmountNotFoundError()]
+        return []
 
     def validate_vat_calculation(self, *, tolerance: Decimal) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
@@ -529,7 +616,39 @@ class TotalAmountField(BaseField[TotalAmount]):
         return self.value.has_data()
 
     def validate_positivity(self) -> list[BaseCheckError]:
-        return self.value.validate_positivity()
+        errors = _validate_positivity(
+            self,
+            self.value.total,
+            path="value.total",
+        )
+        for index, payment in enumerate(self.value.taxes):
+            errors.extend(
+                _validate_positivity(
+                    self,
+                    payment,
+                    path=f"value.taxes._payments[{index}]",
+                )
+            )
+        return errors
+
+    def located_amounts(self) -> list[LocatedAmount]:
+        amounts = _located_payment_amounts(
+            self,
+            self.value.total,
+            path="value.total",
+        )
+        for index, payment in enumerate(self.value.taxes):
+            amounts.extend(
+                _located_payment_amounts(
+                    self,
+                    payment,
+                    path=f"value.taxes._payments[{index}]",
+                )
+            )
+        return amounts
+
+    def validate_presence(self) -> list[BaseCheckError]:
+        return self.value.validate_presence()
 
     def numeric_moneys(self) -> list[Money]:
         return self.value.numeric_moneys()
@@ -613,9 +732,27 @@ class AdvancePaymentsField(BaseField[AdvancePaymentList]):
 
     def validate_positivity(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
-        for advance_payment in self.value:
-            errors.extend(advance_payment.validate_positivity())
+        for index, payment in enumerate(self.value):
+            errors.extend(
+                _validate_positivity(
+                    self,
+                    payment,
+                    path=f"value._payments[{index}]",
+                )
+            )
         return errors
+
+    def located_amounts(self) -> list[LocatedAmount]:
+        amounts: list[LocatedAmount] = []
+        for index, payment in enumerate(self.value):
+            amounts.extend(
+                _located_payment_amounts(
+                    self,
+                    payment,
+                    path=f"value._payments[{index}]",
+                )
+            )
+        return amounts
 
     def numeric_moneys(self) -> list[Money]:
         return self.value.numeric_moneys()
@@ -638,13 +775,6 @@ class SpecPosition:
             or self.total_price is not None
         )
 
-    def validate_positivity(self) -> list[BaseCheckError]:
-        return [
-            AmountNotPositiveError(value=value)
-            for value in (self.unit_price, self.total_price)
-            if value is not None and value <= 0
-        ]
-
     def validate_cost_calculation(
         self, *, index: int, tolerance: Decimal
     ) -> list[BaseCheckError]:
@@ -658,6 +788,8 @@ class SpecPosition:
             PositionCostDiscrepancyError(
                 count=index,
                 position_name=self.name,
+                quantity=self.quantity,
+                unit_price=self.unit_price,
                 cost=self.total_price,
                 calculated_cost=calculated,
                 difference_sum=difference,
@@ -716,7 +848,7 @@ class Specification:
         if difference <= tolerance:
             return []
         return [
-            AmountDiscrepancyError(
+            PositionsAmountDiscrepancyError(
                 reference_value=closest,
                 value=positions_total,
                 difference=difference,
@@ -733,9 +865,36 @@ class SpecPositionsField(BaseField[Specification]):
 
     def validate_positivity(self) -> list[BaseCheckError]:
         errors: list[BaseCheckError] = []
-        for position in self.value:
-            errors.extend(position.validate_positivity())
+        for amount in self.located_amounts():
+            errors.extend(amount.validate_positivity())
         return errors
+
+    def located_amounts(self) -> list[LocatedAmount]:
+        amounts: list[LocatedAmount] = []
+        for index, position in enumerate(self.value):
+            if position.unit_price is not None:
+                amounts.append(
+                    LocatedAmount(
+                        money=Money(
+                            value=position.unit_price,
+                            transcription=None,
+                        ),
+                        location=self.location(f"value._positions[{index}].unit_price"),
+                    )
+                )
+            if position.total_price is not None:
+                amounts.append(
+                    LocatedAmount(
+                        money=Money(
+                            value=position.total_price,
+                            transcription=None,
+                        ),
+                        location=self.location(
+                            f"value._positions[{index}].total_price"
+                        ),
+                    )
+                )
+        return amounts
 
 
 @dataclass(kw_only=True, frozen=True)
