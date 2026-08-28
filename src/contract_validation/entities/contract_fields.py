@@ -879,9 +879,7 @@ class SpecPositionsField(BaseField[Specification]):
                             value=position.unit_price,
                             transcription=None,
                         ),
-                        location=self.location(
-                            f"value._positions[{index}].unit_price"
-                        ),
+                        location=self.location(f"value._positions[{index}].unit_price"),
                     )
                 )
             if position.total_price is not None:

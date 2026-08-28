@@ -271,13 +271,9 @@ async def test_check_14_identifies_payment_and_advance_amounts() -> None:
                 [
                     AdvancePayment(
                         percent=Decimal(50),
-                        amount=Money(
-                            value=Decimal(50), transcription="Пятьдесят"
-                        ),
+                        amount=Money(value=Decimal(50), transcription="Пятьдесят"),
                         vat=Vat(
-                            amount=Money(
-                                value=Decimal(10), transcription="Десять"
-                            ),
+                            amount=Money(value=Decimal(10), transcription="Десять"),
                             rate=Decimal(20),
                         ),
                         include_vat=True,
