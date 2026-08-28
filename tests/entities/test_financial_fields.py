@@ -17,6 +17,7 @@ from app.domain.entities import (
     SpecPosition,
     SpecPositionsField,
     TotalAmount,
+    TotalAmountField,
     Vat,
     VatInclusion,
 )
@@ -25,7 +26,10 @@ from app.domain.entities.errors.checks import (
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
 )
-from app.domain.entities.single_supplier_fields import select_common_vat_inclusion
+from app.domain.entities.single_supplier_fields import (
+    LocatedAmount,
+    select_common_vat_inclusion,
+)
 
 
 def make_payment(
@@ -553,6 +557,65 @@ def test_advance_payments_field_validate_collects_all_advance_errors():
     assert any(isinstance(error, VatRateNotPositiveError) for error in errors)
 
 
+# ---------- LocatedAmount ----------
+
+
+def test_located_amount_validate_positivity_accepts_positive_value():
+    amount = LocatedAmount(
+        money=Money(value=Decimal(100), transcription=None),
+        location=FieldLocation(field_name="Test", path="value", sources=()),
+    )
+
+    assert amount.validate_positivity() == []
+
+
+def test_located_amount_validate_positivity_rejects_zero():
+    location = FieldLocation(field_name="Test", path="value", sources=())
+    amount = LocatedAmount(
+        money=Money(value=Decimal(0), transcription=None),
+        location=location,
+    )
+
+    assert amount.validate_positivity() == [
+        AmountNotPositiveError(value=Decimal(0), location=location),
+    ]
+
+
+def test_located_amount_validate_positivity_rejects_negative():
+    location = FieldLocation(field_name="Test", path="value", sources=())
+    amount = LocatedAmount(
+        money=Money(value=Decimal(-1), transcription=None),
+        location=location,
+    )
+
+    assert amount.validate_positivity() == [
+        AmountNotPositiveError(value=Decimal(-1), location=location),
+    ]
+
+
+def test_located_amount_validate_positivity_accepts_zero_vat_amount():
+    amount = LocatedAmount(
+        money=Money(value=Decimal(0), transcription=None),
+        location=FieldLocation(field_name="Test", path="value", sources=()),
+        is_vat_amount=True,
+    )
+
+    assert amount.validate_positivity() == []
+
+
+def test_located_amount_validate_positivity_rejects_negative_vat_amount():
+    location = FieldLocation(field_name="Test", path="value", sources=())
+    amount = LocatedAmount(
+        money=Money(value=Decimal(-1), transcription=None),
+        location=location,
+        is_vat_amount=True,
+    )
+
+    assert amount.validate_positivity() == [
+        VatAmountNotPositiveError(value=Decimal(-1), location=location),
+    ]
+
+
 # ---------- Vat ----------
 
 
@@ -883,6 +946,36 @@ def test_payment_list_compare_sum_preserves_operands_before_normalization():
 
 
 # ---------- TotalAmount ----------
+
+
+def test_total_amount_field_validate_positivity_collects_errors_from_total_and_taxes():
+    field = TotalAmountField(
+        value=TotalAmount(
+            total=make_payment(amount="-100.00"),
+            taxes=PaymentList([make_payment(vat_amount="-20.00", rate="-20.00")]),
+        ),
+        sources=[],
+    )
+
+    assert field.validate_positivity() == [
+        AmountNotPositiveError(
+            value=Decimal("-100.00"),
+            location=FieldLocation(
+                field_name="TotalAmountField",
+                path="value.total.amount.value",
+                sources=(),
+            ),
+        ),
+        VatRateNotPositiveError(value=Decimal("-20.00")),
+        VatAmountNotPositiveError(
+            value=Decimal("-20.00"),
+            location=FieldLocation(
+                field_name="TotalAmountField",
+                path="value.taxes._payments[0].vat.amount.value",
+                sources=(),
+            ),
+        ),
+    ]
 
 
 def test_total_amount_moneys_returns_total_and_tax_moneys():
