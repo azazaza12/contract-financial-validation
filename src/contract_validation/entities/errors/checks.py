@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
 from warnings import deprecated
@@ -130,6 +131,47 @@ class BaseNormalizedAmountDiscrepancyError(BaseAmountDiscrepancyError):
     target_inclusion: VatInclusion
     operands: tuple[AmountOperand, ...]
     reference_operand: AmountOperand
+
+
+@dataclass
+class BaseBoundAmountError(BaseCheckError, ABC):
+    value: Decimal
+    bound_value: Decimal
+    violation_value: Decimal
+
+    def _compare_bound_amount_error(self, error: BaseContractError) -> bool:
+        other = cast("BaseBoundAmountError", error)
+        return (
+            self.source == other.source
+            and self.value == other.value
+            and self.bound_value == other.bound_value
+            and self.violation_value == other.violation_value
+        )
+
+    @abstractmethod
+    def _compare_same_type(self, error: BaseContractError) -> bool: ...
+
+
+@dataclass
+class UpperBoundAmountError(BaseBoundAmountError):
+    target_inclusion: VatInclusion
+    operands: tuple[AmountOperand, ...]
+    reference_operand: AmountOperand
+
+    def _compare_same_type(self, error: BaseContractError) -> bool:
+        other = cast("UpperBoundAmountError", error)
+        return (
+            self._compare_bound_amount_error(error)
+            and self.target_inclusion == other.target_inclusion
+            and self.operands == other.operands
+            and self.reference_operand == other.reference_operand
+        )
+
+
+@dataclass
+class UpperBoundVatAmountError(BaseBoundAmountError):
+    def _compare_same_type(self, error: BaseContractError) -> bool:
+        return self._compare_bound_amount_error(error)
 
 
 @dataclass
