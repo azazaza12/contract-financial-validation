@@ -5,6 +5,7 @@ from app.domain.entities.single_supplier_fields import (
     AdvancePaymentList,
     AdvancePaymentsField,
     TotalAmountField,
+    TotalAmountUpperBoundField,
 )
 from app.domain.entities.validation import CheckExecutionResult
 
@@ -34,7 +35,7 @@ class CheckVatCalculation(BaseCheck):
         )
 
         if (
-            not total_amount_field.value.has_vat_calculation_data()
+            not total_amount_field.has_vat_calculation_data()
             and not advances.has_vat_calculation_data()
         ):
             raise InsufficientCheckDataError(
@@ -43,9 +44,30 @@ class CheckVatCalculation(BaseCheck):
             )
 
         errors = [
-            *total_amount_field.value.validate_vat_calculation(
-                tolerance=self.tolerance
-            ),
+            *total_amount_field.validate_vat_calculation(tolerance=self.tolerance),
             *advances.validate_vat_calculation(tolerance=self.tolerance),
         ]
+        return self._result(errors)
+
+
+class CheckTotalAmountUpperBoundVatCalculation(BaseCheck):
+    upper_bound_amount_field = Requires(TotalAmountUpperBoundField)
+
+    def __init__(self, tolerance: Decimal) -> None:
+        self.tolerance = tolerance
+
+    async def execute(self) -> CheckExecutionResult:
+        upper_bound_amount_field = cast(
+            "TotalAmountUpperBoundField", self.upper_bound_amount_field
+        )
+        if not upper_bound_amount_field.has_vat_calculation_data():
+            raise InsufficientCheckDataError(
+                self.__class__.__name__,
+                "no upper-bound payments with amount, VAT amount and VAT rate "
+                "to verify",
+            )
+
+        errors = upper_bound_amount_field.validate_vat_calculation(
+            tolerance=self.tolerance
+        )
         return self._result(errors)

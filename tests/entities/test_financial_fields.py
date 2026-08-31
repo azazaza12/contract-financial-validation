@@ -7,6 +7,7 @@ from app.domain.entities import (
     AdvancePaymentsField,
     AmountDiscrepancy,
     AmountOperand,
+    AmountRelation,
     ComparisonStatus,
     FieldLocation,
     Money,
@@ -253,6 +254,15 @@ def test_select_common_vat_inclusion_returns_shared_value_when_homogeneous():
     ]
 
     assert select_common_vat_inclusion(payments) is VatInclusion.EXCLUDED
+
+
+def test_select_common_vat_inclusion_returns_unspecified_when_basis_is_unknown():
+    payments = [
+        make_payment(amount="10.00", include_vat=VatInclusion.UNSPECIFIED),
+        make_payment(amount="20.00", include_vat=VatInclusion.EXCLUDED),
+    ]
+
+    assert select_common_vat_inclusion(payments) is VatInclusion.UNSPECIFIED
 
 
 def test_select_common_vat_inclusion_converts_to_included_when_possible():
@@ -637,7 +647,11 @@ def test_payment_compare_returns_no_errors_when_values_match():
     value = make_payment(amount="100.00", vat_amount="20.00")
     reference = make_payment(amount="100.00", vat_amount="20.00")
 
-    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(
+        reference=reference,
+        tolerance=Decimal("1.00"),
+        relation=AmountRelation.EXACT,
+    )
 
     assert comparison.amount.status is ComparisonStatus.OK
     assert comparison.amount.discrepancy is None
@@ -649,7 +663,11 @@ def test_payment_compare_returns_amount_discrepancy():
     value = make_payment(amount="120.00")
     reference = make_payment(amount="100.00")
 
-    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(
+        reference=reference,
+        tolerance=Decimal("1.00"),
+        relation=AmountRelation.EXACT,
+    )
 
     assert comparison.amount.status is ComparisonStatus.NOT_OK
     assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
@@ -679,7 +697,11 @@ def test_payment_compare_returns_positive_difference_when_value_is_smaller():
     value = make_payment(amount="100.00")
     reference = make_payment(amount="120.00")
 
-    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(
+        reference=reference,
+        tolerance=Decimal("1.00"),
+        relation=AmountRelation.EXACT,
+    )
 
     assert comparison.amount.status is ComparisonStatus.NOT_OK
     assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
@@ -717,7 +739,11 @@ def test_payment_compare_uses_normalized_amounts_in_error():
         include_vat=VatInclusion.INCLUDED,
     )
 
-    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(
+        reference=reference,
+        tolerance=Decimal("1.00"),
+        relation=AmountRelation.EXACT,
+    )
 
     assert comparison.amount.status is ComparisonStatus.NOT_OK
     assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
@@ -755,7 +781,11 @@ def test_payment_compare_preserves_vat_amount_used_for_normalization():
         include_vat=VatInclusion.INCLUDED,
     )
 
-    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(
+        reference=reference,
+        tolerance=Decimal("1.00"),
+        relation=AmountRelation.EXACT,
+    )
 
     assert comparison.amount.status is ComparisonStatus.NOT_OK
     assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
@@ -780,7 +810,7 @@ def test_payment_compare_preserves_vat_amount_used_for_normalization():
     )
 
 
-def test_payment_compare_falls_back_to_raw_amounts_without_common_basis():
+def test_payment_compare_falls_back_to_raw_amounts_when_basis_is_unspecified():
     value = make_payment(
         amount="120.00",
         vat_amount="20.00",
@@ -792,14 +822,18 @@ def test_payment_compare_falls_back_to_raw_amounts_without_common_basis():
         include_vat=VatInclusion.EXCLUDED,
     )
 
-    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(
+        reference=reference,
+        tolerance=Decimal("1.00"),
+        relation=AmountRelation.EXACT,
+    )
 
     assert comparison.amount.status is ComparisonStatus.NOT_OK
     assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
         value=Decimal("120.00"),
         reference_value=Decimal("100.00"),
         difference=Decimal("20.00"),
-        target_inclusion=VatInclusion.MIXED,
+        target_inclusion=VatInclusion.UNSPECIFIED,
         operands=(
             AmountOperand(
                 value=Decimal("120.00"),
@@ -827,7 +861,11 @@ def test_payment_compare_checks_vat_when_amounts_are_missing():
     value = make_payment(amount=None, vat_amount="10.00")
     reference = make_payment(amount=None, vat_amount="20.00")
 
-    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(
+        reference=reference,
+        tolerance=Decimal("1.00"),
+        relation=AmountRelation.EXACT,
+    )
 
     assert comparison.amount.status is ComparisonStatus.UNKNOWN
     assert comparison.amount.discrepancy is None
@@ -843,7 +881,11 @@ def test_payment_compare_checks_amount_when_vat_amounts_are_missing():
     value = make_payment(amount="120.00", vat_amount=None)
     reference = make_payment(amount="100.00", vat_amount=None)
 
-    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(
+        reference=reference,
+        tolerance=Decimal("1.00"),
+        relation=AmountRelation.EXACT,
+    )
 
     assert comparison.amount.status is ComparisonStatus.NOT_OK
     assert comparison.amount.discrepancy == NormalizedAmountDiscrepancy(
@@ -873,7 +915,11 @@ def test_payment_compare_allows_difference_equal_to_tolerance():
     value = make_payment(amount="101.00", vat_amount="21.00")
     reference = make_payment(amount="100.00", vat_amount="20.00")
 
-    comparison = value.compare(reference=reference, tolerance=Decimal("1.00"))
+    comparison = value.compare(
+        reference=reference,
+        tolerance=Decimal("1.00"),
+        relation=AmountRelation.EXACT,
+    )
 
     assert comparison.amount.status is ComparisonStatus.OK
     assert comparison.amount.discrepancy is None

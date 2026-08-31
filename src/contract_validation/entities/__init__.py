@@ -1,6 +1,7 @@
 from .amount_comparison import (
     AmountDiscrepancy,
     AmountOperand,
+    AmountRelation,
     ComparisonResult,
     ComparisonStatus,
     NormalizedAmountDiscrepancy,
@@ -25,6 +26,7 @@ from .single_supplier_fields import (
     SpecPositionsField,
     TotalAmount,
     TotalAmountField,
+    TotalAmountUpperBoundField,
     Vat,
 )
 from .user import User
@@ -38,6 +40,7 @@ __all__ = [
     "AdvancePaymentsField",
     "AmountDiscrepancy",
     "AmountOperand",
+    "AmountRelation",
     "BaseContract",
     "BaseDocument",
     "BaseField",
@@ -58,6 +61,7 @@ __all__ = [
     "Specification",
     "TotalAmount",
     "TotalAmountField",
+    "TotalAmountUpperBoundField",
     "User",
     "ValueCandidate",
     "Vat",
