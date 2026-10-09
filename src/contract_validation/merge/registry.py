@@ -1,12 +1,11 @@
+import logging
 from dataclasses import is_dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
 
-import structlog
-
-from app.domain.entities.errors.merge import BaseMergeError
-from app.domain.entities.merge_types import ValueCandidate
-from app.domain.exceptions import UnknownHandlerTypeError
+from contract_validation.entities.errors.merge import BaseMergeError
+from contract_validation.entities.merge_types import ValueCandidate
+from contract_validation.exceptions import UnknownHandlerTypeError
 
 from .handlers import (
     combine_sources,
@@ -19,22 +18,22 @@ from .handlers import (
 
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from .handlers import MergeHandler
 
-logger = structlog.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class MergeRegistry:
     def __init__(self, name: str = "default") -> None:
         self.name = name
-        self.handlers: dict[type, Callable] = {}
+        self.handlers: dict[type, MergeHandler] = {}
 
-        self.scalar_handler: Callable = merge_scalar_strict
-        self.scalar_handler_str: Callable = merge_scalar_strict_str
-        self.list_handler: Callable = merge_list_strict
-        self.dataclass_handler: Callable = merge_dataclass_default
+        self.scalar_handler: MergeHandler = merge_scalar_strict
+        self.scalar_handler_str: MergeHandler = merge_scalar_strict_str
+        self.list_handler: MergeHandler = merge_list_strict
+        self.dataclass_handler: MergeHandler = merge_dataclass_default
 
-    def register_type(self, type_: type, handler: Callable) -> None:
+    def register_type(self, type_: type, handler: MergeHandler) -> None:
         self.handlers[type_] = handler
 
     def merge(
@@ -56,7 +55,7 @@ class MergeRegistry:
         handler = self._get_handler(value_type)
         if handler is None:
             error_msg = f"No handler for type {value_type} in registry '{self.name}'"
-            logger.warning("merge_failed", path=path, error=error_msg)
+            logger.warning("merge failed at %s: %s", path, error_msg)
             raise UnknownHandlerTypeError(error_msg)
 
         result = handler(defined_candidates, path, errors, self)
@@ -64,10 +63,10 @@ class MergeRegistry:
         if result is not None:
             return ValueCandidate(value=result.value, sources=all_sources)
 
-        logger.info("merge_returned_none", path=path)
+        logger.info("merge returned no value at %s", path)
         return result
 
-    def _get_handler(self, value_type: type) -> Callable | None:
+    def _get_handler(self, value_type: type) -> MergeHandler | None:
         if value_type in self.handlers:
             return self.handlers[value_type]
 

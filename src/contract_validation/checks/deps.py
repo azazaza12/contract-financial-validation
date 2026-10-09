@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast, get_args, get_origin
+from typing import TYPE_CHECKING, Any, cast, get_args, get_origin
 
 from .errors import (
     InvalidCheckSignatureError,
@@ -11,14 +11,16 @@ from .errors import (
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from app.domain.entities.field import BaseField
+    from contract_validation.entities.field import BaseField
 
 
 @dataclass(frozen=True, slots=True)
 class Requires[T]:
     field_type: type[T]
 
-    def resolve(self, attr_name: str, fields: Iterable[BaseField], label: str) -> T:
+    def resolve(
+        self, attr_name: str, fields: Iterable[BaseField[Any]], label: str
+    ) -> T:
         element_type = self.field_type
         if isinstance(element_type, type):
             field_type = element_type
@@ -64,7 +66,7 @@ class OptionalDep[T]:
     field_type: type[T]
 
     def resolve(
-        self, attr_name: str, fields: Iterable[BaseField], label: str
+        self, attr_name: str, fields: Iterable[BaseField[Any]], label: str
     ) -> T | None:
         element_type = self.field_type
         if isinstance(element_type, type):

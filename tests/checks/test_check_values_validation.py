@@ -3,8 +3,8 @@ from uuid import uuid4
 
 import pytest
 
-from app.domain.checks.check_values_validation import CheckValuesValidation
-from app.domain.entities import (
+from contract_validation.checks.check_values_validation import CheckValuesValidation
+from contract_validation.entities import (
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
@@ -22,13 +22,13 @@ from app.domain.entities import (
     Vat,
     VatInclusion,
 )
-from app.domain.entities.errors.checks import (
+from contract_validation.entities.errors.checks import (
     AmountNotFoundError,
     AmountNotPositiveError,
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
 )
-from app.domain.entities.validation import CheckStatus
+from contract_validation.entities.validation import CheckStatus
 
 
 pytestmark = pytest.mark.asyncio

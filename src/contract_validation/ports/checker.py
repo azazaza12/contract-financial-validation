@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from app.domain.entities.single_supplier_fields import Money
+    from contract_validation.entities.contract_fields import Money
 
 
 @dataclass

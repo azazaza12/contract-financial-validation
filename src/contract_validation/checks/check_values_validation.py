@@ -1,12 +1,15 @@
 from typing import cast
 
-from app.domain.entities.errors.checks import AmountNotFoundError, BaseCheckError
-from app.domain.entities.single_supplier_fields import (
+from contract_validation.entities.contract_fields import (
     AdvancePaymentsField,
     SpecPositionsField,
     TotalAmountField,
 )
-from app.domain.entities.validation import CheckExecutionResult
+from contract_validation.entities.errors.checks import (
+    AmountNotFoundError,
+    BaseCheckError,
+)
+from contract_validation.entities.validation import CheckExecutionResult
 
 from .base import BaseCheck
 from .deps import OptionalDep

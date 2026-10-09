@@ -6,15 +6,29 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities.errors.merge import BaseMergeError, ValuesDiscrepancyError
-from app.domain.entities.merge_types import Source, SourceHeader, ValueCandidate
+from contract_validation.constants import AMOUNT_TOLERANCE
+from contract_validation.entities.errors.merge import (
+    BaseMergeError,
+    ValuesDiscrepancyError,
+)
+from contract_validation.entities.merge_types import (
+    Source,
+    SourceHeader,
+    ValueCandidate,
+)
 
 
 if TYPE_CHECKING:
-    from app.domain.entities.single_supplier_fields import Money, Payment
+    from collections.abc import Callable
+
+    from contract_validation.entities.contract_fields import Money, Payment
 
     from .registry import MergeRegistry
+
+    type MergeHandler = Callable[
+        [list[ValueCandidate], str, list[BaseMergeError], MergeRegistry],
+        ValueCandidate | None,
+    ]
 
 
 def combine_sources(candidates: list[ValueCandidate]) -> list[Source]:

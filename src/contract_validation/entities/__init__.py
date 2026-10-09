@@ -7,18 +7,14 @@ from .amount_comparison import (
     NormalizedAmountDiscrepancy,
     PaymentComparison,
 )
-from .contract import BaseContract
-from .document import BaseDocument
-from .field import BaseField, FieldCollector
-from .field_location import FieldLocation
-from .merge_types import Source, SourceHeader, ValueCandidate
-from .single_supplier_fields import (
+from .contract_fields import (
     EMPTY_PAYMENT,
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
     DocumentObjectField,
     Money,
+    NomenclatureClassificationsField,
     Payment,
     PaymentList,
     Specification,
@@ -29,7 +25,10 @@ from .single_supplier_fields import (
     TotalAmountUpperBoundField,
     Vat,
 )
-from .user import User
+from .field import BaseField, FieldCollector
+from .field_location import FieldLocation
+from .merge_types import Source, SourceHeader, ValueCandidate
+from .validation import CheckExecutionResult, CheckStatus
 from .vat_inclusion import VatInclusion
 
 
@@ -41,15 +40,16 @@ __all__ = [
     "AmountDiscrepancy",
     "AmountOperand",
     "AmountRelation",
-    "BaseContract",
-    "BaseDocument",
     "BaseField",
+    "CheckExecutionResult",
+    "CheckStatus",
     "ComparisonResult",
     "ComparisonStatus",
     "DocumentObjectField",
     "FieldCollector",
     "FieldLocation",
     "Money",
+    "NomenclatureClassificationsField",
     "NormalizedAmountDiscrepancy",
     "Payment",
     "PaymentComparison",
@@ -62,7 +62,6 @@ __all__ = [
     "TotalAmount",
     "TotalAmountField",
     "TotalAmountUpperBoundField",
-    "User",
     "ValueCandidate",
     "Vat",
     "VatInclusion",

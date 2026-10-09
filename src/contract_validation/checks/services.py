@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from app.domain.ports.checker import ITranscriptionCompliancer
+    from contract_validation.ports.checker import ITranscriptionCompliancer
 
 
 @dataclass(frozen=True, slots=True)

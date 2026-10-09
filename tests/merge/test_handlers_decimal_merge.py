@@ -3,11 +3,11 @@ from uuid import uuid4
 
 import pytest
 
-from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities import Source, ValueCandidate
-from app.domain.entities.errors import ValuesDiscrepancyError
-from app.domain.merge import STRICT_REGISTRY
-from app.domain.merge.handlers import all_equal_decimal, merge_scalar_strict
+from contract_validation.constants import AMOUNT_TOLERANCE
+from contract_validation.entities import Source, ValueCandidate
+from contract_validation.entities.errors import ValuesDiscrepancyError
+from contract_validation.merge import STRICT_REGISTRY
+from contract_validation.merge.handlers import all_equal_decimal, merge_scalar_strict
 
 
 def _candidate(value: Decimal) -> ValueCandidate:

@@ -1,11 +1,11 @@
 from decimal import Decimal
 from typing import cast
 
-from app.domain.entities.single_supplier_fields import (
+from contract_validation.entities.contract_fields import (
     SpecPositionsField,
     TotalAmountField,
 )
-from app.domain.entities.validation import CheckExecutionResult
+from contract_validation.entities.validation import CheckExecutionResult
 
 from .base import BaseCheck
 from .deps import Requires

@@ -1,9 +1,7 @@
 import os
 from decimal import Decimal
-from uuid import UUID
-from zoneinfo import ZoneInfo
 
 
-TIMEZONE = ZoneInfo("Europe/Moscow")
+# Documents round amounts differently, so comparisons allow a small absolute
+# difference. One currency unit matches the rounding used in procurement forms.
 AMOUNT_TOLERANCE = Decimal(os.getenv("VALIDATION_AMOUNT_TOLERANCE", "1"))
-DEFAULT_USER_ID = UUID("00000000-0000-0000-0000-000000000001")

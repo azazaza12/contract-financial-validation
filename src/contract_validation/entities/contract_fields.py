@@ -4,9 +4,9 @@ from decimal import Decimal
 from functools import reduce
 from typing import cast
 
-from app.domain.merge.defaults import STRICT_REGISTRY
-from app.domain.merge.handlers import merge_advance_payment, merge_payment
-from app.domain.ports.nomenclature_classifier import NomenclatureArticle
+from contract_validation.merge.defaults import STRICT_REGISTRY
+from contract_validation.merge.handlers import merge_advance_payment, merge_payment
+from contract_validation.ports.nomenclature_classifier import NomenclatureArticle
 
 from .amount_comparison import (
     AmountDiscrepancy,

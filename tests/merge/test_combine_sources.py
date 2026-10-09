@@ -1,7 +1,7 @@
 from uuid import uuid4
 
-from app.domain.entities import Source, SourceHeader, ValueCandidate
-from app.domain.merge.handlers import combine_sources
+from contract_validation.entities import Source, SourceHeader, ValueCandidate
+from contract_validation.merge.handlers import combine_sources
 
 
 def _candidate(source: Source) -> ValueCandidate:
