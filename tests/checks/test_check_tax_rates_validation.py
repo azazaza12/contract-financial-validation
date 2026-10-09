@@ -2,9 +2,11 @@ from decimal import Decimal
 
 import pytest
 
-from app.domain.checks.check_tax_rates_validation import CheckTaxRatesValidation
-from app.domain.checks.errors import InsufficientCheckDataError
-from app.domain.entities import (
+from contract_validation.checks.check_tax_rates_validation import (
+    CheckTaxRatesValidation,
+)
+from contract_validation.checks.errors import InsufficientCheckDataError
+from contract_validation.entities import (
     EMPTY_PAYMENT,
     AdvancePayment,
     AdvancePaymentList,
@@ -16,8 +18,8 @@ from app.domain.entities import (
     TotalAmountField,
     Vat,
 )
-from app.domain.entities.errors import PaymentVatRatesDifferError
-from app.domain.entities.validation import CheckStatus
+from contract_validation.entities.errors import PaymentVatRatesDifferError
+from contract_validation.entities.validation import CheckStatus
 
 
 pytestmark = pytest.mark.asyncio

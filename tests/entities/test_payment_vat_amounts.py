@@ -1,7 +1,7 @@
 from decimal import Decimal
 
-from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities import Money, Payment, Vat, VatInclusion
+from contract_validation.constants import AMOUNT_TOLERANCE
+from contract_validation.entities import Money, Payment, Vat, VatInclusion
 
 
 def _payment(

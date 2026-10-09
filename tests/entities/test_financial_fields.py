@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from app.domain.entities import (
+from contract_validation.entities import (
     EMPTY_PAYMENT,
     AdvancePayment,
     AdvancePaymentList,
@@ -22,14 +22,14 @@ from app.domain.entities import (
     Vat,
     VatInclusion,
 )
-from app.domain.entities.errors.checks import (
+from contract_validation.entities.contract_fields import (
+    LocatedAmount,
+    select_common_vat_inclusion,
+)
+from contract_validation.entities.errors.checks import (
     AmountNotPositiveError,
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
-)
-from app.domain.entities.single_supplier_fields import (
-    LocatedAmount,
-    select_common_vat_inclusion,
 )
 
 
@@ -562,7 +562,7 @@ def test_advance_payments_field_validate_collects_all_advance_errors():
 
     errors = field.validate_positivity()
 
-    assert len(errors) == 2  # noqa: PLR2004
+    assert len(errors) == 2
     assert any(isinstance(error, AmountNotPositiveError) for error in errors)
     assert any(isinstance(error, VatRateNotPositiveError) for error in errors)
 

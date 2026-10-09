@@ -1,8 +1,8 @@
 from collections.abc import Hashable
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 
-from app.domain.merge.defaults import DEFAULT_REGISTRY
+from contract_validation.merge.defaults import DEFAULT_REGISTRY
 
 from .field_location import FieldLocation
 from .merge_types import Source, ValueCandidate
@@ -11,7 +11,7 @@ from .merge_types import Source, ValueCandidate
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from app.domain.merge.registry import MergeRegistry
+    from contract_validation.merge.registry import MergeRegistry
 
     from .errors.merge import BaseMergeError
 
@@ -33,8 +33,8 @@ class BaseField[T]:
 
     @classmethod
     def solve_collision(
-        cls, fields: list[BaseField]
-    ) -> tuple[list[BaseField], list[BaseMergeError]]:
+        cls, fields: list[BaseField[Any]]
+    ) -> tuple[list[BaseField[Any]], list[BaseMergeError]]:
         if not fields:
             msg = f"{cls.__name__}: empty collision"
             raise ValueError(msg)
@@ -65,19 +65,19 @@ class BaseField[T]:
 
 
 class FieldCollector:
-    def __init__(self, fields: list[BaseField]) -> None:
-        self._fields: list[BaseField] = fields
-        self._type_map: dict[type[BaseField], list[BaseField]] | None = None
+    def __init__(self, fields: list[BaseField[Any]]) -> None:
+        self._fields: list[BaseField[Any]] = fields
+        self._type_map: dict[type[BaseField[Any]], list[BaseField[Any]]] | None = None
 
     def extend(self, collector: FieldCollector) -> None:
         self._fields.extend(collector._fields)
         self._type_map = None
 
-    def get_type_map(self) -> dict[type[BaseField], list[BaseField]]:
+    def get_type_map(self) -> dict[type[BaseField[Any]], list[BaseField[Any]]]:
         if self._type_map is not None:
             return self._type_map
 
-        type_map: dict[type[BaseField], list[BaseField]] = {}
+        type_map: dict[type[BaseField[Any]], list[BaseField[Any]]] = {}
         for field in self._fields:
             field_type = type(field)
             if field_type not in type_map:
@@ -87,10 +87,12 @@ class FieldCollector:
         self._type_map = type_map
         return self._type_map
 
-    def get_next_collision(self) -> Iterator[tuple[type[BaseField], list[BaseField]]]:
+    def get_next_collision(
+        self,
+    ) -> Iterator[tuple[type[BaseField[Any]], list[BaseField[Any]]]]:
         for field_type, fields in self.get_type_map().items():
-            without_key: list[BaseField] = []
-            by_key: dict[Hashable, list[BaseField]] = {}
+            without_key: list[BaseField[Any]] = []
+            by_key: dict[Hashable, list[BaseField[Any]]] = {}
 
             for field in fields:
                 key = field.collision_key
@@ -111,13 +113,13 @@ class FieldCollector:
                 return False
         return True
 
-    def delete(self, fields: list[BaseField]) -> None:
+    def delete(self, fields: list[BaseField[Any]]) -> None:
         for field in fields:
             if field in self._fields:
                 self._fields.remove(field)
         self._type_map = None
 
-    def append(self, field: BaseField) -> None:
+    def append(self, field: BaseField[Any]) -> None:
         self._fields.append(field)
         self._type_map = None
 
@@ -132,11 +134,11 @@ class FieldCollector:
     def __bool__(self) -> bool:
         return bool(self._fields)
 
-    def __iter__(self) -> Iterator[BaseField]:
+    def __iter__(self) -> Iterator[BaseField[Any]]:
         return iter(self._fields)
 
-    def __getitem__(self, index: int) -> BaseField:
+    def __getitem__(self, index: int) -> BaseField[Any]:
         return self._fields[index]
 
-    def __contains__(self, item: BaseField) -> bool:
+    def __contains__(self, item: BaseField[Any]) -> bool:
         return item in self._fields

@@ -1,9 +1,11 @@
 from decimal import Decimal
 
-from app.domain.checks.check_amounts_validation import CheckTotalAmountsValidation
-from app.domain.checks.check_values_validation import CheckValuesValidation
-from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities import (
+from contract_validation.checks.check_amounts_validation import (
+    CheckTotalAmountsValidation,
+)
+from contract_validation.checks.check_values_validation import CheckValuesValidation
+from contract_validation.constants import AMOUNT_TOLERANCE
+from contract_validation.entities import (
     EMPTY_PAYMENT,
     AdvancePayment,
     AdvancePaymentList,
@@ -16,7 +18,7 @@ from app.domain.entities import (
     Vat,
     VatInclusion,
 )
-from app.domain.entities.errors import (
+from contract_validation.entities.errors import (
     AdvanceVatAmountDiscrepancyError,
     AmountNotPositiveError,
     TaxesAmountDiscrepancyError,
@@ -24,7 +26,7 @@ from app.domain.entities.errors import (
     VatAmountNotPositiveError,
     VatRateNotPositiveError,
 )
-from app.domain.entities.validation import CheckExecutionResult, CheckStatus
+from contract_validation.entities.validation import CheckExecutionResult, CheckStatus
 
 
 def _pay(

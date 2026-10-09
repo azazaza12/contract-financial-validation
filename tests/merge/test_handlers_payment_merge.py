@@ -1,12 +1,17 @@
 from decimal import Decimal
 from uuid import uuid4
 
-from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities import Source, ValueCandidate
-from app.domain.entities.errors import ValuesDiscrepancyError
-from app.domain.entities.single_supplier_fields import Money, Payment, Vat, VatInclusion
-from app.domain.merge import STRICT_REGISTRY
-from app.domain.merge.handlers import merge_payment
+from contract_validation.constants import AMOUNT_TOLERANCE
+from contract_validation.entities import Source, ValueCandidate
+from contract_validation.entities.contract_fields import (
+    Money,
+    Payment,
+    Vat,
+    VatInclusion,
+)
+from contract_validation.entities.errors import ValuesDiscrepancyError
+from contract_validation.merge import STRICT_REGISTRY
+from contract_validation.merge.handlers import merge_payment
 
 
 def _payment(

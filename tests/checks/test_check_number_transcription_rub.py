@@ -4,9 +4,11 @@ from uuid import uuid4
 
 import pytest
 
-from app.domain.checks.check_number_transcription_rub import CheckNumberTranscriptionRub
-from app.domain.checks.errors import InsufficientCheckDataError
-from app.domain.entities import (
+from contract_validation.checks.check_number_transcription_rub import (
+    CheckNumberTranscriptionRub,
+)
+from contract_validation.checks.errors import InsufficientCheckDataError
+from contract_validation.entities import (
     AdvancePayment,
     AdvancePaymentList,
     AdvancePaymentsField,
@@ -19,14 +21,14 @@ from app.domain.entities import (
     TotalAmountField,
     Vat,
 )
-from app.domain.entities.errors import NumberTranscriptionError
-from app.domain.entities.single_supplier import SingleSupplierDocument
-from app.domain.entities.validation import CheckStatus
-from app.domain.ports.checker import TranscriptionCheckIssue
+from contract_validation.entities.errors import NumberTranscriptionError
+from contract_validation.entities.validation import CheckStatus
+from contract_validation.ports.checker import TranscriptionCheckIssue
+from tests.conftest import StubDocument
 
 
 def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmountField:
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = StubDocument(file_name="doc-1.pdf")
     return TotalAmountField(
         value=TotalAmount(
             total=Payment(
@@ -101,7 +103,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
     result = await check.execute()
 
     assert result.status == CheckStatus.FAILED
-    assert len(result.errors) == 2  # noqa: PLR2004
+    assert len(result.errors) == 2
     first = result.errors[0]
     second = result.errors[1]
     assert isinstance(first, NumberTranscriptionError)
@@ -122,7 +124,7 @@ async def test_check_14_maps_each_issue_to_validation_error() -> None:
         "TotalAmountField.value.total.vat.amount.value"
     )
     assert second.location.sources == (field_source,)
-    assert service_mock.evaluate.await_count == 2  # noqa: PLR2004
+    assert service_mock.evaluate.await_count == 2
 
 
 async def test_check_14_passes_each_nested_amount_to_service() -> None:
@@ -133,7 +135,7 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
         transcription_compliancer=service_mock,
     )
 
-    document = SingleSupplierDocument(id=uuid4(), file_name="contract.pdf")
+    document = StubDocument(file_name="contract.pdf")
     total_amount_field = TotalAmountField(
         value=TotalAmount(
             total=Payment(
@@ -205,7 +207,7 @@ async def test_check_14_passes_each_nested_amount_to_service() -> None:
     result = await check.execute()
 
     assert result.status == CheckStatus.SUCCESS
-    assert service_mock.evaluate.await_count == 6  # noqa: PLR2004
+    assert service_mock.evaluate.await_count == 6
     passed_pairs = {
         (call.args[0].value, call.args[0].transcription)
         for call in service_mock.evaluate.await_args_list
@@ -301,7 +303,7 @@ async def test_check_14_identifies_payment_and_advance_amounts() -> None:
 async def test_check_14_skips_when_no_amount_transcription_pairs() -> None:
     service_mock = AsyncMock()
     check = CheckNumberTranscriptionRub(transcription_compliancer=service_mock)
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = StubDocument(file_name="doc-1.pdf")
     check.total_amount_fields = [
         TotalAmountField(
             value=TotalAmount(

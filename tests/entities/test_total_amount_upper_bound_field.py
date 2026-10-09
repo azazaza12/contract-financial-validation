@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from app.domain.entities import (
+from contract_validation.entities import (
     AmountOperand,
     Money,
     Payment,
@@ -13,7 +13,7 @@ from app.domain.entities import (
     Vat,
     VatInclusion,
 )
-from app.domain.entities.errors import (
+from contract_validation.entities.errors import (
     UpperBoundAmountError,
     UpperBoundVatAmountError,
     VatAmountCalculationDiscrepancyError,

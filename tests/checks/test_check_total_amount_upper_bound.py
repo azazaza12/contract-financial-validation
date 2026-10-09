@@ -2,11 +2,11 @@ from decimal import Decimal
 
 import pytest
 
-from app.domain.checks.check_total_amount_upper_bound import (
+from contract_validation.checks.check_total_amount_upper_bound import (
     CheckTotalAmountUpperBound,
 )
-from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities import (
+from contract_validation.constants import AMOUNT_TOLERANCE
+from contract_validation.entities import (
     AmountOperand,
     Money,
     Payment,
@@ -17,8 +17,11 @@ from app.domain.entities import (
     Vat,
     VatInclusion,
 )
-from app.domain.entities.errors import UpperBoundAmountError, UpperBoundVatAmountError
-from app.domain.entities.validation import CheckStatus
+from contract_validation.entities.errors import (
+    UpperBoundAmountError,
+    UpperBoundVatAmountError,
+)
+from contract_validation.entities.validation import CheckStatus
 
 
 pytestmark = pytest.mark.asyncio

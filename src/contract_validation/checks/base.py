@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from app.domain.entities.validation import CheckExecutionResult, CheckStatus
+from contract_validation.entities.validation import CheckExecutionResult, CheckStatus
 
 from .deps import OptionalDep, Requires
 
@@ -9,15 +9,15 @@ from .deps import OptionalDep, Requires
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
 
-    from app.domain.entities.errors.checks import BaseCheckError
-    from app.domain.entities.field import BaseField
+    from contract_validation.entities.errors.checks import BaseCheckError
+    from contract_validation.entities.field import BaseField
 
 
 class BaseCheck(ABC):
     @abstractmethod
     async def execute(self) -> CheckExecutionResult: ...
 
-    def prepare(self, fields: Iterable[BaseField]) -> None:
+    def prepare(self, fields: Iterable[BaseField[Any]]) -> None:
         attr_dict = type(self).__dict__
         for attr_name, declared_type in attr_dict.items():
             if isinstance(declared_type, (Requires, OptionalDep)):

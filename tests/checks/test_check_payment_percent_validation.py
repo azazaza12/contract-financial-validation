@@ -1,12 +1,13 @@
 from decimal import Decimal
-from unittest.mock import MagicMock
-from uuid import uuid4
 
-from app.domain.checks.check_payment_percent_validation import (
+import pytest
+
+from contract_validation.checks.check_payment_percent_validation import (
     CheckPaymentPercentValidation,
 )
-from app.domain.constants import AMOUNT_TOLERANCE
-from app.domain.entities import (
+from contract_validation.checks.errors import InsufficientCheckDataError
+from contract_validation.constants import AMOUNT_TOLERANCE
+from contract_validation.entities import (
     EMPTY_PAYMENT,
     AdvancePayment,
     AdvancePaymentList,
@@ -20,15 +21,12 @@ from app.domain.entities import (
     Vat,
     VatInclusion,
 )
-from app.domain.entities.errors import (
+from contract_validation.entities.errors import (
     PaymentAmountPercentDiscrepancyError,
     PaymentPercentSumDiscrepancyError,
 )
-from app.domain.entities.single_supplier import SingleSupplierDocument
-from app.domain.entities.validation import CheckStatus
-from app.domain.pipeline import TaskStatus
-from app.domain.pipeline.task import CheckTask
-from tests.domain.pipeline.conftest import DummyContract, create_context
+from contract_validation.entities.validation import CheckStatus
+from tests.conftest import StubDocument, run_check
 
 
 def _make_payment(value: str, vat_rate: str = "20.00") -> Payment:
@@ -60,7 +58,7 @@ def _make_advance(
 
 
 async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]):
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = StubDocument(file_name="doc-1.pdf")
     if total_amount is not None:
         total_payment = _make_payment(total_amount)
     else:
@@ -80,20 +78,12 @@ async def _run_check(*, total_amount: str | None, advances: list[AdvancePayment]
         value=AdvancePaymentList(advances),
         sources=[Source(document_id=document.id)],
     )
-    contract = DummyContract(
-        id=uuid4(),
-        user_id="test-user",
-        contract_name="contract.pdf",
-        documents=[document],
-        fields=FieldCollector([total_amount_field, advance_payments_field]),
-    )
-    contract_repo = MagicMock()
-    ctx = create_context(contract=contract, contract_repo=contract_repo)
+    fields = FieldCollector([total_amount_field, advance_payments_field])
     check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
 
-    await CheckTask(check=check).run(ctx)
+    result = await run_check(check, fields)
 
-    return contract_repo.save_errors.call_args.args[1]
+    return result.errors
 
 
 async def test_payment_percent_validates_amount_even_when_percents_missing() -> None:
@@ -221,84 +211,54 @@ async def test_payment_percent_fails_when_amount_difference_exceeds_tolerance() 
 
 
 async def test_payment_percent_skips_when_advance_list_is_empty() -> None:
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    contract = DummyContract(
-        id=uuid4(),
-        user_id="test-user",
-        contract_name="contract.pdf",
-        documents=[document],
-        fields=FieldCollector(
-            [
-                TotalAmountField(
-                    value=TotalAmount(
-                        total=_make_payment("100.00"),
-                        taxes=[],
-                    ),
-                    sources=[Source(document_id=document.id)],
+    document = StubDocument(file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            TotalAmountField(
+                value=TotalAmount(
+                    total=_make_payment("100.00"),
+                    taxes=[],
                 ),
-                AdvancePaymentsField(
-                    value=AdvancePaymentList([]),
-                    sources=[Source(document_id=document.id)],
-                ),
-            ],
-        ),
+                sources=[Source(document_id=document.id)],
+            ),
+            AdvancePaymentsField(
+                value=AdvancePaymentList([]),
+                sources=[Source(document_id=document.id)],
+            ),
+        ],
     )
-    contract_repo = MagicMock()
-    ctx = create_context(contract=contract, contract_repo=contract_repo)
+    check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
 
-    await CheckTask(
-        check=CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
-    ).run(
-        ctx,
-    )
-
-    run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
-    assert run.records[-1].status == TaskStatus.SKIPPED
-    assert "no advance payment records" in (run.records[-1].error_message or "")
-    contract_repo.save_errors.assert_not_awaited()
+    with pytest.raises(InsufficientCheckDataError, match="no advance payment records"):
+        await run_check(check, fields)
 
 
 async def test_payment_percent_skips_when_no_advance_has_percent() -> None:
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
-    contract = DummyContract(
-        id=uuid4(),
-        user_id="test-user",
-        contract_name="contract.pdf",
-        documents=[document],
-        fields=FieldCollector(
-            [
-                TotalAmountField(
-                    value=TotalAmount(
-                        total=_make_payment("100.00"),
-                        taxes=[],
-                    ),
-                    sources=[Source(document_id=document.id)],
+    document = StubDocument(file_name="doc-1.pdf")
+    fields = FieldCollector(
+        [
+            TotalAmountField(
+                value=TotalAmount(
+                    total=_make_payment("100.00"),
+                    taxes=[],
                 ),
-                AdvancePaymentsField(
-                    value=AdvancePaymentList(
-                        [
-                            _make_advance(percent=None, payment_value="50.00"),
-                            _make_advance(percent=None, payment_value="50.00"),
-                        ]
-                    ),
-                    sources=[Source(document_id=document.id)],
+                sources=[Source(document_id=document.id)],
+            ),
+            AdvancePaymentsField(
+                value=AdvancePaymentList(
+                    [
+                        _make_advance(percent=None, payment_value="50.00"),
+                        _make_advance(percent=None, payment_value="50.00"),
+                    ]
                 ),
-            ],
-        ),
+                sources=[Source(document_id=document.id)],
+            ),
+        ],
     )
-    contract_repo = MagicMock()
-    ctx = create_context(contract=contract, contract_repo=contract_repo)
+    check = CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
 
-    await CheckTask(
-        check=CheckPaymentPercentValidation(tolerance=AMOUNT_TOLERANCE)
-    ).run(
-        ctx,
-    )
-
-    run = await ctx.pipeline_run_repo.get_by_id(ctx.pipeline.id)
-    assert run.records[-1].status == TaskStatus.SKIPPED
-    assert "no advance payment percents" in (run.records[-1].error_message or "")
-    contract_repo.save_errors.assert_not_awaited()
+    with pytest.raises(InsufficientCheckDataError, match="no advance payment percents"):
+        await run_check(check, fields)
 
 
 async def test_payment_percent_succeeds_for_single_100_percent_payment() -> None:
@@ -372,7 +332,7 @@ def _vat_payment(
 
 
 async def test_payment_percent_falls_back_to_raw_when_advance_lacks_rate() -> None:
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = StubDocument(file_name="doc-1.pdf")
     total_payment = _vat_payment(
         "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
     )
@@ -410,7 +370,7 @@ async def test_payment_percent_falls_back_to_raw_when_advance_lacks_rate() -> No
 async def test_payment_percent_succeeds_when_total_net_and_advances_gross_match() -> (
     None
 ):
-    document = SingleSupplierDocument(id=uuid4(), file_name="doc-1.pdf")
+    document = StubDocument(file_name="doc-1.pdf")
     total_payment = _vat_payment(
         "100.00", rate="20.00", include_vat=VatInclusion.EXCLUDED
     )

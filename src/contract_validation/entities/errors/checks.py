@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import cast
 from warnings import deprecated
 
-from app.domain.entities.amount_comparison import AmountOperand
-from app.domain.entities.field_location import FieldLocation
-from app.domain.entities.vat_inclusion import VatInclusion
+from contract_validation.entities.amount_comparison import AmountOperand
+from contract_validation.entities.field_location import FieldLocation
+from contract_validation.entities.vat_inclusion import VatInclusion
 
 from .base import BaseContractError
 

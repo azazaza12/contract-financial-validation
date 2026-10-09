@@ -1,13 +1,13 @@
 from typing import cast
 
-from app.domain.entities.errors.checks import NumberTranscriptionError
-from app.domain.entities.single_supplier_fields import (
+from contract_validation.entities.contract_fields import (
     AdvancePaymentsField,
     LocatedAmount,
     TotalAmountField,
 )
-from app.domain.entities.validation import CheckExecutionResult
-from app.domain.ports.checker import ITranscriptionCompliancer
+from contract_validation.entities.errors.checks import NumberTranscriptionError
+from contract_validation.entities.validation import CheckExecutionResult
+from contract_validation.ports.checker import ITranscriptionCompliancer
 
 from .base import BaseCheck
 from .deps import OptionalDep

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.domain.entities.merge_types import ValueCandidate
+from contract_validation.entities.merge_types import ValueCandidate
 
 from .base import BaseContractError
 
