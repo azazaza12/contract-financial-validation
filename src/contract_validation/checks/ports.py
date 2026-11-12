@@ -7,5 +7,7 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True, slots=True)
-class CheckServices:
+class CheckPorts:
+    """Port implementations supplied when constructing checks."""
+
     transcription_compliancer: ITranscriptionCompliancer

@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 
+from contract_validation.checks import CheckPorts
 from contract_validation.checks.check_number_transcription_rub import (
     CheckNumberTranscriptionRub,
 )
@@ -45,7 +46,10 @@ def _make_total_amount_field(value: str, transcription: str | None) -> TotalAmou
 async def test_check_14_succeeds_when_no_transcription_issues() -> None:
     service_mock = AsyncMock()
     service_mock.evaluate.return_value = None
-    check = CheckNumberTranscriptionRub(transcription_compliancer=service_mock)
+    ports = CheckPorts(transcription_compliancer=service_mock)
+    check = CheckNumberTranscriptionRub(
+        transcription_compliancer=ports.transcription_compliancer,
+    )
     check.total_amount_fields = [
         _make_total_amount_field(
             value="100.00",
