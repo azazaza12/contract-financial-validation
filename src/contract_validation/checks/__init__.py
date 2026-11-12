@@ -1,4 +1,5 @@
 from .base import BaseCheck
+from .check_ports import CheckPorts
 from .deps import OptionalDep, Requires
 from .errors import (
     CheckInputError,
@@ -6,7 +7,6 @@ from .errors import (
     MissingRequiredFieldError,
     MultiplyRequiredFieldError,
 )
-from .ports import CheckPorts
 
 
 __all__ = [

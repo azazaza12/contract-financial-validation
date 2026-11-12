@@ -69,7 +69,7 @@ class CheckTotalAmountsValidation(BaseCheck):
 код отличает «нет данных для проверки» от «проверка не прошла».
 Поддерживается и `Requires(list[TaxField])`.
 
-`CheckPorts` (`checks/ports.py`) группирует реализации портов для создания
+`CheckPorts` (`checks/check_ports.py`) группирует реализации портов для создания
 проверок. Приложение создаёт этот набор и передаёт каждой проверке только
 нужный объект через конструктор. Сейчас в нём хранится
 `transcription_compliancer: ITranscriptionCompliancer`. В исходном проекте
